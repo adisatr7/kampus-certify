@@ -47,6 +47,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // UMC CA Custom Colors
+        umc: {
+          maroon: "hsl(var(--umc-maroon))",
+          gray: "hsl(var(--umc-gray))",
+          "light-gray": "hsl(var(--umc-light-gray))",
+          dark: "hsl(var(--umc-dark))",
+        },
+        status: {
+          valid: "hsl(var(--status-valid))",
+          invalid: "hsl(var(--status-invalid))",
+          revoked: "hsl(var(--status-revoked))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
