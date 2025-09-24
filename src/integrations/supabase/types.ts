@@ -14,16 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_trail: {
+        Row: {
+          action: string
+          created_at: string | null
+          description: string | null
+          id: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_trail_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificates: {
+        Row: {
+          algorithm: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          issued_at: string | null
+          private_key: string
+          public_key: string
+          revoked_at: string | null
+          serial_number: string
+          status: Database["public"]["Enums"]["certificate_status"] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          algorithm?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          issued_at?: string | null
+          private_key: string
+          public_key: string
+          revoked_at?: string | null
+          serial_number: string
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          algorithm?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          issued_at?: string | null
+          private_key?: string
+          public_key?: string
+          revoked_at?: string | null
+          serial_number?: string
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          certificate_id: string | null
+          created_at: string | null
+          file_url: string | null
+          id: string
+          qr_code_url: string | null
+          signed: boolean | null
+          signed_at: string | null
+          status: Database["public"]["Enums"]["document_status"] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          certificate_id?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          qr_code_url?: string | null
+          signed?: boolean | null
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["document_status"] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          certificate_id?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          qr_code_url?: string | null
+          signed?: boolean | null
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["document_status"] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          certificate_id: string | null
+          created_at: string | null
+          email: string
+          google_id: string | null
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          certificate_id?: string | null
+          created_at?: string | null
+          email: string
+          google_id?: string | null
+          id?: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          certificate_id?: string | null
+          created_at?: string | null
+          email?: string
+          google_id?: string | null
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_users_certificate_id"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_audit_entry: {
+        Args: { p_action: string; p_description: string; p_user_id: string }
+        Returns: undefined
+      }
+      get_user_role: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      certificate_status: "active" | "expired" | "revoked"
+      document_status: "pending" | "signed" | "revoked"
+      user_role: "admin" | "dosen" | "rektor" | "dekan"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +348,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      certificate_status: ["active", "expired", "revoked"],
+      document_status: ["pending", "signed", "revoked"],
+      user_role: ["admin", "dosen", "rektor", "dekan"],
+    },
   },
 } as const
