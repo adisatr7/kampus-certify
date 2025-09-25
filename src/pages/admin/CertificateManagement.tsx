@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 interface Certificate {
   id: string;
@@ -214,173 +215,175 @@ export default function CertificateManagement() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <DashboardLayout userRole={userProfile?.role as any}>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/4"></div>
           <div className="h-64 bg-muted rounded"></div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
-          <p className="text-muted-foreground">Kelola sertifikat digital untuk penandatanganan dokumen</p>
+    <DashboardLayout userRole={userProfile?.role as any}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
+            <p className="text-muted-foreground">Kelola sertifikat digital untuk penandatanganan dokumen</p>
+          </div>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Buat Sertifikat Baru
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Buat Sertifikat Baru</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="user">Pilih User</Label>
+                  <Select value={userId} onValueChange={setUserId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih user..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="algorithm">Algoritma</Label>
+                  <Select value={algorithm} onValueChange={setAlgorithm}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="RSA-2048">RSA-2048</SelectItem>
+                      <SelectItem value="RSA-4096">RSA-4096</SelectItem>
+                      <SelectItem value="ECDSA-P256">ECDSA-P256</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="expiry">Masa Berlaku (hari)</Label>
+                  <Input
+                    id="expiry"
+                    type="number"
+                    value={expiryDays}
+                    onChange={(e) => setExpiryDays(e.target.value)}
+                    placeholder="365"
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreateDialogOpen(false);
+                      resetForm();
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button onClick={generateCertificate}>
+                    Buat Sertifikat
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Buat Sertifikat Baru
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Buat Sertifikat Baru</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="user">Pilih User</Label>
-                <Select value={userId} onValueChange={setUserId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih user..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="algorithm">Algoritma</Label>
-                <Select value={algorithm} onValueChange={setAlgorithm}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="RSA-2048">RSA-2048</SelectItem>
-                    <SelectItem value="RSA-4096">RSA-4096</SelectItem>
-                    <SelectItem value="ECDSA-P256">ECDSA-P256</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="expiry">Masa Berlaku (hari)</Label>
-                <Input
-                  id="expiry"
-                  type="number"
-                  value={expiryDays}
-                  onChange={(e) => setExpiryDays(e.target.value)}
-                  placeholder="365"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    resetForm();
-                  }}
-                >
-                  Batal
-                </Button>
-                <Button onClick={generateCertificate}>
-                  Buat Sertifikat
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Daftar Sertifikat
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {certificates.length === 0 ? (
-            <div className="text-center py-8">
-              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Belum ada sertifikat yang dibuat</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Serial Number</TableHead>
-                  <TableHead>Algoritma</TableHead>
-                  <TableHead>Diterbitkan</TableHead>
-                  <TableHead>Kadaluarsa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {certificates.map((cert) => (
-                  <TableRow key={cert.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{cert.users.name}</div>
-                        <div className="text-sm text-muted-foreground">{cert.users.email}</div>
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {cert.users.role}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {cert.serial_number}
-                    </TableCell>
-                    <TableCell>{cert.algorithm}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(cert.issued_at).toLocaleDateString('id-ID')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(cert.expires_at).toLocaleDateString('id-ID')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(cert.status)}
-                        {getStatusBadge(cert.status)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {cert.status === 'active' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => revokeCertificate(cert.id, cert.users.name)}
-                        >
-                          Cabut
-                        </Button>
-                      )}
-                    </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Daftar Sertifikat
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {certificates.length === 0 ? (
+              <div className="text-center py-8">
+                <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Belum ada sertifikat yang dibuat</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Algoritma</TableHead>
+                    <TableHead>Diterbitkan</TableHead>
+                    <TableHead>Kadaluarsa</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {certificates.map((cert) => (
+                    <TableRow key={cert.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{cert.users.name}</div>
+                          <div className="text-sm text-muted-foreground">{cert.users.email}</div>
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {cert.users.role}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {cert.serial_number}
+                      </TableCell>
+                      <TableCell>{cert.algorithm}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(cert.issued_at).toLocaleDateString('id-ID')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(cert.status)}
+                          {getStatusBadge(cert.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {cert.status === 'active' && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => revokeCertificate(cert.id, cert.users.name)}
+                          >
+                            Cabut
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
   );
 }
