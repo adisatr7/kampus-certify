@@ -16,6 +16,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/lib/auth";
 
 interface AppSidebarProps {
   userRole: 'admin' | 'dosen' | 'rektor' | 'dekan';
@@ -26,34 +27,34 @@ interface AppSidebarProps {
 export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { signOut } = useAuth();
 
-  // Menu items berdasarkan role
+  // Menu items berdasarkan role - URLs disesuaikan dengan routes di App.tsx
   const menuItems = {
     admin: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Sertifikat", url: "/certificates", icon: Award },
-      { title: "Dokumen", url: "/documents", icon: FileText },
-      { title: "Pengguna", url: "/users", icon: Users },
-      { title: "Audit Trail", url: "/audit", icon: Activity },
-      { title: "Verifikasi", url: "/verify", icon: Search },
+      { title: "Dashboard", url: "/", icon: Home },
+      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },
+      { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
+      { title: "Audit Trail", url: "/admin/audit", icon: Activity },
+      { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     dosen: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Dokumen Saya", url: "/my-documents", icon: FileText },
-      { title: "Sertifikat Saya", url: "/my-certificates", icon: Award },
-      { title: "Verifikasi", url: "/verify", icon: Search },
+      { title: "Dashboard", url: "/", icon: Home },
+      { title: "Dokumen Saya", url: "/documents", icon: FileText },
+      { title: "Tanda Tangan", url: "/sign", icon: Award },
+      { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     rektor: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Dokumen Saya", url: "/my-documents", icon: FileText },
-      { title: "Sertifikat Saya", url: "/my-certificates", icon: Award },
-      { title: "Verifikasi", url: "/verify", icon: Search },
+      { title: "Dashboard", url: "/", icon: Home },
+      { title: "Dokumen Saya", url: "/documents", icon: FileText },
+      { title: "Tanda Tangan", url: "/sign", icon: Award },
+      { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     dekan: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Dokumen Saya", url: "/my-documents", icon: FileText },
-      { title: "Sertifikat Saya", url: "/my-certificates", icon: Award },
-      { title: "Verifikasi", url: "/verify", icon: Search },
+      { title: "Dashboard", url: "/", icon: Home },
+      { title: "Dokumen Saya", url: "/documents", icon: FileText },
+      { title: "Tanda Tangan", url: "/sign", icon: Award },
+      { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ]
   };
 
@@ -110,15 +111,6 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
         ))}
         
         <Separator className="my-4" />
-        
-        {/* Settings */}
-        <NavLink
-          to="/settings"
-          className={getNavClass("/settings")}
-        >
-          <Settings className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Pengaturan</span>}
-        </NavLink>
       </nav>
 
       {/* Footer */}
@@ -126,10 +118,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
         <Button
           variant="ghost"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => {
-            // TODO: Implement logout
-            console.log("Logout clicked");
-          }}
+          onClick={signOut}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="ml-3">Keluar</span>}
