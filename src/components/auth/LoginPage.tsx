@@ -2,12 +2,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import campusBackground from "@/assets/campus-bg.jpg";
 import { LogIn, Shield, University } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export function LoginPage() {
-  const handleGoogleLogin = () => {
-    // TODO: Implementasi Google Login dengan Supabase
-    console.log("Google login clicked - requires Supabase integration");
-  };
+  const { signInWithGoogle } = useAuth();
 
   return (
     <div 
@@ -58,7 +56,7 @@ export function LoginPage() {
           {/* Login Button */}
           <div className="space-y-4">
             <Button 
-              onClick={handleGoogleLogin}
+              onClick={signInWithGoogle}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               size="lg"
             >
