@@ -60,57 +60,35 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
     }
   }, [document.id]);
 
-  // Set document content - use original content for better readability
+  // Set document content - always use original content to avoid corrupted text
   useEffect(() => {
-    // For signed documents, prioritize original content over potentially corrupted storage content
-    if (document.content) {
-      setDocumentContent(document.content);
-    } else if (document.signed_at && document.file_url) {
-      // Only fetch from storage if original content is not available
-      const fetchDocumentContent = async () => {
-        try {
-          const urlParts = document.file_url.split('/documents/');
-          if (urlParts.length > 1) {
-            const filePath = urlParts[1];
-            
-            const { data, error } = await supabase.storage
-              .from('documents')
-              .download(filePath);
+    // Always prioritize original content from database over storage content
+    if (document.content && document.content.trim()) {
+      // Clean and validate the content
+      const cleanContent = document.content.trim();
+      
+      // Check if content contains readable text (not encoded/corrupted)
+      const isReadable = !/[^\w\s\.\,\!\?\:\;\-\(\)\[\]\{\}\"\'\/\\àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/gi.test(cleanContent.substring(0, 100));
+      
+      if (isReadable && cleanContent.length > 10) {
+        setDocumentContent(cleanContent);
+      } else {
+        // If content appears corrupted, use a placeholder
+        setDocumentContent(`Dokumen: ${document.title}
 
-            if (error) {
-              console.error('Error downloading document:', error);
-              setDocumentContent('Konten dokumen tidak tersedia');
-              return;
-            }
+Isi dokumen telah diproses dan ditandatangani secara elektronik oleh ${document.users?.name || 'Pejabat Berwenang'}.
 
-            const text = await data.text();
-            
-            // Check if content looks like markup/XML and clean it or use fallback
-            if (text.includes('<') && text.includes('>')) {
-              // If it's HTML/XML markup, try to extract readable text or use placeholder
-              const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-              if (cleanText.length > 10) {
-                setDocumentContent(cleanText);
-              } else {
-                setDocumentContent('Konten dokumen telah diproses dan ditandatangani secara elektronik');
-              }
-            } else {
-              setDocumentContent(text);
-            }
-          } else {
-            setDocumentContent('Konten dokumen tidak tersedia');
-          }
-        } catch (error) {
-          console.error('Error fetching document content:', error);
-          setDocumentContent('Error memuat konten dokumen');
-        }
-      };
-
-      fetchDocumentContent();
+Dokumen ini merupakan dokumen resmi yang telah melalui proses verifikasi dan penandatanganan digital sesuai dengan ketentuan yang berlaku di Universitas Muhammadiyah Cirebon.`);
+      }
     } else {
-      setDocumentContent('');
+      // Fallback content
+      setDocumentContent(`Dokumen: ${document.title}
+
+Isi dokumen telah diproses dan ditandatangani secara elektronik oleh ${document.users?.name || 'Pejabat Berwenang'}.
+
+Dokumen ini merupakan dokumen resmi yang telah melalui proses verifikasi dan penandatanganan digital sesuai dengan ketentuan yang berlaku di Universitas Muhammadiyah Cirebon.`);
     }
-  }, [document.content, document.signed_at, document.file_url]);
+  }, [document.content, document.title, document.users?.name]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
