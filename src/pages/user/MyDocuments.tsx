@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 
 interface Document {
   id: string;
@@ -20,6 +21,11 @@ interface Document {
   status: 'pending' | 'signed' | 'revoked';
   signed_at: string | null;
   created_at: string;
+  qr_code_url?: string | null;
+  users?: {
+    name: string;
+    role: string;
+  };
 }
 
 export default function MyDocuments() {
@@ -30,6 +36,8 @@ export default function MyDocuments() {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
@@ -51,7 +59,13 @@ export default function MyDocuments() {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select(`
+          *,
+          users (
+            name,
+            role
+          )
+        `)
         .eq('user_id', userProfile.id)
         .order('created_at', { ascending: false });
 
@@ -188,6 +202,15 @@ export default function MyDocuments() {
   const resetForm = () => {
     setTitle("");
     setFile(null);
+  };
+
+  const handleViewDocument = (doc: Document) => {
+    if (doc.status === 'signed') {
+      setSelectedDocument(doc);
+      setIsViewerOpen(true);
+    } else if (doc.file_url) {
+      window.open(doc.file_url, '_blank');
+    }
   };
 
   const getDocumentStats = () => {
@@ -495,7 +518,7 @@ export default function MyDocuments() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => window.open(doc.file_url!, '_blank')}
+                                    onClick={() => handleViewDocument(doc)}
                                     title="Lihat dokumen"
                                     className="text-slate-600 border-slate-200 hover:bg-slate-50"
                                   >
@@ -505,12 +528,19 @@ export default function MyDocuments() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      const link = document.createElement('a');
-                                      link.href = doc.file_url!;
-                                      link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
+                                      if (doc.status === 'signed') {
+                                        // For signed documents, trigger the formatted download
+                                        setSelectedDocument(doc);
+                                        setIsViewerOpen(true);
+                                      } else {
+                                        // For unsigned documents, direct download
+                                        const link = document.createElement('a');
+                                        link.href = doc.file_url!;
+                                        link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                      }
                                     }}
                                     title="Download dokumen"
                                     className="text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -542,6 +572,18 @@ export default function MyDocuments() {
           </Card>
         </div>
       </div>
+      
+      {/* Signed Document Viewer */}
+      {selectedDocument && (
+        <SignedDocumentViewer
+          isOpen={isViewerOpen}
+          onClose={() => {
+            setIsViewerOpen(false);
+            setSelectedDocument(null);
+          }}
+          document={selectedDocument}
+        />
+      )}
     </DashboardLayout>
   );
 }

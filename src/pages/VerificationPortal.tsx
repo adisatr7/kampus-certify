@@ -9,6 +9,7 @@ import { Search, Shield, FileText, Calendar, Download, CheckCircle, XCircle, Ale
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import campusBackground from "@/assets/campus-bg.jpg";
+import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 
 interface VerificationResult {
   id: string;
@@ -32,6 +33,7 @@ export default function VerificationPortal() {
   const [documentId, setDocumentId] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
 
   const verifyDocument = async () => {
@@ -326,10 +328,18 @@ export default function VerificationPortal() {
 
                   {/* Download Button */}
                   {verificationResult.file_url && verificationResult.status === 'signed' && (
-                    <div className="text-center">
+                    <div className="text-center space-y-2">
+                      <Button
+                        onClick={() => setIsViewerOpen(true)}
+                        className="bg-primary hover:bg-primary/90 mr-2"
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Lihat Dokumen Resmi
+                      </Button>
                       <Button
                         onClick={() => window.open(verificationResult.file_url!, '_blank')}
-                        className="bg-primary hover:bg-primary/90"
+                        variant="outline"
+                        className="bg-white/50"
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Unduh Dokumen Asli
@@ -373,6 +383,15 @@ export default function VerificationPortal() {
             </Card>
           </div>
         </main>
+
+        {/* Signed Document Viewer */}
+        {verificationResult && (
+          <SignedDocumentViewer
+            isOpen={isViewerOpen}
+            onClose={() => setIsViewerOpen(false)}
+            document={verificationResult}
+          />
+        )}
 
         {/* Footer */}
         <footer className="bg-white/10 backdrop-blur-lg border-t border-white/20">
