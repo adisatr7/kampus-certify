@@ -22,6 +22,7 @@ interface Document {
   signed_at: string | null;
   created_at: string;
   qr_code_url?: string | null;
+  content?: string | null;
   users?: {
     name: string;
     role: string;
@@ -134,6 +135,7 @@ export default function MyDocuments() {
         .from('documents')
         .insert({
           title,
+          content: "", // Add content field with empty value for user uploads
           user_id: userProfile.id,
           file_url: publicUrl,
           status: 'pending'

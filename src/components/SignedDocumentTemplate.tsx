@@ -5,6 +5,7 @@ interface SignedDocumentTemplateProps {
     id: string;
     title: string;
     signed_at: string | null;
+    content?: string | null;
     users?: {
       name: string;
       role: string;
@@ -39,11 +40,19 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
 
       {/* Document Content Area */}
       <div className="min-h-[400px] mb-8">
-        {/* This area would contain the actual document content */}
-        <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
-          <p className="text-gray-500">Konten Dokumen: {document.title}</p>
-          <p className="text-sm text-gray-400 mt-2">Area ini akan berisi konten dokumen asli</p>
-        </div>
+        {document.content ? (
+          <div className="border border-gray-300 rounded-lg p-6 bg-white">
+            <h2 className="text-xl font-bold text-center mb-6">{document.title}</h2>
+            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+              {document.content}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
+            <p className="text-gray-500">Konten Dokumen: {document.title}</p>
+            <p className="text-sm text-gray-400 mt-2">Konten dokumen belum tersedia</p>
+          </div>
+        )}
       </div>
 
       {/* Signature Block */}

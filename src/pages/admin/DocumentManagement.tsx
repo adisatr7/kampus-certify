@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,6 +26,7 @@ interface Document {
   created_at: string;
   user_id: string;
   qr_code_url?: string | null;
+  content?: string | null;
   users: {
     name: string;
     email: string;
@@ -44,6 +46,7 @@ export default function DocumentManagement() {
 
   // Form state
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [userId, setUserId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -95,10 +98,10 @@ export default function DocumentManagement() {
   };
 
   const uploadDocument = async () => {
-    if (!title || !userId || !file) {
+    if (!title || !userId) {
       toast({
         title: "Error",
-        description: "Semua field harus diisi",
+        description: "Judul dan user harus diisi",
         variant: "destructive",
       });
       return;
@@ -107,29 +110,36 @@ export default function DocumentManagement() {
     setUploading(true);
 
     try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `documents/${fileName}`;
+      let fileUrl = null;
+      
+      // Upload file to Supabase Storage if file is provided
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const filePath = `documents/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('documents')
+          .getPublicUrl(filePath);
+        
+        fileUrl = publicUrl;
+      }
 
       // Create document record
       const { error: insertError } = await supabase
         .from('documents')
         .insert({
           title,
+          content,
           user_id: userId,
-          file_url: publicUrl,
+          file_url: fileUrl,
           status: 'pending'
         });
 
@@ -193,6 +203,7 @@ export default function DocumentManagement() {
 
   const resetForm = () => {
     setTitle("");
+    setContent("");
     setUserId("");
     setFile(null);
   };
@@ -249,6 +260,21 @@ export default function DocumentManagement() {
                 </div>
 
                 <div>
+                  <Label htmlFor="content">Konten Dokumen</Label>
+                  <Textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Masukkan isi konten dokumen..."
+                    rows={6}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Isi konten dokumen yang akan ditampilkan saat ditandatangani
+                  </p>
+                </div>
+
+                <div>
                   <Label htmlFor="user">Pilih User</Label>
                   <Select value={userId} onValueChange={setUserId}>
                     <SelectTrigger>
@@ -265,7 +291,7 @@ export default function DocumentManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="file">File Dokumen</Label>
+                  <Label htmlFor="file">File Dokumen (Opsional)</Label>
                   <Input
                     id="file"
                     type="file"
@@ -273,7 +299,7 @@ export default function DocumentManagement() {
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Format yang didukung: PDF, DOC, DOCX
+                    Format yang didukung: PDF, DOC, DOCX (opsional, konten utama dari field di atas)
                   </p>
                 </div>
                 

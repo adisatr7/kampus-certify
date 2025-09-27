@@ -11,6 +11,7 @@ interface SignedDocumentViewerProps {
     title: string;
     signed_at: string | null;
     qr_code_url?: string | null;
+    content?: string | null;
     users?: {
       name: string;
       role: string;
@@ -148,8 +149,13 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
             </div>
             
             <div class="content-area">
-              <p style="margin: 0; font-weight: 500;">Konten Dokumen: ${document.title}</p>
-              <p style="margin: 8px 0 0 0; font-size: 14px;">Area ini akan berisi konten dokumen asli</p>
+              ${document.content ? `
+                <h2 style="font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 24px;">${document.title}</h2>
+                <div style="white-space: pre-wrap; color: #374151; line-height: 1.6;">${document.content}</div>
+              ` : `
+                <p style="margin: 0; font-weight: 500;">Konten Dokumen: ${document.title}</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px;">Konten dokumen belum tersedia</p>
+              `}
             </div>
             
             <div class="signature-block">

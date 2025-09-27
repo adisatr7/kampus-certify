@@ -18,9 +18,9 @@ interface VerificationResult {
   signed_at: string | null;
   file_url: string | null;
   qr_code_url: string | null;
+  content?: string | null;
   certificate?: {
     serial_number: string;
-    algorithm: string;
     status: string;
   };
   users?: {
@@ -315,10 +315,6 @@ export default function VerificationPortal() {
                             <div>
                               <span className="text-muted-foreground">Sertifikat:</span>
                               <p className="font-mono text-xs">{verificationResult.certificate.serial_number}</p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Algoritma:</span>
-                              <Badge variant="outline">{verificationResult.certificate.algorithm}</Badge>
                             </div>
                           </>
                         )}

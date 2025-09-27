@@ -102,6 +102,7 @@ export type Database = {
       documents: {
         Row: {
           certificate_id: string | null
+          content: string | null
           created_at: string | null
           file_url: string | null
           id: string
@@ -115,6 +116,7 @@ export type Database = {
         }
         Insert: {
           certificate_id?: string | null
+          content?: string | null
           created_at?: string | null
           file_url?: string | null
           id?: string
@@ -128,6 +130,7 @@ export type Database = {
         }
         Update: {
           certificate_id?: string | null
+          content?: string | null
           created_at?: string | null
           file_url?: string | null
           id?: string
