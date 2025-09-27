@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Plus, FileText, Upload, Eye, Edit, Trash2, Calendar } from "lucide-react";
+import { Plus, FileText, Upload, Eye, Edit, Trash2, Calendar, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
@@ -318,13 +318,31 @@ export default function MyDocuments() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {doc.file_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(doc.file_url!, '_blank')}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(doc.file_url!, '_blank')}
+                                title="Lihat dokumen"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = doc.file_url!;
+                                  link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                title="Download dokumen"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                           {doc.status === 'pending' && (
                             <Button

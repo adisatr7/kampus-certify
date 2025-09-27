@@ -361,13 +361,31 @@ export default function DocumentManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {doc.file_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(doc.file_url!, '_blank')}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(doc.file_url!, '_blank')}
+                                title="Lihat dokumen"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = doc.file_url!;
+                                  link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                title="Download dokumen"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                           <Button
                             variant="destructive"
