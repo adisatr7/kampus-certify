@@ -1,4 +1,6 @@
 import { QrCode } from "lucide-react";
+import QRCode from "qrcode";
+import { useEffect, useState } from "react";
 
 interface SignedDocumentTemplateProps {
   document: {
@@ -15,6 +17,8 @@ interface SignedDocumentTemplateProps {
 }
 
 export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDocumentTemplateProps) {
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -28,6 +32,30 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
         year: 'numeric'
       })
     : currentDate;
+
+  // Generate QR Code for verification
+  useEffect(() => {
+    const generateQRCode = async () => {
+      try {
+        const verificationUrl = `${window.location.origin}/verification-portal?documentId=${document.id}`;
+        const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+          width: 80,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        setQrCodeDataUrl(qrDataUrl);
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+      }
+    };
+
+    if (document.id) {
+      generateQRCode();
+    }
+  }, [document.id]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
@@ -80,9 +108,17 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
               
               {/* QR Code */}
               <div className="flex justify-center mb-3">
-                <div className="w-16 h-16 border-2 border-gray-800 flex items-center justify-center bg-white">
-                  <QrCode className="w-12 h-12 text-gray-800" />
-                </div>
+                {qrCodeDataUrl ? (
+                  <img 
+                    src={qrCodeDataUrl} 
+                    alt="QR Code untuk verifikasi dokumen"
+                    className="w-16 h-16 border border-gray-300"
+                  />
+                ) : (
+                  <div className="w-16 h-16 border-2 border-gray-800 flex items-center justify-center bg-white">
+                    <QrCode className="w-12 h-12 text-gray-800" />
+                  </div>
+                )}
               </div>
               
               <p className="text-xs text-gray-800 font-medium mb-2">
