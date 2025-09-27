@@ -33,6 +33,7 @@ interface DiagnosticInfo {
 }
 
 export default function AuditTrail() {
+  console.log("🚀 AuditTrail component is rendering!");
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
