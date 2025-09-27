@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +36,22 @@ export default function VerificationPortal() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
 
-  const verifyDocument = async () => {
-    if (!documentId.trim()) {
+  // Auto-fill document ID from URL parameter (QR code scan)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const idFromUrl = urlParams.get('id');
+    if (idFromUrl) {
+      setDocumentId(idFromUrl);
+      // Auto-verify if ID comes from QR code
+      setTimeout(() => {
+        verifyDocument(idFromUrl);
+      }, 500);
+    }
+  }, []);
+
+  const verifyDocument = async (idOverride?: string) => {
+    const docId = idOverride || documentId;
+    if (!docId.trim()) {
       toast({
         title: "Error",
         description: "Masukkan ID dokumen atau scan QR code",
@@ -62,7 +76,7 @@ export default function VerificationPortal() {
             role
           )
         `)
-        .eq('id', documentId.trim())
+        .eq('id', docId.trim())
         .maybeSingle();
 
       if (error) throw error;
@@ -166,19 +180,16 @@ export default function VerificationPortal() {
         {/* Header */}
         <header className="bg-white/10 backdrop-blur-lg border-b border-white/20">
           <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/20 p-2 rounded-lg backdrop-blur-sm">
-                  <Shield className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">UMC</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">Portal Verifikasi</h1>
-                  <p className="text-sm text-white/80">CA UMC - Certificate Authority</p>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold text-white">Portal Verifikasi Dokumen</h1>
+                  <p className="text-lg text-white/90">Certificate Authority</p>
+                  <p className="text-sm text-white/80">Universitas Muhammadiyah Cirebon</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-white/80">
-                <University className="h-4 w-4" />
-                <span className="text-sm">Universitas Muhammadiyah Cirebon</span>
               </div>
             </div>
           </div>
@@ -212,7 +223,7 @@ export default function VerificationPortal() {
                       className="flex-1"
                     />
                     <Button 
-                      onClick={verifyDocument}
+                      onClick={() => verifyDocument()}
                       disabled={verifying}
                       className="bg-primary hover:bg-primary/90"
                     >
@@ -245,100 +256,95 @@ export default function VerificationPortal() {
             {/* Verification Result */}
             {verificationResult && (
               <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Hasil Verifikasi
+                <CardHeader className="text-center pb-4">
+                  <div className="w-16 h-16 mx-auto bg-yellow-500 rounded-full flex items-center justify-center mb-3">
+                    <span className="text-white font-bold text-sm">UMC</span>
+                  </div>
+                  <CardTitle className="text-xl">
+                    Certificate Authority Universitas Muhammadiyah Cirebon
                   </CardTitle>
+                  <p className="text-muted-foreground">menyatakan bahwa :</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Status Overview */}
-                  <div className="text-center space-y-4">
-                    {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
-                    <div>
+                  {/* Document ID */}
+                  <div className="text-center">
+                    <p className="text-lg font-semibold">ID Dokumen: {verificationResult.id}</p>
+                  </div>
+
+                  {/* Document Information */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Judul Dokumen:</span>
+                      <span className="font-medium">{verificationResult.title}</span>
+                    </div>
+                    
+                    {verificationResult.users && (
+                      <>
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-muted-foreground">Nama Penandatangan:</span>
+                          <span className="font-medium">{verificationResult.users.name}</span>
+                        </div>
+
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-muted-foreground">Jabatan:</span>
+                          <span className="font-medium">
+                            {verificationResult.users.role === 'rektor' ? 'Rektor' : 
+                             verificationResult.users.role === 'dekan' ? 'Dekan' :
+                             verificationResult.users.role === 'dosen' ? 'Dosen' : 
+                             verificationResult.users.role}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    {verificationResult.certificate && (
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-muted-foreground">Serial Sertifikat:</span>
+                        <span className="font-mono text-sm">{verificationResult.certificate.serial_number}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status Information */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700 mb-2">
+                      adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh Certificate Authority UMC
+                      melalui Sistem Certificate Authority Berbasis Digital.
+                    </p>
+                    
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
                       <StatusBadge 
                         status={getOverallStatus(verificationResult.status, verificationResult.certificate?.status) as any}
                         className="text-lg px-6 py-2"
                       />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {getStatusMessage(verificationResult.status, verificationResult.certificate?.status)}
+                    </div>
+
+                    {verificationResult.signed_at && (
+                      <p className="text-sm text-center text-muted-foreground mt-2">
+                        Ditandatangani pada: {new Date(verificationResult.signed_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
                       </p>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Document Details */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Informasi Dokumen</h4>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Judul:</span>
-                          <p className="font-medium">{verificationResult.title}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">ID Dokumen:</span>
-                          <p className="font-mono text-xs">{verificationResult.id}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Status:</span>
-                          <StatusBadge status={verificationResult.status as any} />
-                        </div>
-                        {verificationResult.signed_at && (
-                          <div>
-                            <span className="text-muted-foreground">Tanggal Tanda Tangan:</span>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              {new Date(verificationResult.signed_at).toLocaleString('id-ID')}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Informasi Penandatangan</h4>
-                      <div className="space-y-2 text-sm">
-                        {verificationResult.users && (
-                          <>
-                            <div>
-                              <span className="text-muted-foreground">Nama:</span>
-                              <p className="font-medium">{verificationResult.users.name}</p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Jabatan:</span>
-                              <Badge variant="outline">{verificationResult.users.role}</Badge>
-                            </div>
-                          </>
-                        )}
-                        {verificationResult.certificate && (
-                          <>
-                            <div>
-                              <span className="text-muted-foreground">Sertifikat:</span>
-                              <p className="font-mono text-xs">{verificationResult.certificate.serial_number}</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Pastikan Anda mengakses data yang benar melalui{' '}
+                    <span className="font-semibold">https://ca-umc.vercel.app</span>
+                  </p>
 
                   {/* Download Button */}
                   {verificationResult.file_url && verificationResult.status === 'signed' && (
                     <div className="text-center space-y-2">
                       <Button
                         onClick={() => setIsViewerOpen(true)}
-                        className="bg-primary hover:bg-primary/90 mr-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium"
                       >
                         <FileText className="mr-2 h-4 w-4" />
-                        Lihat Dokumen Resmi
-                      </Button>
-                      <Button
-                        onClick={() => window.open(verificationResult.file_url!, '_blank')}
-                        variant="outline"
-                        className="bg-white/50"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Unduh Dokumen Asli
+                        Unduh PDF
                       </Button>
                     </div>
                   )}

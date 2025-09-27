@@ -29,6 +29,9 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
       })
     : currentDate;
 
+  // Generate verification URL for QR code
+  const verificationUrl = `${window.location.origin}/verify?id=${document.id}`;
+
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
       {/* Header - University Logo Area */}
@@ -111,7 +114,7 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
           <div className="flex flex-start">
             <span className="mr-2">1.</span>
             <span>
-              Dokumen ini diterbitkan sistem OSS berdasarkan data dari Pelaku Usaha, tersimpan dalam sistem OSS, yang menjadi tanggung jawab Pelaku Usaha.
+              Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.
             </span>
           </div>
           <div className="flex flex-start">
@@ -123,26 +126,26 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
           <div className="flex flex-start">
             <span className="mr-2">3.</span>
             <span>
-              Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.
+              Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh CA UMC.
             </span>
           </div>
           <div className="flex flex-start">
             <span className="mr-2">4.</span>
             <span>
-              Data lengkap Perizinan Berusaha dapat diperoleh melalui sistem OSS menggunakan hak akses.
+              Data lengkap dokumen dapat diperoleh melalui sistem CA UMC menggunakan hak akses.
             </span>
           </div>
         </div>
 
-        {/* BSrE Logo */}
+        {/* CA UMC Logo */}
         <div className="absolute bottom-4 right-4">
           <div className="flex items-center gap-2">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">BSrE</span>
+            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">UMC</span>
             </div>
             <div className="text-xs text-gray-700">
-              <div className="font-bold">Balai Sertifikasi</div>
-              <div className="font-bold">Elektronik</div>
+              <div className="font-bold">Certificate Authority</div>
+              <div className="font-bold">UMC</div>
             </div>
           </div>
         </div>
@@ -153,11 +156,12 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
         <p className="text-xs text-gray-500">
           ID Dokumen: {document.id}
         </p>
-        {qrCodeUrl && (
-          <p className="text-xs text-gray-500 mt-1">
-            Verifikasi: {qrCodeUrl}
-          </p>
-        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Verifikasi: {verificationUrl}
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Scan QR Code di atas untuk verifikasi otomatis
+        </p>
       </div>
     </div>
   );
