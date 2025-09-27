@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  Shield, 
+
   FileText, 
   Award, 
   Users, 
@@ -76,22 +76,36 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <div>
-              <h2 className="text-lg font-semibold text-primary">CA UMC</h2>
-              <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-            </div>
+     <div className="flex items-center justify-between p-4 border-b border-border">
+      {!collapsed && (
+        <div className="flex items-center gap-2">
+          {/* Logo */}
+          <img
+            src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
+            alt="Logo UMC"
+            className="h-12 w-12 object-contain"
+          />
+          <div>
+            <h2 className="text-lg font-semibold text-primary">CA UMC</h2>
+            <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+          </div>
+        </div>
+      )}
+      {collapsed && (
+          <div className="flex justify-center w-full">
+            <img
+              src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
+              alt="Logo UMC"
+              className="h-12 w-12 object-contain"
+            />
           </div>
         )}
-        
+
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onCollapsedChange(!collapsed)}
-          className="h-8 w-8 p-0"
+          className="h-12 w-12 p-0"
         >
           {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>

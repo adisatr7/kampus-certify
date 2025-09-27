@@ -49,28 +49,34 @@ export default function CertificateManagement() {
 
   const fetchCertificates = async () => {
     try {
-      const { data, error } = await supabase
-        .from('certificates')
-        .select(`
-          *,
-          users (
-            name,
-            email,
-            role
-          )
-        `)
-        .order('created_at', { ascending: false });
+        const { data, error } = await supabase
+            .from('certificates')
+            .select(`
+                id,
+                serial_number,
+                algorithm,
+                issued_at,
+                expires_at,
+                status,
+                user_id,
+                users:user_id (
+                    name,
+                    email,
+                    role
+                )
+            `)
+            .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setCertificates(data || []);
+        if (error) throw error;
+        setCertificates(data || []);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat daftar sertifikat",
-        variant: "destructive",
-      });
+        toast({
+            title: "Error",
+            description: "Gagal memuat daftar sertifikat",
+            variant: "destructive",
+        });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 

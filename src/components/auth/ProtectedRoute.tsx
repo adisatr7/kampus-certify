@@ -9,8 +9,11 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, userProfile, loading } = useAuth();
+  console.log("🛡️ ProtectedRoute - Loading:", loading, "User:", !!user, "Profile:", userProfile);
+  console.log("🛡️ ProtectedRoute - Allowed roles:", allowedRoles);
 
   if (loading) {
+    console.log("🛡️ ProtectedRoute - Still loading, showing spinner");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -19,12 +22,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (!user || !userProfile) {
+    console.log("🛡️ ProtectedRoute - No user or profile, redirecting to login");
     return <LoginPage />;
   }
 
   // Check role-based access
   if (allowedRoles && !allowedRoles.includes(userProfile.role)) {
-    console.log("Role check failed:", { userRole: userProfile.role, allowedRoles, includes: allowedRoles.includes(userProfile.role) });
+    console.log("🛡️ ProtectedRoute - Role check failed:", { userRole: userProfile.role, allowedRoles, includes: allowedRoles.includes(userProfile.role) });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -36,6 +40,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       </div>
     );
   }
+
+  console.log("🛡️ ProtectedRoute - Access granted, rendering children");
 
   return <>{children}</>;
 }

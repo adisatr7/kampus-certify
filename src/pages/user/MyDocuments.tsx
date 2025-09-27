@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Plus, FileText, Upload, Eye, Edit, Trash2, Calendar } from "lucide-react";
+import { Plus, FileText, Upload, Eye, Trash2, Calendar, Download, Search, Filter, FileCheck, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
@@ -24,9 +24,12 @@ interface Document {
 
 export default function MyDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
@@ -37,6 +40,10 @@ export default function MyDocuments() {
   useEffect(() => {
     fetchMyDocuments();
   }, [userProfile]);
+
+  useEffect(() => {
+    filterDocuments();
+  }, [documents, searchTerm, statusFilter]);
 
   const fetchMyDocuments = async () => {
     if (!userProfile) return;
@@ -59,6 +66,24 @@ export default function MyDocuments() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterDocuments = () => {
+    let filtered = documents;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(doc => 
+        doc.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(doc => doc.status === statusFilter);
+    }
+
+    setFilteredDocuments(filtered);
   };
 
   const uploadDocument = async () => {
@@ -165,12 +190,27 @@ export default function MyDocuments() {
     setFile(null);
   };
 
+  const getDocumentStats = () => {
+    const total = documents.length;
+    const signed = documents.filter(d => d.status === 'signed').length;
+    const pending = documents.filter(d => d.status === 'pending').length;
+    const revoked = documents.filter(d => d.status === 'revoked').length;
+    return { total, signed, pending, revoked };
+  };
+
+  const stats = getDocumentStats();
+
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-64 bg-muted rounded"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Memuat Dokumen</h3>
+              <p className="text-slate-500">Mengambil daftar dokumen Anda...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -178,172 +218,329 @@ export default function MyDocuments() {
 
   return (
     <DashboardLayout userRole={userProfile?.role as any}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Dokumen Saya</h1>
-            <p className="text-muted-foreground">Kelola dokumen digital Anda</p>
-          </div>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" />
-                Upload Dokumen
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Upload Dokumen Baru</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Judul Dokumen</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Masukkan judul dokumen"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="file">File Dokumen</Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Format yang didukung: PDF, DOC, DOCX (Maks. 10MB)
-                  </p>
-                </div>
-                
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreateDialogOpen(false);
-                      resetForm();
-                    }}
-                  >
-                    Batal
-                  </Button>
-                  <Button 
-                    onClick={uploadDocument}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <>
-                        <Upload className="mr-2 h-4 w-4 animate-spin" />
-                        Mengupload...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Daftar Dokumen ({documents.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {documents.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Belum Ada Dokumen</h3>
-                <p className="text-muted-foreground mb-4">
-                  Mulai dengan mengupload dokumen pertama Anda
-                </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
+        <div className="space-y-8 p-8">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Dokumen Saya
+              </h1>
+              <p className="text-slate-600 text-lg">Kelola dokumen digital Anda dengan mudah dan aman</p>
+            </div>
+            
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
                   <Plus className="mr-2 h-4 w-4" />
                   Upload Dokumen
                 </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold text-slate-900">Upload Dokumen Baru</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">Judul Dokumen</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Masukkan judul dokumen"
+                      className="mt-1 border-slate-300"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">File Dokumen</Label>
+                    <Input
+                      id="file"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="mt-1 border-slate-300"
+                    />
+                    <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
+                      Format yang didukung: PDF, DOC, DOCX (Maks. 10MB)
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreateDialogOpen(false);
+                        resetForm();
+                      }}
+                      className="border-slate-300"
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      onClick={uploadDocument}
+                      disabled={uploading}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-w-[100px]"
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Mengupload...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Total Dokumen</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-100">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Ditandatangani</p>
+                    <p className="text-3xl font-bold text-emerald-600">{stats.signed}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-100">
+                    <FileCheck className="h-6 w-6 text-emerald-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Menunggu</p>
+                    <p className="text-3xl font-bold text-amber-600">{stats.pending}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-amber-100">
+                    <Clock className="h-6 w-6 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Dicabut</p>
+                    <p className="text-3xl font-bold text-red-600">{stats.revoked}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-100">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search and Filter */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Cari dokumen berdasarkan judul..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 border-slate-300"
+                    />
+                  </div>
+                </div>
+                <div className="w-full sm:w-48">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm"
+                  >
+                    <option value="all">Semua Status</option>
+                    <option value="pending">Menunggu</option>
+                    <option value="signed">Ditandatangani</option>
+                    <option value="revoked">Dicabut</option>
+                  </select>
+                </div>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Judul Dokumen</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                    <TableHead>Ditandatangani</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{doc.title}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={doc.status as any} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {new Date(doc.created_at).toLocaleDateString('id-ID')}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {doc.signed_at ? (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {new Date(doc.signed_at).toLocaleDateString('id-ID')}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {doc.file_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(doc.file_url!, '_blank')}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {doc.status === 'pending' && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteDocument(doc.id, doc.title)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Documents Table */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-200/60">
+              <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                <FileText className="h-6 w-6 text-blue-600" />
+                Daftar Dokumen ({filteredDocuments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {documents.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="p-4 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 w-fit mx-auto mb-6">
+                    <FileText className="h-16 w-16 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">Belum Ada Dokumen</h3>
+                  <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                    Mulai dengan mengupload dokumen pertama Anda untuk memulai proses penandatanganan digital
+                  </p>
+                  <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Upload Dokumen Pertama
+                  </Button>
+                </div>
+              ) : filteredDocuments.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="p-4 rounded-full bg-slate-100 w-fit mx-auto mb-4">
+                    <Search className="h-12 w-12 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">Tidak Ada Hasil</h3>
+                  <p className="text-slate-500 mb-4">
+                    Tidak ada dokumen yang sesuai dengan filter pencarian Anda
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                    }}
+                    className="border-slate-300"
+                  >
+                    Reset Filter
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/50">
+                        <TableHead className="font-semibold">Dokumen</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="font-semibold">Dibuat</TableHead>
+                        <TableHead className="font-semibold">Ditandatangani</TableHead>
+                        <TableHead className="font-semibold text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDocuments.map((doc) => (
+                        <TableRow key={doc.id} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${
+                                doc.status === 'signed' ? 'bg-emerald-100' : 
+                                doc.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
+                              }`}>
+                                <FileText className={`h-5 w-5 ${
+                                  doc.status === 'signed' ? 'text-emerald-600' : 
+                                  doc.status === 'pending' ? 'text-amber-600' : 'text-red-600'
+                                }`} />
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-900">{doc.title}</span>
+                                <p className="text-sm text-slate-500">Dokumen digital</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={doc.status as any} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-slate-400" />
+                              <span className="text-sm text-slate-600">
+                                {new Date(doc.created_at).toLocaleDateString('id-ID')}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {doc.signed_at ? (
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-emerald-500" />
+                                <span className="text-sm text-slate-600">
+                                  {new Date(doc.signed_at).toLocaleDateString('id-ID')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-sm">Belum ditandatangani</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {doc.file_url && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(doc.file_url!, '_blank')}
+                                    title="Lihat dokumen"
+                                    className="text-slate-600 border-slate-200 hover:bg-slate-50"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = doc.file_url!;
+                                      link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    title="Download dokumen"
+                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {doc.status === 'pending' && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deleteDocument(doc.id, doc.title)}
+                                  title="Hapus dokumen"
+                                  className="hover:bg-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );
