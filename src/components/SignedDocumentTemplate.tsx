@@ -1,6 +1,7 @@
 import { QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SignedDocumentTemplateProps {
   document: {
@@ -8,6 +9,7 @@ interface SignedDocumentTemplateProps {
     title: string;
     signed_at: string | null;
     content?: string | null;
+    file_url?: string | null;
     users?: {
       name: string;
       role: string;
@@ -18,6 +20,7 @@ interface SignedDocumentTemplateProps {
 
 export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDocumentTemplateProps) {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [documentContent, setDocumentContent] = useState<string>("");
   
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -57,6 +60,44 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
     }
   }, [document.id]);
 
+  // Fetch document content from Supabase Storage for signed documents
+  useEffect(() => {
+    const fetchDocumentContent = async () => {
+      try {
+        if (document.signed_at && document.file_url) {
+          // Extract file path from the full URL
+          const urlParts = document.file_url.split('/documents/');
+          if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            
+            const { data, error } = await supabase.storage
+              .from('documents')
+              .download(filePath);
+
+            if (error) {
+              console.error('Error downloading document:', error);
+              setDocumentContent(document.content || '');
+              return;
+            }
+
+            // Convert blob to text
+            const text = await data.text();
+            setDocumentContent(text);
+          } else {
+            setDocumentContent(document.content || '');
+          }
+        } else {
+          setDocumentContent(document.content || '');
+        }
+      } catch (error) {
+        console.error('Error fetching document content:', error);
+        setDocumentContent(document.content || '');
+      }
+    };
+
+    fetchDocumentContent();
+  }, [document.signed_at, document.file_url, document.content]);
+
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
       {/* Garuda Logo - Indonesian Government Style */}
@@ -70,9 +111,9 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
 
       {/* Original Document Content */}
       <div className="mb-12">
-        {document.content ? (
+        {documentContent ? (
           <div className="text-gray-800 leading-relaxed text-sm whitespace-pre-wrap">
-            {document.content}
+            {documentContent}
           </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
