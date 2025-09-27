@@ -60,12 +60,15 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
     }
   }, [document.id]);
 
-  // Fetch document content from Supabase Storage for signed documents
+  // Set document content - use original content for better readability
   useEffect(() => {
-    const fetchDocumentContent = async () => {
-      try {
-        if (document.signed_at && document.file_url) {
-          // Extract file path from the full URL
+    // For signed documents, prioritize original content over potentially corrupted storage content
+    if (document.content) {
+      setDocumentContent(document.content);
+    } else if (document.signed_at && document.file_url) {
+      // Only fetch from storage if original content is not available
+      const fetchDocumentContent = async () => {
+        try {
           const urlParts = document.file_url.split('/documents/');
           if (urlParts.length > 1) {
             const filePath = urlParts[1];
@@ -76,27 +79,38 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
 
             if (error) {
               console.error('Error downloading document:', error);
-              setDocumentContent(document.content || '');
+              setDocumentContent('Konten dokumen tidak tersedia');
               return;
             }
 
-            // Convert blob to text
             const text = await data.text();
-            setDocumentContent(text);
+            
+            // Check if content looks like markup/XML and clean it or use fallback
+            if (text.includes('<') && text.includes('>')) {
+              // If it's HTML/XML markup, try to extract readable text or use placeholder
+              const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+              if (cleanText.length > 10) {
+                setDocumentContent(cleanText);
+              } else {
+                setDocumentContent('Konten dokumen telah diproses dan ditandatangani secara elektronik');
+              }
+            } else {
+              setDocumentContent(text);
+            }
           } else {
-            setDocumentContent(document.content || '');
+            setDocumentContent('Konten dokumen tidak tersedia');
           }
-        } else {
-          setDocumentContent(document.content || '');
+        } catch (error) {
+          console.error('Error fetching document content:', error);
+          setDocumentContent('Error memuat konten dokumen');
         }
-      } catch (error) {
-        console.error('Error fetching document content:', error);
-        setDocumentContent(document.content || '');
-      }
-    };
+      };
 
-    fetchDocumentContent();
-  }, [document.signed_at, document.file_url, document.content]);
+      fetchDocumentContent();
+    } else {
+      setDocumentContent('');
+    }
+  }, [document.content, document.signed_at, document.file_url]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
