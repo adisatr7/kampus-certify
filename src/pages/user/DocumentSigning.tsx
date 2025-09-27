@@ -24,7 +24,6 @@ interface Document {
 interface Certificate {
   id: string;
   serial_number: string;
-  algorithm: string;
   status: string;
   expires_at: string;
 }
@@ -79,7 +78,7 @@ export default function DocumentSigning() {
     try {
       const { data, error } = await supabase
         .from('certificates')
-        .select('*')
+        .select('id, serial_number, status, expires_at')
         .eq('user_id', userProfile.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
@@ -200,7 +199,6 @@ export default function DocumentSigning() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Badge className="bg-status-valid text-white">Aktif</Badge>
-                          <span className="text-sm text-muted-foreground">{cert.algorithm}</span>
                         </div>
                         <div>
                           <p className="font-mono text-sm">{cert.serial_number}</p>
@@ -322,7 +320,7 @@ export default function DocumentSigning() {
                         <div className="flex flex-col">
                           <span>{cert.serial_number}</span>
                           <span className="text-xs text-muted-foreground">
-                            {cert.algorithm} • Berlaku hingga {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                            Berlaku hingga {new Date(cert.expires_at).toLocaleDateString('id-ID')}
                           </span>
                         </div>
                       </SelectItem>

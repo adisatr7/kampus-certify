@@ -18,7 +18,6 @@ interface Certificate {
   id: string;
   user_id: string;
   serial_number: string;
-  algorithm: string;
   issued_at: string;
   expires_at: string;
   status: string;
@@ -38,7 +37,6 @@ export default function CertificateManagement() {
 
   // Form state
   const [userId, setUserId] = useState("");
-  const [algorithm, setAlgorithm] = useState("RSA-2048");
   const [expiryDays, setExpiryDays] = useState("365");
   const [users, setUsers] = useState<any[]>([]);
 
@@ -54,7 +52,6 @@ export default function CertificateManagement() {
             .select(`
                 id,
                 serial_number,
-                algorithm,
                 issued_at,
                 expires_at,
                 status,
@@ -95,7 +92,7 @@ export default function CertificateManagement() {
   };
 
   const generateCertificate = async () => {
-    if (!userId || !algorithm || !expiryDays) {
+    if (!userId || !expiryDays) {
       toast({
         title: "Error",
         description: "Semua field harus diisi",
@@ -122,7 +119,6 @@ export default function CertificateManagement() {
         .insert({
           user_id: userId,
           serial_number: serialNumber,
-          algorithm,
           public_key: publicKey,
           private_key: privateKey,
           expires_at: expiresAt.toISOString(),
@@ -189,7 +185,6 @@ export default function CertificateManagement() {
 
   const resetForm = () => {
     setUserId("");
-    setAlgorithm("RSA-2048");
     setExpiryDays("365");
   };
 
@@ -267,19 +262,6 @@ export default function CertificateManagement() {
                   </Select>
                 </div>
                 
-                <div>
-                  <Label htmlFor="algorithm">Algoritma</Label>
-                  <Select value={algorithm} onValueChange={setAlgorithm}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RSA-2048">RSA-2048</SelectItem>
-                      <SelectItem value="RSA-4096">RSA-4096</SelectItem>
-                      <SelectItem value="ECDSA-P256">ECDSA-P256</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 
                 <div>
                   <Label htmlFor="expiry">Masa Berlaku (hari)</Label>
@@ -330,7 +312,6 @@ export default function CertificateManagement() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Serial Number</TableHead>
-                    <TableHead>Algoritma</TableHead>
                     <TableHead>Diterbitkan</TableHead>
                     <TableHead>Kadaluarsa</TableHead>
                     <TableHead>Status</TableHead>
@@ -352,7 +333,6 @@ export default function CertificateManagement() {
                       <TableCell className="font-mono text-sm">
                         {cert.serial_number}
                       </TableCell>
-                      <TableCell>{cert.algorithm}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />

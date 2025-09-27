@@ -51,7 +51,6 @@ export type Database = {
       }
       certificates: {
         Row: {
-          algorithm: string | null
           created_at: string | null
           expires_at: string
           id: string
@@ -65,7 +64,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          algorithm?: string | null
           created_at?: string | null
           expires_at: string
           id?: string
@@ -79,7 +77,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          algorithm?: string | null
           created_at?: string | null
           expires_at?: string
           id?: string

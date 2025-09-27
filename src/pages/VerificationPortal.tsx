@@ -53,7 +53,6 @@ export default function VerificationPortal() {
           *,
           certificates (
             serial_number,
-            algorithm,
             status
           ),
           users (
