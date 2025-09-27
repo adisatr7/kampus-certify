@@ -31,28 +31,38 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
-      {/* Header */}
-      <div className="text-left mb-8">
-        <p className="text-sm text-gray-700">
-          Diterbitkan di Jakarta, tanggal: {signedDate}
-        </p>
+      {/* Header - University Logo Area */}
+      <div className="text-center mb-8">
+        <div className="mb-4">
+          <div className="w-16 h-16 mx-auto bg-yellow-500 rounded-full flex items-center justify-center mb-4">
+            <span className="text-white font-bold text-xs">UMC</span>
+          </div>
+          <h1 className="text-lg font-bold text-gray-900 mb-2">UNIVERSITAS MUHAMMADIYAH CIREBON</h1>
+          <h2 className="text-base font-semibold text-gray-800 mb-1">{document.title.toUpperCase()}</h2>
+        </div>
       </div>
 
       {/* Document Content Area */}
-      <div className="min-h-[400px] mb-8">
+      <div className="mb-8">
         {document.content ? (
-          <div className="border border-gray-300 rounded-lg p-6 bg-white">
-            <h2 className="text-xl font-bold text-center mb-6">{document.title}</h2>
-            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+          <div className="text-gray-800 leading-relaxed text-sm">
+            <div className="whitespace-pre-wrap">
               {document.content}
             </div>
           </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">Konten Dokumen: {document.title}</p>
+            <p className="text-gray-500 font-medium">Konten Dokumen: {document.title}</p>
             <p className="text-sm text-gray-400 mt-2">Konten dokumen belum tersedia</p>
           </div>
         )}
+      </div>
+
+      {/* Date issued */}
+      <div className="text-left mb-8">
+        <p className="text-sm text-gray-700">
+          Diterbitkan di Jakarta, tanggal: {signedDate}
+        </p>
       </div>
 
       {/* Signature Block */}
@@ -71,17 +81,17 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
           
           {/* QR Code */}
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 border-2 border-gray-400 flex items-center justify-center bg-gray-50">
-              <QrCode className="w-16 h-16 text-gray-600" />
+            <div className="w-20 h-20 border-2 border-gray-800 flex items-center justify-center bg-white">
+              <QrCode className="w-16 h-16 text-gray-800" />
             </div>
           </div>
           
-          <p className="text-sm text-gray-700 font-medium">
+          <p className="text-sm text-gray-800 font-medium">
             Ditandatangani secara elektronik
           </p>
           
           {document.users?.name && (
-            <p className="text-sm text-gray-800 font-medium mt-2 border-b border-gray-400 pb-1">
+            <p className="text-sm text-gray-800 font-medium mt-2 border-b border-gray-800 pb-1">
               {document.users.name}
             </p>
           )}
