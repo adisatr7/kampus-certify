@@ -36,6 +36,8 @@ export default function AuditTrail() {
   }, []);
 
   const fetchAuditEntries = async () => {
+    console.log("AuditTrail: Starting to fetch audit entries...");
+    console.log("User profile:", userProfile);
     try {
       const { data, error } = await supabase
         .from('audit_trail')
@@ -50,9 +52,14 @@ export default function AuditTrail() {
         .order('timestamp', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error("AuditTrail: Error fetching data:", error);
+        throw error;
+      }
+      console.log("AuditTrail: Successfully fetched data:", data);
       setAuditEntries(data || []);
     } catch (error) {
+      console.error("AuditTrail: Error in fetchAuditEntries:", error);
       toast({
         title: "Error",
         description: "Gagal memuat audit trail",

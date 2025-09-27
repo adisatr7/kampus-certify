@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Fetch user profile from database
           setTimeout(async () => {
+            console.log("Auth: Fetching user profile for:", session.user.id, session.user.email);
             try {
               const { data: profile, error } = await supabase
                 .from('users')
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .maybeSingle();
 
               if (error) {
-                console.error('Error fetching user profile:', error);
+                console.error('Auth: Error fetching user profile:', error);
                 if (event === 'SIGNED_IN') {
                   // User not registered in our system
                   toast({
@@ -50,13 +51,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   await supabase.auth.signOut();
                 }
               } else {
+                console.log("Auth: Successfully fetched profile:", profile);
                 setUserProfile(profile);
               }
             } catch (err) {
-              console.error('Profile fetch error:', err);
+              console.error('Auth: Profile fetch error:', err);
             }
           }, 0);
         } else {
+          console.log("Auth: No session user, setting profile to null");
           setUserProfile(null);
         }
         
