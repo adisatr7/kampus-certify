@@ -24,12 +24,14 @@ interface AuditEntry {
 }
 
 export default function AuditTrail() {
+  console.log("🚀 AuditTrail component is rendering!");
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState("");
   const { toast } = useToast();
   const { userProfile } = useAuth();
+  console.log("🔍 AuditTrail - Current userProfile:", userProfile);
 
   useEffect(() => {
     fetchAuditEntries();
