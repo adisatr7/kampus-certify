@@ -111,6 +111,43 @@ export default function DocumentSigning() {
       // Generate QR code URL (in real implementation, this would contain verification data)
       const qrCodeData = `${window.location.origin}/verify?doc=${selectedDocument.id}`;
       
+      let signedDocumentUrl = null;
+
+      // If document has file_url, copy it to signed-documents bucket
+      if (selectedDocument.file_url) {
+        try {
+          // Download the original document
+          const response = await fetch(selectedDocument.file_url);
+          const blob = await response.blob();
+          
+          // Upload to signed-documents bucket
+          const fileExt = selectedDocument.file_url.split('.').pop()?.split('?')[0] || 'pdf';
+          const signedFileName = `${userProfile.id}/${selectedDocument.id}-signed-${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('signed-documents')
+            .upload(signedFileName, blob, {
+              contentType: blob.type,
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading signed document:', uploadError);
+          } else {
+            // Get public URL for signed document
+            const { data: { publicUrl } } = supabase.storage
+              .from('signed-documents')
+              .getPublicUrl(signedFileName);
+            
+            signedDocumentUrl = publicUrl;
+          }
+        } catch (uploadError) {
+          console.error('Error processing signed document:', uploadError);
+          // Continue with signing even if upload fails
+        }
+      }
+      
       // Update document with signature information
       const { error: updateError } = await supabase
         .from('documents')
@@ -118,7 +155,8 @@ export default function DocumentSigning() {
           status: 'signed',
           signed_at: new Date().toISOString(),
           certificate_id: selectedCertificate,
-          qr_code_url: qrCodeData
+          qr_code_url: qrCodeData,
+          signed_document_url: signedDocumentUrl
         })
         .eq('id', selectedDocument.id);
 
@@ -132,7 +170,7 @@ export default function DocumentSigning() {
 
       toast({
         title: "Berhasil",
-        description: "Dokumen berhasil ditandatangani",
+        description: "Dokumen berhasil ditandatangani dan disimpan",
       });
 
       setIsSignDialogOpen(false);
@@ -140,6 +178,7 @@ export default function DocumentSigning() {
       setSelectedCertificate("");
       fetchDocuments();
     } catch (error) {
+      console.error('Signing error:', error);
       toast({
         title: "Error",
         description: "Gagal menandatangani dokumen",
