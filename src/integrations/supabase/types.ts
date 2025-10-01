@@ -109,6 +109,7 @@ export type Database = {
           qr_code_url: string | null
           signed: boolean | null
           signed_at: string | null
+          signed_document_url: string | null
           status: Database["public"]["Enums"]["document_status"] | null
           title: string
           updated_at: string | null
@@ -123,6 +124,7 @@ export type Database = {
           qr_code_url?: string | null
           signed?: boolean | null
           signed_at?: string | null
+          signed_document_url?: string | null
           status?: Database["public"]["Enums"]["document_status"] | null
           title: string
           updated_at?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           qr_code_url?: string | null
           signed?: boolean | null
           signed_at?: string | null
+          signed_document_url?: string | null
           status?: Database["public"]["Enums"]["document_status"] | null
           title?: string
           updated_at?: string | null
