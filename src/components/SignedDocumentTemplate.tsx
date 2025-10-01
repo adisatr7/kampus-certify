@@ -60,68 +60,11 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
     }
   }, [document.id]);
 
-  // Set document content - decode and clean the content to show readable text
+  // Set document content - use original content from database
   useEffect(() => {
     if (document.content && document.content.trim()) {
-      const content = document.content.trim();
-      
-      // Check if content appears to be corrupted/encoded (contains many special characters)
-      const isCorrupted = /[^\w\s\.\,\!\?\:\;\-\(\)\[\]\{\}\"\'\/\\àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/gi.test(content) && 
-                         (content.match(/[^\w\s\.\,\!\?\:\;\-\(\)\[\]\{\}\"\'\/\\àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/gi) || []).length > content.length * 0.1;
-      
-      if (isCorrupted) {
-        // Content is corrupted, create proper document content based on title
-        if (document.title.toLowerCase().includes('kkm')) {
-          setDocumentContent(`KULIAH KERJA MAHASISWA (KKM)
-KELURAHAN PAOMAN KEC. INDRAMAYU
-UNIVERSITAS MUHAMMADIYAH CIREBON
-
-Nomor: 004/KKM-UMC/VIII/2025
-Lampiran: -
-Perihal: Permohonan Izin Kunjungan Mahasiswa KKM
-
-Kepada Yth,
-Kepala Sekolah UPTD
-SDN 3 Paoman
-Di Tempat
-
-Assalamu'alaikum warahmatullahi wabarakatuh..
-
-Sehubungan dengan pelaksanaan kegiatan Kuliah Kerja Mahasiswa (KKM) Universitas Muhammadiyah Cirebon Tahun 2025 yang bertempat di Kelurahan Paoman, Kecamatan Indramayu, kami bermaksud untuk melakukan kunjungan ke sekolah-sekolah yang berada di wilayah Kelurahan Paoman pada:
-
-Hari: Sabtu
-Tanggal: 09 Agustus 2025
-Peserta: Seluruh Mahasiswa Kelompok KKM UMC Kelurahan Paoman
-
-Tujuan kegiatan ini adalah untuk:
-1. Melakukan koordinasi awal dan silaturahmi dengan pihak sekolah.
-2. Menggali informasi dan kebutuhan sebagai bagian dari penetapan program kerja KKM.
-3. Menjalin kerja sama untuk pelaksanaan program pengabdian masyarakat yang relevan, seperti kegiatan literasi, edukasi digital, dan pendampingan siswa.
-
-Kami berharap Bapak/Ibu dapat memberikan izin serta dukungan terhadap kegiatan tersebut. Besar harapan kami, kerja sama ini dapat memberikan manfaat positif bagi kedua belah pihak.
-
-Demikian surat ini kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.
-
-Wassalamu'alaikum warahmatullahi wabarakatuh..
-
-Koordinator KKM
-
-
-Fitri Hikmawati`);
-        } else {
-          // Generic document content for other document types
-          setDocumentContent(`${document.title}
-
-Dokumen ini telah diproses dan ditandatangani secara elektronik oleh ${document.users?.name || 'Pejabat Berwenang'} dari Universitas Muhammadiyah Cirebon.
-
-Dokumen ini merupakan dokumen resmi yang telah melalui proses verifikasi dan penandatanganan digital sesuai dengan ketentuan yang berlaku.
-
-Untuk keperluan verifikasi dan validitas dokumen ini, silakan gunakan QR Code yang tersedia di bawah ini.`);
-        }
-      } else {
-        // Content appears readable, use it directly
-        setDocumentContent(content);
-      }
+      // Use the original content directly from database
+      setDocumentContent(document.content.trim());
     } else {
       // No content available, use fallback
       setDocumentContent(`${document.title}
