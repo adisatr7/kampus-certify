@@ -42,8 +42,8 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
       try {
         const verificationUrl = `${window.location.origin}/verification-portal?documentId=${document.id}`;
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
-          width: 80,
-          margin: 1,
+          width: 200,
+          margin: 2,
           color: {
             dark: '#000000',
             light: '#FFFFFF'
@@ -134,11 +134,8 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
-      {/* Garuda Logo - Indonesian Government Style */}
-      <div className="text-center mb-6">
-        <div className="w-20 h-20 mx-auto mb-4 bg-yellow-600 rounded-full flex items-center justify-center">
-          <span className="text-white font-bold text-sm">UMC</span>
-        </div>
+      {/* Header - Indonesian Official Document Style */}
+      <div className="text-center mb-8 border-b-2 border-gray-800 pb-4">
         <h1 className="text-lg font-bold text-gray-900 mb-1">UNIVERSITAS MUHAMMADIYAH CIREBON</h1>
         <h2 className="text-base font-semibold text-gray-800 uppercase">{document.title}</h2>
       </div>
@@ -170,7 +167,7 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
           {/* Authority and QR Code Section */}
           <div className="flex justify-end mb-6">
             <div className="text-center">
-              <div className="mb-4">
+              <div className="mb-3">
                 <p className="text-sm font-medium text-gray-800">
                   {document.users?.role === 'rektor' ? 'Rektor' : 
                    document.users?.role === 'dekan' ? 'Dekan' :
@@ -181,27 +178,27 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
                 </p>
               </div>
               
-              {/* QR Code */}
+              {/* QR Code - Larger size for easy scanning */}
               <div className="flex justify-center mb-3">
                 {qrCodeDataUrl ? (
                   <img 
                     src={qrCodeDataUrl} 
                     alt="QR Code untuk verifikasi dokumen"
-                    className="w-16 h-16 border border-gray-300"
+                    className="w-24 h-24 border-2 border-gray-800 bg-white p-1"
                   />
                 ) : (
-                  <div className="w-16 h-16 border-2 border-gray-800 flex items-center justify-center bg-white">
-                    <QrCode className="w-12 h-12 text-gray-800" />
+                  <div className="w-24 h-24 border-2 border-gray-800 flex items-center justify-center bg-white">
+                    <QrCode className="w-20 h-20 text-gray-800" />
                   </div>
                 )}
               </div>
               
-              <p className="text-xs text-gray-800 font-medium mb-2">
+              <p className="text-xs text-gray-800 font-semibold mb-3">
                 Ditandatangani secara elektronik
               </p>
               
               {document.users?.name && (
-                <p className="text-sm text-gray-800 font-medium border-b border-gray-800 pb-1">
+                <p className="text-sm text-gray-800 font-medium underline">
                   {document.users.name}
                 </p>
               )}
