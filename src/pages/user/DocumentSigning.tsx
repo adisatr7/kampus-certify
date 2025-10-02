@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 
 interface Document {
   id: string;
@@ -108,44 +109,51 @@ export default function DocumentSigning() {
     setSigning(true);
 
     try {
-      // Generate QR code URL (in real implementation, this would contain verification data)
-      const qrCodeData = `${window.location.origin}/verify?doc=${selectedDocument.id}`;
+      // Get certificate details for signing
+      const { data: certData, error: certError } = await supabase
+        .from('certificates')
+        .select('serial_number')
+        .eq('id', selectedCertificate)
+        .single();
+
+      if (certError || !certData) {
+        throw new Error('Failed to fetch certificate details');
+      }
+
+      // Generate verification URL with document ID
+      const verificationUrl = `${window.location.origin}/verification-portal?documentId=${selectedDocument.id}`;
       
       let signedDocumentUrl = null;
 
-      // If document has file_url, copy it to signed-documents bucket
-      if (selectedDocument.file_url) {
-        try {
-          // Download the original document
-          const response = await fetch(selectedDocument.file_url);
-          const blob = await response.blob();
-          
-          // Upload to signed-documents bucket
-          const fileExt = selectedDocument.file_url.split('.').pop()?.split('?')[0] || 'pdf';
-          const signedFileName = `${userProfile.id}/${selectedDocument.id}-signed-${Date.now()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('signed-documents')
-            .upload(signedFileName, blob, {
-              contentType: blob.type,
-              cacheControl: '3600',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Error uploading signed document:', uploadError);
-          } else {
-            // Get public URL for signed document
-            const { data: { publicUrl } } = supabase.storage
-              .from('signed-documents')
-              .getPublicUrl(signedFileName);
-            
-            signedDocumentUrl = publicUrl;
+      // Generate cryptographically signed PDF with QR code
+      try {
+        const signedPdfBlob = await generateSignedPDF(
+          selectedDocument.file_url,
+          {
+            documentId: selectedDocument.id,
+            documentTitle: selectedDocument.title,
+            signerName: userProfile.name,
+            signerRole: userProfile.role,
+            signedAt: new Date().toISOString(),
+            certificateSerial: certData.serial_number,
+            verificationUrl: verificationUrl
           }
-        } catch (uploadError) {
-          console.error('Error processing signed document:', uploadError);
-          // Continue with signing even if upload fails
+        );
+
+        // Upload signed PDF to storage
+        signedDocumentUrl = await uploadSignedPDF(
+          signedPdfBlob,
+          userProfile.id,
+          selectedDocument.id,
+          supabase
+        );
+
+        if (!signedDocumentUrl) {
+          throw new Error('Failed to upload signed document');
         }
+      } catch (pdfError) {
+        console.error('Error generating/uploading signed PDF:', pdfError);
+        throw pdfError;
       }
       
       // Update document with signature information
@@ -155,7 +163,7 @@ export default function DocumentSigning() {
           status: 'signed',
           signed_at: new Date().toISOString(),
           certificate_id: selectedCertificate,
-          qr_code_url: qrCodeData,
+          qr_code_url: verificationUrl,
           signed_document_url: signedDocumentUrl
         })
         .eq('id', selectedDocument.id);
