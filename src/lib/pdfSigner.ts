@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 interface SignatureData {
   documentId: string;
   documentTitle: string;
+  documentContent?: string;
   signerName: string;
   signerRole: string;
   signedAt: string;
@@ -37,7 +38,7 @@ export async function generateSignedPDF(
     // Create new PDF with document content
     pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    await addDocumentContent(pdfDoc, page, signatureData.documentTitle);
+    await addDocumentContent(pdfDoc, page, signatureData.documentTitle, signatureData.documentContent);
   }
 
   // Generate QR code
@@ -237,12 +238,13 @@ export async function generateSignedPDF(
 }
 
 /**
- * Add document content to a new PDF page
+ * Add document content to a new PDF page with actual content
  */
 async function addDocumentContent(
   pdfDoc: PDFDocument,
   page: any,
-  documentTitle: string
+  documentTitle: string,
+  documentContent?: string
 ) {
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -268,30 +270,82 @@ async function addDocumentContent(
     color: rgb(0, 0, 0),
   });
 
+  // Document ID/Number
+  const docNumber = `Nomor: ${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  const docNumberWidth = helvetica.widthOfTextAtSize(docNumber, 10);
+  page.drawText(docNumber, {
+    x: (width - docNumberWidth) / 2,
+    y: height - 120,
+    size: 10,
+    font: helvetica,
+    color: rgb(0, 0, 0),
+  });
+
   // Draw header border line
   page.drawLine({
-    start: { x: 50, y: height - 110 },
-    end: { x: width - 50, y: height - 110 },
+    start: { x: 50, y: height - 130 },
+    end: { x: width - 50, y: height - 130 },
     thickness: 2,
     color: rgb(0, 0, 0),
   });
 
-  // Document content placeholder
-  page.drawText('Konten Dokumen: ' + documentTitle, {
-    x: 50,
-    y: height - 150,
-    size: 11,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
-
-  page.drawText('Dokumen ini telah ditandatangani secara elektronik', {
-    x: 50,
-    y: height - 180,
-    size: 10,
-    font: helvetica,
-    color: rgb(0.3, 0.3, 0.3),
-  });
+  // Document content
+  if (documentContent) {
+    const lines = documentContent.split('\n');
+    let yPosition = height - 160;
+    const lineHeight = 14;
+    const maxWidth = width - 100;
+    
+    for (const line of lines) {
+      if (yPosition < 350) break; // Stop if too close to bottom (leave space for signature)
+      
+      // Word wrap for long lines
+      const words = line.split(' ');
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const testWidth = helvetica.widthOfTextAtSize(testLine, 10);
+        
+        if (testWidth > maxWidth && currentLine) {
+          page.drawText(currentLine, {
+            x: 50,
+            y: yPosition,
+            size: 10,
+            font: helvetica,
+            color: rgb(0, 0, 0),
+            maxWidth: maxWidth,
+          });
+          currentLine = word;
+          yPosition -= lineHeight;
+          if (yPosition < 350) break;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      // Draw remaining text
+      if (currentLine && yPosition >= 350) {
+        page.drawText(currentLine, {
+          x: 50,
+          y: yPosition,
+          size: 10,
+          font: helvetica,
+          color: rgb(0, 0, 0),
+          maxWidth: maxWidth,
+        });
+        yPosition -= lineHeight * 1.5; // Extra spacing between paragraphs
+      }
+    }
+  } else {
+    page.drawText('Konten dokumen tidak tersedia', {
+      x: 50,
+      y: height - 160,
+      size: 10,
+      font: helvetica,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+  }
 }
 
 /**

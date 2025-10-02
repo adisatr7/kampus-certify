@@ -17,6 +17,7 @@ import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 interface Document {
   id: string;
   title: string;
+  content?: string | null;
   file_url: string | null;
   status: 'pending' | 'signed' | 'revoked';
   created_at: string;
@@ -132,6 +133,7 @@ export default function DocumentSigning() {
           {
             documentId: selectedDocument.id,
             documentTitle: selectedDocument.title,
+            documentContent: selectedDocument.content || undefined,
             signerName: userProfile.name,
             signerRole: userProfile.role,
             signedAt: new Date().toISOString(),

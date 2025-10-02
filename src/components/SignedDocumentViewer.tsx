@@ -12,6 +12,7 @@ interface SignedDocumentViewerProps {
     signed_at: string | null;
     qr_code_url?: string | null;
     content?: string | null;
+    signed_document_url?: string | null;
     users?: {
       name: string;
       role: string;
@@ -21,211 +22,70 @@ interface SignedDocumentViewerProps {
 
 export default function SignedDocumentViewer({ isOpen, onClose, document }: SignedDocumentViewerProps) {
   const handlePrint = () => {
-    window.print();
+    if (document.signed_document_url) {
+      // Open PDF in new window for printing
+      window.open(document.signed_document_url, '_blank');
+    } else {
+      window.print();
+    }
   };
 
   const handleDownload = () => {
-    // Create a new window with the document template
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (document.signed_document_url) {
+      // Download the actual signed PDF file
+      const link = window.document.createElement('a');
+      link.href = document.signed_document_url;
+      link.download = `${document.title}-signed.pdf`;
+      link.target = '_blank';
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+    } else {
+      // Fallback to HTML print
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
 
-    const templateHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${document.title}</title>
-          <meta charset="utf-8">
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 20px; 
-              background: white;
-            }
-            .container {
-              max-width: 800px;
-              margin: 0 auto;
-              background: white;
-              padding: 40px;
-            }
-            .header { text-align: left; margin-bottom: 40px; }
-            .content-area { 
-              min-height: 400px; 
-              margin-bottom: 40px; 
-              border: 2px dashed #ccc; 
-              border-radius: 8px; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              flex-direction: column;
-              color: #666;
-            }
-            .signature-block { 
-              display: flex; 
-              justify-content: flex-end; 
-              margin-bottom: 40px; 
-            }
-            .signature-content { 
-              text-align: center; 
-              max-width: 250px; 
-            }
-            .qr-code { 
-              width: 80px; 
-              height: 80px; 
-              border: 2px solid #666; 
-              margin: 16px auto; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              background: #f5f5f5;
-            }
-            .print-date { text-align: left; margin-bottom: 40px; }
-            .footer-info { 
-              border: 2px solid #333; 
-              padding: 20px; 
-              position: relative; 
-              font-size: 14px;
-            }
-            .footer-item { 
-              display: flex; 
-              margin-bottom: 8px; 
-            }
-            .footer-item span:first-child { 
-              margin-right: 8px; 
-              flex-shrink: 0; 
-            }
-            .bsre-logo { 
-              position: absolute; 
-              bottom: 20px; 
-              right: 20px; 
-              display: flex; 
-              align-items: center; 
-              gap: 8px;
-            }
-            .bsre-circle { 
-              width: 48px; 
-              height: 48px; 
-              background: #2563eb; 
-              border-radius: 50%; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              color: white; 
-              font-weight: bold; 
-              font-size: 12px;
-            }
-            .bsre-text { 
-              font-size: 12px; 
-              font-weight: bold; 
-              color: #374151;
-            }
-            .document-id { 
-              margin-top: 20px; 
-              text-align: center; 
-              font-size: 12px; 
-              color: #666;
-            }
-            .underline { 
-              border-bottom: 1px solid #666; 
-              padding-bottom: 4px; 
-            }
-            @media print {
-              body { margin: 0; padding: 0; }
-              .container { padding: 20px; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <p>Diterbitkan di Jakarta, tanggal: ${document.signed_at 
-                ? new Date(document.signed_at).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                  })
-                : new Date().toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                  })
-              }</p>
+      const templateHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${document.title}</title>
+            <meta charset="utf-8">
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 20px; 
+                background: white;
+              }
+              .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                padding: 40px;
+              }
+              @media print {
+                body { margin: 0; padding: 0; }
+                .container { padding: 20px; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>${document.title}</h1>
+              <p>${document.content || 'Konten tidak tersedia'}</p>
             </div>
-            
-            <div class="content-area">
-              ${document.content ? `
-                <h2 style="font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 24px;">${document.title}</h2>
-                <div style="white-space: pre-wrap; color: #374151; line-height: 1.6;">${document.content}</div>
-              ` : `
-                <p style="margin: 0; font-weight: 500;">Konten Dokumen: ${document.title}</p>
-                <p style="margin: 8px 0 0 0; font-size: 14px;">Konten dokumen belum tersedia</p>
-              `}
-            </div>
-            
-            <div class="signature-block">
-              <div class="signature-content">
-                <div style="margin-bottom: 16px;">
-                  <p style="margin: 0; font-weight: 500;">${
-                    document.users?.role === 'rektor' ? 'Rektor' : 
-                    document.users?.role === 'dekan' ? 'Dekan' :
-                    document.users?.role === 'dosen' ? 'Dosen' : 'Pejabat'
-                  }</p>
-                  <p style="margin: 0; font-weight: 500;">Universitas Muhammadiyah Cirebon</p>
-                </div>
-                
-                <div class="qr-code">QR</div>
-                
-                <p style="margin: 16px 0 8px 0; font-weight: 500;">Ditandatangani secara elektronik</p>
-                
-                ${document.users?.name ? `<p style="margin: 8px 0 0 0; font-weight: 500;" class="underline">${document.users.name}</p>` : ''}
-              </div>
-            </div>
-            
-            <div class="print-date">
-              <p>Dicetak tanggal: ${new Date().toLocaleDateString('id-ID', {
-                day: 'numeric', month: 'long', year: 'numeric'
-              })}</p>
-            </div>
-            
-            <div class="footer-info">
-              <div class="footer-item">
-                <span>1.</span>
-                <span>Dokumen ini diterbitkan sistem OSS berdasarkan data dari Pelaku Usaha, tersimpan dalam sistem OSS, yang menjadi tanggung jawab Pelaku Usaha.</span>
-              </div>
-              <div class="footer-item">
-                <span>2.</span>
-                <span>Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.</span>
-              </div>
-              <div class="footer-item">
-                <span>3.</span>
-                <span>Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.</span>
-              </div>
-              <div class="footer-item">
-                <span>4.</span>
-                <span>Data lengkap Perizinan Berusaha dapat diperoleh melalui sistem OSS menggunakan hak akses.</span>
-              </div>
-              
-              <div class="bsre-logo">
-                <div class="bsre-circle">BSrE</div>
-                <div class="bsre-text">
-                  <div>Balai Sertifikasi</div>
-                  <div>Elektronik</div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="document-id">
-              <p>ID Dokumen: ${document.id}</p>
-              ${document.qr_code_url ? `<p>Verifikasi: ${document.qr_code_url}</p>` : ''}
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+          </body>
+        </html>
+      `;
 
-    printWindow.document.write(templateHtml);
-    printWindow.document.close();
-    
-    // Trigger download
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+      printWindow.document.write(templateHtml);
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
   };
 
   return (
@@ -258,10 +118,20 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
         </DialogHeader>
         
         <div className="mt-4">
-          <SignedDocumentTemplate 
-            document={document} 
-            qrCodeUrl={document.qr_code_url || undefined}
-          />
+          {document.signed_document_url ? (
+            <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
+              <iframe
+                src={document.signed_document_url}
+                className="w-full h-full"
+                title="Signed Document PDF"
+              />
+            </div>
+          ) : (
+            <SignedDocumentTemplate 
+              document={document} 
+              qrCodeUrl={document.qr_code_url || undefined}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>
