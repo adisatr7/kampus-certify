@@ -122,7 +122,7 @@ export default function DocumentSigning() {
       }
 
       // Generate verification URL with document ID
-      const verificationUrl = `${window.location.origin}/verification-portal?documentId=${selectedDocument.id}`;
+      const verificationUrl = `${window.location.origin}/document-verification?id=${selectedDocument.id}`;
       
       let signedDocumentUrl = null;
 

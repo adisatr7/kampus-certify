@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import VerificationPortal from "./pages/VerificationPortal";
+import PublicDocumentVerification from "./pages/PublicDocumentVerification";
 import NotFound from "./pages/NotFound";
 import CertificateManagement from "./pages/admin/CertificateManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/verify" element={<VerificationPortal />} />
             <Route path="/verification-portal" element={<VerificationPortal />} />
+            <Route path="/document-verification" element={<PublicDocumentVerification />} />
             
             {/* Admin Routes */}
             <Route 
