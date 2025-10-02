@@ -212,6 +212,28 @@ export type Database = {
         Args: { p_action: string; p_description: string; p_user_id: string }
         Returns: undefined
       }
+      get_certificate_for_signing: {
+        Args: { cert_id: string }
+        Returns: {
+          can_sign: boolean
+          certificate_id: string
+        }[]
+      }
+      get_safe_certificate_data: {
+        Args: { cert_id: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          issued_at: string
+          public_key: string
+          revoked_at: string
+          serial_number: string
+          status: Database["public"]["Enums"]["certificate_status"]
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
