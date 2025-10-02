@@ -78,21 +78,27 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 shadow-lg print:shadow-none">
       {/* Header - Indonesian Official Document Style */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-4">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">UNIVERSITAS MUHAMMADIYAH CIREBON</h1>
-        <h2 className="text-base font-semibold text-gray-800 uppercase">{document.title}</h2>
+      <div className="text-center mb-6 pb-4">
+        <h1 className="text-base font-bold text-gray-900 mb-2 uppercase">UNIVERSITAS MUHAMMADIYAH CIREBON</h1>
+        <h2 className="text-sm font-bold text-gray-900 uppercase mb-1">{document.title}</h2>
+        {document.id && (
+          <p className="text-xs text-gray-700 mt-1">
+            NOMOR DOKUMEN: {document.id.substring(0, 14).toUpperCase()}
+          </p>
+        )}
+        <div className="border-t-2 border-gray-900 mt-4"></div>
       </div>
 
       {/* Original Document Content */}
-      <div className="mb-12">
+      <div className="mb-8 min-h-[300px]">
         {documentContent ? (
-          <div className="text-gray-800 leading-relaxed text-sm whitespace-pre-wrap">
+          <div className="text-gray-900 leading-relaxed text-xs whitespace-pre-wrap text-justify">
             {documentContent}
           </div>
         ) : (
-          <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500 font-medium">Konten Dokumen: {document.title}</p>
-            <p className="text-sm text-gray-400 mt-2">Konten dokumen belum tersedia</p>
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-sm font-medium">Konten Dokumen: {document.title}</p>
+            <p className="text-xs text-gray-500 mt-2">Konten dokumen belum tersedia</p>
           </div>
         )}
       </div>
@@ -101,47 +107,47 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
       {document.signed_at && (
         <>
           {/* Issue Date */}
-          <div className="text-left mb-6">
-            <p className="text-sm text-gray-700">
+          <div className="text-left mb-8">
+            <p className="text-xs text-gray-900">
               Diterbitkan di Cirebon, tanggal: {signedDate}
             </p>
           </div>
 
-          {/* Authority and QR Code Section */}
-          <div className="flex justify-end mb-6">
-            <div className="text-center">
-              <div className="mb-3">
-                <p className="text-sm font-medium text-gray-800">
+          {/* Authority and QR Code Section - Right aligned */}
+          <div className="flex justify-end mb-8">
+            <div className="text-center max-w-[200px]">
+              <div className="mb-2">
+                <p className="text-xs font-semibold text-gray-900">
                   {document.users?.role === 'rektor' ? 'Rektor' : 
                    document.users?.role === 'dekan' ? 'Dekan' :
                    document.users?.role === 'dosen' ? 'Dosen' : 'Pejabat Berwenang'}
                 </p>
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-xs font-semibold text-gray-900">
                   Universitas Muhammadiyah Cirebon
                 </p>
               </div>
               
-              {/* QR Code - Larger size for easy scanning */}
-              <div className="flex justify-center mb-3">
+              {/* QR Code - Prominent size for easy scanning */}
+              <div className="flex justify-center my-3">
                 {qrCodeDataUrl ? (
                   <img 
                     src={qrCodeDataUrl} 
                     alt="QR Code untuk verifikasi dokumen"
-                    className="w-24 h-24 border-2 border-gray-800 bg-white p-1"
+                    className="w-28 h-28 bg-white p-1"
                   />
                 ) : (
-                  <div className="w-24 h-24 border-2 border-gray-800 flex items-center justify-center bg-white">
-                    <QrCode className="w-20 h-20 text-gray-800" />
+                  <div className="w-28 h-28 flex items-center justify-center bg-white">
+                    <QrCode className="w-24 h-24 text-gray-900" />
                   </div>
                 )}
               </div>
               
-              <p className="text-xs text-gray-800 font-semibold mb-3">
+              <p className="text-[10px] text-gray-900 font-bold mb-2">
                 Ditandatangani secara elektronik
               </p>
               
               {document.users?.name && (
-                <p className="text-sm text-gray-800 font-medium underline">
+                <p className="text-xs text-gray-900 font-medium">
                   {document.users.name}
                 </p>
               )}
@@ -150,47 +156,47 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
 
           {/* Print Date */}
           <div className="text-left mb-6">
-            <p className="text-sm text-gray-700">
+            <p className="text-xs text-gray-900">
               Dicetak tanggal: {currentDate}
             </p>
           </div>
 
           {/* Footer Disclaimer Box */}
-          <div className="border-2 border-gray-800 p-4 relative">
-            <div className="space-y-2 text-xs text-gray-800 pr-20">
+          <div className="border-2 border-gray-900 p-3 relative min-h-[100px]">
+            <div className="space-y-1.5 text-[9px] text-gray-900 pr-24 leading-relaxed">
               <div className="flex">
-                <span className="mr-2 font-bold">1.</span>
-                <span>
+                <span className="mr-1.5 font-semibold flex-shrink-0">1.</span>
+                <span className="text-justify">
                   Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.
                 </span>
               </div>
               <div className="flex">
-                <span className="mr-2 font-bold">2.</span>
-                <span>
-                  Pelaku Usaha dengan dokumen tersebut di atas dapat melaksanakan kegiatan berusaha sebagaimana terlampir dengan tetap memperhatikan ketentuan peraturan perundang-undangan.
+                <span className="mr-1.5 font-semibold flex-shrink-0">2.</span>
+                <span className="text-justify">
+                  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.
                 </span>
               </div>
               <div className="flex">
-                <span className="mr-2 font-bold">3.</span>
-                <span>
-                  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh CA UMC.
+                <span className="mr-1.5 font-semibold flex-shrink-0">3.</span>
+                <span className="text-justify">
+                  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.
                 </span>
               </div>
               <div className="flex">
-                <span className="mr-2 font-bold">4.</span>
-                <span>
-                  Data lengkap Pelaksana Berusaha dapat diperoleh melalui sistem CA UMC menggunakan hak akses.
+                <span className="mr-1.5 font-semibold flex-shrink-0">4.</span>
+                <span className="text-justify">
+                  Data lengkap dapat diperoleh melalui sistem CA UMC menggunakan hak akses.
                 </span>
               </div>
             </div>
 
-            {/* Electronic Certificate Logo */}
-            <div className="absolute bottom-4 right-4">
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 bg-blue-600 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">BSrE</span>
+            {/* Electronic Certificate Logo - BSrE */}
+            <div className="absolute bottom-3 right-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-12 h-12 bg-blue-600 rounded-md flex items-center justify-center">
+                  <span className="text-white text-[10px] font-bold">BSrE</span>
                 </div>
-                <div className="text-xs text-gray-700">
+                <div className="text-[9px] text-gray-900 leading-tight">
                   <div className="font-bold">Balai Sertifikasi</div>
                   <div className="font-bold">Elektronik</div>
                 </div>
