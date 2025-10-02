@@ -232,15 +232,29 @@ export default function PublicDocumentVerification() {
         {/* Main Content */}
         <main className="flex-1 container mx-auto px-6 py-12 flex items-center justify-center">
           <Card className="glass-card max-w-3xl w-full">
-            <CardHeader className="text-center pb-6">
-              <div className="w-20 h-20 mx-auto bg-yellow-500 rounded-full flex items-center justify-center mb-4">
-                <span className="text-white font-bold text-xl">UMC</span>
+            <CardHeader className="text-center pb-6 border-b">
+              <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <span className="text-white font-bold text-2xl">UMC</span>
               </div>
-              <CardTitle className="text-2xl mb-2">
+              <CardTitle className="text-3xl font-bold mb-3">
                 Certificate Authority
               </CardTitle>
-              <p className="text-lg font-medium">Universitas Muhammadiyah Cirebon</p>
-              <p className="text-muted-foreground mt-4">menyatakan bahwa :</p>
+              <div className="space-y-2">
+                <p className="text-xl font-semibold">Universitas Muhammadiyah Cirebon</p>
+                <p className="text-sm text-muted-foreground">
+                  Jl. Tuparev No.70, Kedawung, Kec. Cirebon, Kota Cirebon
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Jawa Barat 45153, Indonesia
+                </p>
+                <p className="text-sm font-medium text-primary mt-3">
+                  Sistem Certificate Authority Berbasis Digital
+                </p>
+              </div>
+              <div className="mt-6 pt-6 border-t">
+                <p className="text-lg font-semibold text-foreground">SURAT KETERANGAN VERIFIKASI</p>
+                <p className="text-base text-muted-foreground mt-2">menyatakan bahwa :</p>
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-6">
@@ -251,56 +265,115 @@ export default function PublicDocumentVerification() {
               </div>
 
               {/* Document Information */}
-              <div className="space-y-4 bg-card p-6 rounded-lg border">
-                <div className="grid grid-cols-[180px_1fr] gap-x-4 gap-y-3">
-                  <span className="text-muted-foreground font-medium">Judul Dokumen:</span>
-                  <span className="font-medium">{verificationResult.title}</span>
+              <div className="space-y-5 bg-card p-6 rounded-lg border-2">
+                <div className="pb-3 border-b">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Informasi Dokumen</h3>
+                  <p className="text-sm text-muted-foreground">Detail dokumen yang diverifikasi</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Judul Dokumen</p>
+                    <p className="font-semibold text-lg">{verificationResult.title}</p>
+                  </div>
                   
                   {verificationResult.user && (
                     <>
-                      <span className="text-muted-foreground font-medium">Nama Penandatangan:</span>
-                      <span className="font-medium">{verificationResult.user.name}</span>
-
-                      <span className="text-muted-foreground font-medium">Jabatan:</span>
-                      <span className="font-medium">{getRoleLabel(verificationResult.user.role)}</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-muted/30 p-4 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nama Penandatangan</p>
+                          <p className="font-semibold">{verificationResult.user.name}</p>
+                        </div>
+                        <div className="bg-muted/30 p-4 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Jabatan</p>
+                          <p className="font-semibold">{getRoleLabel(verificationResult.user.role)}</p>
+                        </div>
+                      </div>
+                      <div className="bg-muted/30 p-4 rounded-lg">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Institusi</p>
+                        <p className="font-semibold">Universitas Muhammadiyah Cirebon</p>
+                      </div>
                     </>
                   )}
 
                   {verificationResult.certificate && (
-                    <>
-                      <span className="text-muted-foreground font-medium">Serial Sertifikat:</span>
-                      <span className="font-mono text-sm">{verificationResult.certificate.serial_number}</span>
-                    </>
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nomor Serial Sertifikat Digital</p>
+                      <p className="font-mono text-sm font-semibold">{verificationResult.certificate.serial_number}</p>
+                    </div>
                   )}
 
                   {verificationResult.signed_at && (
-                    <>
-                      <span className="text-muted-foreground font-medium">Tanggal Ditandatangani:</span>
-                      <span className="font-medium">
-                        {new Date(verificationResult.signed_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/30 p-4 rounded-lg">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tanggal Penandatanganan</p>
+                        <p className="font-semibold">
+                          {new Date(verificationResult.signed_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <div className="bg-muted/30 p-4 rounded-lg">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Waktu Penandatanganan</p>
+                        <p className="font-semibold">
+                          {new Date(verificationResult.signed_at).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          })} WIB
+                        </p>
+                      </div>
+                    </div>
                   )}
+
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Metode Verifikasi</p>
+                    <p className="font-semibold">QR Code - Blockchain-based Digital Signature</p>
+                  </div>
                 </div>
               </div>
 
               {/* Status Message */}
-              <div className="text-center space-y-4">
-                <p className="text-base leading-relaxed">
-                  {getStatusMessage(verificationResult.status, verificationResult.certificate?.status)}
-                </p>
+              <div className="text-center space-y-4 bg-gradient-to-br from-primary/5 to-primary/10 p-6 rounded-lg border-2 border-primary/20">
+                <div className="pb-3 border-b border-primary/20">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Status Verifikasi</h3>
+                  <p className="text-sm text-muted-foreground">Hasil pemeriksaan keaslian dokumen</p>
+                </div>
                 
-                <div className="flex flex-col items-center gap-3 py-4">
+                <div className="flex flex-col items-center gap-4 py-4">
                   {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
                   <StatusBadge 
                     status={getOverallStatus(verificationResult.status, verificationResult.certificate?.status) as any}
-                    className="text-xl px-8 py-3"
+                    className="text-xl px-8 py-3 shadow-lg"
                   />
                 </div>
+
+                <div className="bg-white/50 dark:bg-black/20 p-5 rounded-lg">
+                  <p className="text-base leading-relaxed font-medium">
+                    Dokumen dengan judul <span className="font-bold">"{verificationResult.title}"</span>{' '}
+                    {getStatusMessage(verificationResult.status, verificationResult.certificate?.status)}
+                  </p>
+                </div>
+
+                {verificationResult.status === 'signed' && verificationResult.certificate?.status === 'active' && (
+                  <div className="pt-4 space-y-2">
+                    <div className="flex items-center justify-center gap-2 text-sm text-green-700 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-semibold">Tanda tangan digital terverifikasi</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm text-green-700 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-semibold">Sertifikat digital aktif dan valid</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm text-green-700 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-semibold">Integritas dokumen terjaga</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Verification Link */}
