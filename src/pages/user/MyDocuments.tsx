@@ -44,6 +44,7 @@ export default function MyDocuments() {
 
   // Form state
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -102,10 +103,10 @@ export default function MyDocuments() {
   };
 
   const uploadDocument = async () => {
-    if (!title || !file || !userProfile) {
+    if (!title || !content.trim() || !userProfile) {
       toast({
         title: "Error",
-        description: "Judul dan file dokumen harus diisi",
+        description: "Judul dan isi dokumen harus diisi",
         variant: "destructive",
       });
       return;
@@ -114,28 +115,34 @@ export default function MyDocuments() {
     setUploading(true);
 
     try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `${userProfile.id}/${fileName}`;
+      let publicUrl = null;
+      
+      // Upload file to Supabase Storage if file is provided
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const filePath = `${userProfile.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+        // Get public URL
+        const { data: { publicUrl: url } } = supabase.storage
+          .from('documents')
+          .getPublicUrl(filePath);
+        
+        publicUrl = url;
+      }
 
-      // Create document record
+      // Create document record with content from textarea
       const { error: insertError } = await supabase
         .from('documents')
         .insert({
           title,
-          content: "", // Add content field with empty value for user uploads
+          content: content.trim(),
           user_id: userProfile.id,
           file_url: publicUrl,
           status: 'pending'
@@ -203,6 +210,7 @@ export default function MyDocuments() {
 
   const resetForm = () => {
     setTitle("");
+    setContent("");
     setFile(null);
   };
 
@@ -267,7 +275,7 @@ export default function MyDocuments() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">Judul Dokumen</Label>
+                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">Judul Dokumen *</Label>
                     <Input
                       id="title"
                       value={title}
@@ -278,7 +286,22 @@ export default function MyDocuments() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">File Dokumen</Label>
+                    <Label htmlFor="content" className="text-sm font-semibold text-slate-700">Isi Dokumen *</Label>
+                    <textarea
+                      id="content"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Masukkan isi dokumen yang akan ditandatangani..."
+                      className="mt-1 w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md resize-y"
+                      rows={10}
+                    />
+                    <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
+                      Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">File Dokumen (Opsional)</Label>
                     <Input
                       id="file"
                       type="file"
@@ -287,7 +310,7 @@ export default function MyDocuments() {
                       className="mt-1 border-slate-300"
                     />
                     <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
-                      Format yang didukung: PDF, DOC, DOCX (Maks. 10MB)
+                      File referensi (opsional): PDF, DOC, DOCX (Maks. 10MB)
                     </p>
                   </div>
                   
