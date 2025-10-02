@@ -117,7 +117,7 @@ export default function MyDocuments() {
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `documents/${fileName}`;
+      const filePath = `${userProfile.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
