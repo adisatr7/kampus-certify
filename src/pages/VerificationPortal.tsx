@@ -39,7 +39,7 @@ export default function VerificationPortal() {
   // Auto-fill document ID from URL parameter (QR code scan)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const idFromUrl = urlParams.get('id');
+    const idFromUrl = urlParams.get('id') || urlParams.get('documentId');
     if (idFromUrl) {
       setDocumentId(idFromUrl);
       // Auto-verify if ID comes from QR code

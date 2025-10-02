@@ -26,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/verify" element={<VerificationPortal />} />
+            <Route path="/verification-portal" element={<VerificationPortal />} />
             
             {/* Admin Routes */}
             <Route 
