@@ -21,11 +21,11 @@ interface VerificationResult {
   certificate?: {
     serial_number: string;
     status: string;
-  };
-  users?: {
+  } | null;
+  user?: {
     name: string;
     role: string;
-  };
+  } | null;
 }
 
 export default function PublicDocumentVerification() {
@@ -60,11 +60,11 @@ export default function PublicDocumentVerification() {
         .from('documents')
         .select(`
           *,
-          certificates (
+          certificate:certificates!documents_certificate_id_fkey (
             serial_number,
             status
           ),
-          users (
+          user:users!documents_user_id_fkey (
             name,
             role
           )
@@ -256,13 +256,13 @@ export default function PublicDocumentVerification() {
                   <span className="text-muted-foreground font-medium">Judul Dokumen:</span>
                   <span className="font-medium">{verificationResult.title}</span>
                   
-                  {verificationResult.users && (
+                  {verificationResult.user && (
                     <>
                       <span className="text-muted-foreground font-medium">Nama Penandatangan:</span>
-                      <span className="font-medium">{verificationResult.users.name}</span>
+                      <span className="font-medium">{verificationResult.user.name}</span>
 
                       <span className="text-muted-foreground font-medium">Jabatan:</span>
-                      <span className="font-medium">{getRoleLabel(verificationResult.users.role)}</span>
+                      <span className="font-medium">{getRoleLabel(verificationResult.user.role)}</span>
                     </>
                   )}
 
