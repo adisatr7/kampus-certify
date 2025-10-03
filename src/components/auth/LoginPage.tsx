@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/layout/AppHeader";
 import campusBackground from "@/assets/campus.jpg";
 import { LogIn, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -8,52 +9,55 @@ export function LoginPage() {
   const { signInWithGoogle } = useAuth();
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
-        backgroundImage: `url(${campusBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-950/90 via-gray-900/85 to-red-900/80" />
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader />
+      
+      <div 
+        className="flex-1 flex items-center justify-center p-4 relative overflow-hidden"
+        style={{
+          backgroundImage: `url(${campusBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-red-950/90 via-gray-900/85 to-red-900/80 dark:from-red-950/95 dark:via-gray-950/90 dark:to-red-900/85" />
       
       {/* Blur elements */}
       <div className="absolute top-20 left-20 w-72 h-72 bg-red-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-20 w-96 h-96 bg-red-600/10 rounded-full blur-3xl" />
       
-      {/* Login Card */}
-      <Card className="w-full max-w-lg relative z-10 border-0 shadow-2xl backdrop-blur-2xl bg-white/95 overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-red-500 to-red-600" />
+        {/* Login Card */}
+        <Card className="w-full max-w-lg relative z-10 border-0 shadow-2xl backdrop-blur-2xl bg-card overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-red-500 to-red-600" />
         
-        <CardContent className="p-10 sm:p-12">
-          {/* Logo */}
-          <div className="flex justify-center mb-10">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
-              <div className="relative bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100 group-hover:scale-105 transition-transform duration-300">
-                <img 
-                  src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
-                  alt="Logo UMC"
-                  className="h-20 w-20 object-contain"
-                />
+          <CardContent className="p-10 sm:p-12">
+            {/* Logo */}
+            <div className="flex justify-center mb-10">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                <div className="relative bg-gradient-to-br from-background to-muted p-8 rounded-3xl shadow-xl border border-border group-hover:scale-105 transition-transform duration-300">
+                  <img 
+                    src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
+                    alt="Logo UMC"
+                    className="h-20 w-20 object-contain"
+                  />
+                </div>
               </div>
             </div>
-          </div>
           
-          {/* Title */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 rounded-full mb-4">
-              <Shield className="h-3.5 w-3.5 text-red-700" />
-              <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">Certificate Authority</span>
+            {/* Title */}
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 dark:bg-red-950/30 rounded-full mb-4">
+                <Shield className="h-3.5 w-3.5 text-red-700 dark:text-red-400" />
+                <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Certificate Authority</span>
+              </div>
+              <h1 className="text-5xl font-bold bg-gradient-to-br from-foreground via-red-900 to-red-800 dark:from-foreground dark:via-red-400 dark:to-red-500 bg-clip-text text-transparent mb-3">
+                CA UMC
+              </h1>
+              <p className="text-sm text-muted-foreground">Universitas Muhammadiyah Cirebon</p>
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-br from-gray-900 via-red-900 to-red-800 bg-clip-text text-transparent mb-3">
-              CA UMC
-            </h1>
-            <p className="text-sm text-gray-500">Universitas Muhammadiyah Cirebon</p>
-          </div>
 
           {/* Login Button */}
           <Button 
@@ -69,19 +73,20 @@ export function LoginPage() {
             Masuk dengan Google
           </Button>
           
-          {/* Notice */}
-          <p className="text-xs text-center text-gray-500 mt-6">
-            Akses terbatas untuk akun terdaftar
-          </p>
-
-          {/* Footer */}
-          <div className="mt-10 pt-6 border-t border-gray-200">
-            <p className="text-xs text-center text-gray-400">
-              © 2025 UMC Certificate Authority
+            {/* Notice */}
+            <p className="text-xs text-center text-muted-foreground mt-6">
+              Akses terbatas untuk akun terdaftar
             </p>
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Footer */}
+            <div className="mt-10 pt-6 border-t border-border">
+              <p className="text-xs text-center text-muted-foreground">
+                © 2025 UMC Certificate Authority
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

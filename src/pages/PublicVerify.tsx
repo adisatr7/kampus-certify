@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { 
   Search, 
   FileText, 
@@ -97,22 +98,25 @@ export default function PublicVerify() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-umc-light-gray via-background to-umc-light-gray">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-4 rounded-full">
-              <Shield className="h-12 w-12 text-primary" />
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader />
+      
+      <div className="flex-1 bg-gradient-to-br from-muted/30 via-background to-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="bg-primary/10 p-4 rounded-full">
+                <Shield className="h-12 w-12 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Portal Verifikasi Publik</h1>
+            <p className="text-muted-foreground mb-1">Certificate Authority UMC</p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <University className="h-4 w-4" />
+              <span>Universitas Muhammadiyah Cirebon</span>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-primary mb-2">Portal Verifikasi Publik</h1>
-          <p className="text-muted-foreground mb-1">Certificate Authority UMC</p>
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <University className="h-4 w-4" />
-            <span>Universitas Muhammadiyah Cirebon</span>
-          </div>
-        </div>
 
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Verification Form */}
@@ -242,10 +246,11 @@ export default function PublicVerify() {
           </Card>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-sm text-muted-foreground">
-          <p>© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority</p>
-          <p>Sistem Verifikasi Dokumen Digital Internal</p>
+          {/* Footer */}
+          <div className="text-center mt-12 text-sm text-muted-foreground">
+            <p>© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority</p>
+            <p>Sistem Verifikasi Dokumen Digital Internal</p>
+          </div>
         </div>
       </div>
     </div>

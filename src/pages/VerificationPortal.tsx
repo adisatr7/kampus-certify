@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { Search, Shield, FileText, Calendar, Download, CheckCircle, XCircle, AlertTriangle, QrCode, University } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -164,39 +165,23 @@ export default function VerificationPortal() {
   };
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        backgroundImage: `url(${campusBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-umc-maroon/60 via-umc-dark/40 to-transparent" />
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader />
       
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-center">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">UMC</span>
-                </div>
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-white">Portal Verifikasi Dokumen</h1>
-                  <p className="text-lg text-white/90">Certificate Authority</p>
-                  <p className="text-sm text-white/80">Universitas Muhammadiyah Cirebon</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+      <div 
+        className="flex-1 relative"
+        style={{
+          backgroundImage: `url(${campusBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-umc-maroon/60 via-umc-dark/40 to-transparent dark:from-umc-maroon/80 dark:via-umc-dark/60 dark:to-transparent" />
 
         {/* Main Content */}
-        <main className="flex-1 container mx-auto px-6 py-12">
+        <main className="relative z-10 container mx-auto px-6 py-12">
           <div className="max-w-2xl mx-auto space-y-8">
             
             {/* Verification Form */}
@@ -396,9 +381,9 @@ export default function VerificationPortal() {
         )}
 
         {/* Footer */}
-        <footer className="bg-white/10 backdrop-blur-lg border-t border-white/20">
+        <footer className="relative z-10 bg-background/10 backdrop-blur-lg border-t border-border/20">
           <div className="container mx-auto px-6 py-4">
-            <div className="text-center text-white/70 text-sm">
+            <div className="text-center text-muted-foreground text-sm">
               © 2025 Universitas Muhammadiyah Cirebon - Certificate Authority System
             </div>
           </div>
