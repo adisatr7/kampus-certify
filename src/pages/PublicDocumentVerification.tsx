@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import campusBackground from "@/assets/campus-bg.jpg";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { AppHeader } from "@/components/layout/AppHeader";
 
 interface VerificationResult {
   id: string;
@@ -156,82 +157,47 @@ export default function PublicDocumentVerification() {
 
   if (verifying) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          backgroundImage: `url(${campusBackground})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-umc-maroon/60 via-umc-dark/40 to-transparent" />
-        <Card className="relative z-10 glass-card max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Shield className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
-            <p className="text-lg font-medium">Memverifikasi dokumen...</p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <AppHeader />
+        <div 
+          className="min-h-screen flex items-center justify-center bg-background"
+        >
+          <Card className="max-w-md">
+            <CardContent className="pt-6 text-center">
+              <Shield className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
+              <p className="text-lg font-medium">Memverifikasi dokumen...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   if (!verificationResult) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          backgroundImage: `url(${campusBackground})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-umc-maroon/60 via-umc-dark/40 to-transparent" />
-        <Card className="relative z-10 glass-card max-w-md">
-          <CardContent className="pt-6 text-center">
-            <XCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
-            <p className="text-lg font-medium">Dokumen tidak ditemukan</p>
-            <Button onClick={() => navigate('/verify')} className="mt-4">
-              Kembali ke Portal Verifikasi
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <AppHeader />
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Card className="max-w-md">
+            <CardContent className="pt-6 text-center">
+              <XCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+              <p className="text-lg font-medium">Dokumen tidak ditemukan</p>
+              <Button onClick={() => navigate('/verify')} className="mt-4">
+                Kembali ke Portal Verifikasi
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        backgroundImage: `url(${campusBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-umc-maroon/60 via-umc-dark/40 to-transparent" />
-      
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-center">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">UMC</span>
-                </div>
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-white">Certificate Authority</h1>
-                  <p className="text-sm text-white/90">Universitas Muhammadiyah Cirebon</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 container mx-auto px-6 py-12 flex items-center justify-center">
-          <Card className="glass-card max-w-3xl w-full">
+    <>
+      <AppHeader />
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-6 py-12 flex items-center justify-center">
+          <Card className="max-w-3xl w-full shadow-xl border-2">
             <CardHeader className="text-center pb-6 border-b">
               <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                 <span className="text-white font-bold text-2xl">UMC</span>
@@ -405,38 +371,16 @@ export default function PublicDocumentVerification() {
             </CardContent>
           </Card>
         </main>
-
-        {/* Signed Document Viewer */}
-        {verificationResult && (
-          <SignedDocumentViewer
-            isOpen={isViewerOpen}
-            onClose={() => setIsViewerOpen(false)}
-            document={verificationResult}
-          />
-        )}
-
-        {/* Footer */}
-        <footer className="bg-umc-maroon/90 backdrop-blur-lg border-t border-white/20">
-          <div className="container mx-auto px-6 py-6">
-            <div className="grid md:grid-cols-2 gap-6 text-white">
-              <div>
-                <h3 className="font-bold text-lg mb-2">Certificate Authority Berbasis Digital</h3>
-                <p className="text-sm text-white/80">
-                  Jl. Tuparev No.70, Kedawung, Kec. Cirebon, Kota Cirebon, Jawa Barat 45153
-                </p>
-              </div>
-              <div className="md:text-right">
-                <p className="text-sm text-white/80">
-                  © 2025 Universitas Muhammadiyah Cirebon
-                </p>
-                <p className="text-sm text-white/80">
-                  Certificate Authority System
-                </p>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
-    </div>
+
+      {/* Signed Document Viewer */}
+      {verificationResult && (
+        <SignedDocumentViewer
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+          document={verificationResult}
+        />
+      )}
+    </>
   );
 }
