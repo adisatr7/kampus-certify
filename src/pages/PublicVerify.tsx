@@ -98,78 +98,89 @@ export default function PublicVerify() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <AppHeader />
       
-      <div className="flex-1 bg-gradient-to-br from-muted/30 via-background to-muted/30">
-        <div className="container mx-auto px-4 py-8">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
+      </div>
+      
+      <div className="flex-1 relative z-10">
+        <div className="container mx-auto px-4 py-12 animate-fade-in-up">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="bg-primary/10 p-4 rounded-full">
-                <Shield className="h-12 w-12 text-primary" />
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-3xl blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-300 animate-pulse-soft"></div>
+                <div className="relative w-20 h-20 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-3xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="h-10 w-10 text-white" />
+                </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Portal Verifikasi Publik</h1>
-            <p className="text-muted-foreground mb-1">Certificate Authority UMC</p>
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <University className="h-4 w-4" />
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-4">
+              Portal Verifikasi Publik
+            </h1>
+            <p className="text-lg text-muted-foreground mb-2 font-medium">Certificate Authority UMC</p>
+            <div className="flex items-center justify-center gap-2 text-base text-muted-foreground">
+              <University className="h-5 w-5" />
               <span>Universitas Muhammadiyah Cirebon</span>
             </div>
           </div>
 
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Verification Form */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Verifikasi Dokumen Digital
-              </CardTitle>
-              <CardDescription>
-                Masukkan ID dokumen atau scan QR Code untuk memverifikasi keaslian dokumen
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Masukkan ID Dokumen (contoh: DOC-2025-001)"
-                  value={documentId}
-                  onChange={(e) => setDocumentId(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleVerify}
-                  disabled={isVerifying}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {isVerifying ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                      Memverifikasi...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Verifikasi
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-center">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <QrCode className="h-4 w-4" />
-                  Scan QR Code
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Verification Form */}
+            <Card className="border-0 shadow-2xl bg-card/95 backdrop-blur-xl hover:shadow-3xl transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                  <Search className="h-6 w-6 text-primary" />
+                  Verifikasi Dokumen Digital
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Masukkan ID dokumen atau scan QR Code untuk memverifikasi keaslian dokumen
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6">
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Masukkan ID Dokumen (contoh: DOC-2025-001)"
+                    value={documentId}
+                    onChange={(e) => setDocumentId(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
+                    className="flex-1 h-12 text-base border-2 focus:border-primary/50 transition-all duration-200"
+                  />
+                  <Button 
+                    onClick={handleVerify}
+                    disabled={isVerifying}
+                    className="h-12 px-8 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Memverifikasi...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-5 w-5" />
+                        Verifikasi
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-center pt-2">
+                  <Button variant="outline" className="flex items-center gap-2 border-2 hover:bg-accent/50 transition-all duration-200">
+                    <QrCode className="h-5 w-5" />
+                    Scan QR Code
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Verification Result */}
-          {verificationResult && (
-            <Card className="fade-in-up">
+            {/* Verification Result */}
+            {verificationResult && (
+              <Card className="border-0 shadow-2xl bg-card/95 backdrop-blur-xl animate-scale-in">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {getStatusIcon(verificationResult.status)}
@@ -232,24 +243,39 @@ export default function PublicVerify() {
             </Card>
           )}
 
-          {/* Information */}
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-base">Informasi Penting</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>• Dokumen yang valid menandakan bahwa dokumen tersebut asli dan belum dimodifikasi sejak ditandatangani.</p>
-              <p>• Dokumen yang invalid mungkin telah dimodifikasi atau tidak berasal dari sumber resmi.</p>
-              <p>• Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya meskipun sebelumnya valid.</p>
-              <p>• Sistem ini hanya memverifikasi dokumen yang diterbitkan melalui CA UMC.</p>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Information */}
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-muted/50 to-muted/30 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-primary" />
+                  Informasi Penting
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <p>Dokumen yang valid menandakan bahwa dokumen tersebut asli dan belum dimodifikasi sejak ditandatangani.</p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <p>Dokumen yang invalid mungkin telah dimodifikasi atau tidak berasal dari sumber resmi.</p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <p>Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya meskipun sebelumnya valid.</p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <p>Sistem ini hanya memverifikasi dokumen yang diterbitkan melalui CA UMC.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Footer */}
-          <div className="text-center mt-12 text-sm text-muted-foreground">
-            <p>© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority</p>
-            <p>Sistem Verifikasi Dokumen Digital Internal</p>
+          <div className="text-center mt-12 text-sm text-muted-foreground space-y-1 pb-8">
+            <p className="font-medium">© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority</p>
+            <p className="text-xs">Sistem Verifikasi Dokumen Digital Internal</p>
           </div>
         </div>
       </div>
