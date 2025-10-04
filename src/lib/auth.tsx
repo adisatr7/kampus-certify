@@ -24,13 +24,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile from database
-          setTimeout(async () => {
+          // Keep loading true while we verify the user
+          setLoading(true);
+          
+          // Verify user exists in database
+          (async () => {
             console.log("Auth: Fetching user profile for:", session.user.id, session.user.email);
             try {
               const { data: profile, error } = await supabase
@@ -41,47 +44,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               if (error) {
                 console.error('Auth: Error fetching user profile:', error);
-                if (event === 'SIGNED_IN') {
-                  toast({
-                    title: "Akses Ditolak",
-                    description: "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
-                    variant: "destructive",
-                  });
-                  await supabase.auth.signOut();
-                }
+                toast({
+                  title: "Akses Ditolak",
+                  description: "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
+                  variant: "destructive",
+                });
+                await supabase.auth.signOut();
+                setUserProfile(null);
               } else if (!profile) {
                 // User not registered in our system
                 console.log("Auth: User not found in database");
-                if (event === 'SIGNED_IN') {
-                  toast({
-                    title: "Akses Ditolak",
-                    description: "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.",
-                    variant: "destructive",
-                  });
-                  await supabase.auth.signOut();
-                }
+                toast({
+                  title: "Akses Ditolak",
+                  description: "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.",
+                  variant: "destructive",
+                });
+                await supabase.auth.signOut();
+                setUserProfile(null);
               } else {
                 console.log("Auth: Successfully fetched profile:", profile);
                 setUserProfile(profile);
               }
             } catch (err) {
               console.error('Auth: Profile fetch error:', err);
+              await supabase.auth.signOut();
+              setUserProfile(null);
+            } finally {
+              setLoading(false);
             }
-          }, 0);
+          })();
         } else {
           console.log("Auth: No session user, setting profile to null");
           setUserProfile(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
-    // Check for existing session
+    // Check for existing session - this will trigger the onAuthStateChange handler
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (!session) {
+        setLoading(false);
+      }
+      // If there is a session, the onAuthStateChange handler will verify and set loading
     });
 
     return () => subscription.unsubscribe();
