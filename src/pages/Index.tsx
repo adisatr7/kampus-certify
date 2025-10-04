@@ -63,63 +63,43 @@ const Index = () => {
       try {
         setError(null);
         
-        // First, check if user exists in the users table
+        // Check if user exists in the users table
         const { data: userData, error: userError } = await supabase
           .from("users")
           .select("role, name, email")
           .eq("id", session.user.id)
-          .single();
+          .maybeSingle();
 
         if (userError) {
-          if (userError.code === 'PGRST116') {
-            // User doesn't exist in users table, create them
-            const { data: newUser, error: insertError } = await supabase
-              .from("users")
-              .insert([
-                {
-                  id: session.user.id,
-                  email: session.user.email,
-                  name: session.user.user_metadata?.full_name || session.user.email,
-                  role: 'dosen', // Default role
-                  google_id: session.user.user_metadata?.sub
-                }
-              ])
-              .select("role")
-              .single();
-
-            if (insertError) {
-              console.error("Error creating user:", insertError);
-              setError("Failed to create user profile");
-              return;
-            }
-
-            setUserRole(newUser.role);
-            
-            // Create audit trail entry for new user
-            await supabase.rpc('create_audit_entry', {
-              p_user_id: session.user.id,
-              p_action: 'user_registered',
-              p_description: `New user registered: ${session.user.email}`
-            });
-            
-          } else {
-            console.error("Error fetching user role:", userError);
-            setError("Failed to fetch user profile");
-            return;
-          }
-        } else {
-          setUserRole(userData.role);
-          
-          // Update last login in audit trail
-          await supabase.rpc('create_audit_entry', {
-            p_user_id: session.user.id,
-            p_action: 'user_login',
-            p_description: `User logged in: ${userData.name}`
-          });
+          console.error("Error fetching user role:", userError);
+          setError("Terjadi kesalahan saat mengambil data pengguna");
+          // Sign out user if there's an error
+          await supabase.auth.signOut();
+          return;
         }
+
+        if (!userData) {
+          // User not registered in system
+          console.log("User not found in database - access denied");
+          setError("Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.");
+          // Sign out user
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // User found, set role and log login
+        setUserRole(userData.role);
+        
+        // Update last login in audit trail
+        await supabase.rpc('create_audit_entry', {
+          p_user_id: session.user.id,
+          p_action: 'user_login',
+          p_description: `User logged in: ${userData.name}`
+        });
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("An unexpected error occurred");
+        setError("Terjadi kesalahan yang tidak terduga");
+        await supabase.auth.signOut();
       }
     };
 

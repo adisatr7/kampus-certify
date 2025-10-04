@@ -42,10 +42,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (error) {
                 console.error('Auth: Error fetching user profile:', error);
                 if (event === 'SIGNED_IN') {
-                  // User not registered in our system
                   toast({
                     title: "Akses Ditolak",
-                    description: "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator.",
+                    description: "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
+                    variant: "destructive",
+                  });
+                  await supabase.auth.signOut();
+                }
+              } else if (!profile) {
+                // User not registered in our system
+                console.log("Auth: User not found in database");
+                if (event === 'SIGNED_IN') {
+                  toast({
+                    title: "Akses Ditolak",
+                    description: "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.",
                     variant: "destructive",
                   });
                   await supabase.auth.signOut();
