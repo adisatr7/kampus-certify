@@ -137,14 +137,15 @@ export const useRecentActivities = (userRole?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Fetch recent audit trail entries with user information
+      // Fetch recent audit trail entries
       const { data: auditData, error } = await supabase
         .from('audit_trail')
         .select(`
           id,
           action,
           description,
-          timestamp
+          timestamp,
+          user_id
         `)
         .order('timestamp', { ascending: false })
         .limit(10);
@@ -155,7 +156,7 @@ export const useRecentActivities = (userRole?: string) => {
       }
 
       // Get user IDs from audit data
-      const userIds = [...new Set(auditData?.map(item => item.id).filter(Boolean) || [])];
+      const userIds = [...new Set(auditData?.map(item => item.user_id).filter(Boolean) || [])];
       
       // Fetch user data separately
       const { data: userData } = await supabase

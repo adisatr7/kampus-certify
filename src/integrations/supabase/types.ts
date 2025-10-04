@@ -150,6 +150,13 @@ export type Database = {
             foreignKeyName: "documents_certificate_id_fkey"
             columns: ["certificate_id"]
             isOneToOne: false
+            referencedRelation: "certificate_verification"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
             referencedRelation: "certificates"
             referencedColumns: ["id"]
           },
@@ -169,7 +176,7 @@ export type Database = {
           email: string
           google_id: string | null
           id: string
-          name: string
+          name: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
@@ -179,7 +186,7 @@ export type Database = {
           email: string
           google_id?: string | null
           id?: string
-          name: string
+          name?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -189,11 +196,18 @@ export type Database = {
           email?: string
           google_id?: string | null
           id?: string
-          name?: string
+          name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_users_certificate_id"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_verification"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_users_certificate_id"
             columns: ["certificate_id"]
@@ -205,7 +219,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      certificate_verification: {
+        Row: {
+          expires_at: string | null
+          id: string | null
+          issued_at: string | null
+          public_key: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["certificate_status"] | null
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string | null
+          issued_at?: string | null
+          public_key?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string | null
+          issued_at?: string | null
+          public_key?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_audit_entry: {
@@ -241,6 +281,18 @@ export type Database = {
       is_admin: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      verify_document: {
+        Args: { doc_id: string }
+        Returns: {
+          certificate_serial: string
+          id: string
+          qr_code_url: string
+          signed_at: string
+          signed_document_url: string
+          status: Database["public"]["Enums"]["document_status"]
+          title: string
+        }[]
       }
     }
     Enums: {
