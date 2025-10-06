@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/layout/AppHeader";
 import campusBackground from "@/assets/campus.jpg";
-import { LogIn, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export function LoginPage() {
@@ -10,9 +9,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <AppHeader />
-      
-      <div 
+      <div
         className="flex-1 flex items-center justify-center p-4 relative overflow-hidden"
         style={{
           backgroundImage: `url(${campusBackground})`,
