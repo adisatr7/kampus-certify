@@ -73,21 +73,22 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   return (
     <div className={cn(
       "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
+      "fixed lg:static inset-y-0 left-0 z-40",
+      collapsed ? "w-16 -translate-x-full lg:translate-x-0" : "w-64"
     )}>
       {/* Header */}
-     <div className="flex items-center justify-between p-4 border-b border-border">
+     <div className="flex items-center justify-between p-2 sm:p-4 border-b border-border">
       {!collapsed && (
         <div className="flex items-center gap-2">
           {/* Logo */}
           <img
             src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
             alt="Logo UMC"
-            className="h-12 w-12 object-contain"
+            className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
           />
           <div>
-            <h2 className="text-lg font-semibold text-primary">CA UMC</h2>
-            <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+            <h2 className="text-base sm:text-lg font-semibold text-primary">CA UMC</h2>
+            <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{userRole}</p>
           </div>
         </div>
       )}
@@ -96,7 +97,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             <img
               src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
               alt="Logo UMC"
-              className="h-12 w-12 object-contain"
+              className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
             />
           </div>
         )}
@@ -105,14 +106,14 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
           variant="ghost"
           size="sm"
           onClick={() => onCollapsedChange(!collapsed)}
-          className="h-12 w-12 p-0"
+          className="h-8 w-8 sm:h-12 sm:w-12 p-0"
         >
-          {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <Menu className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
         </Button>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 space-y-2 p-4">
+      <nav className="flex-1 space-y-2 p-2 sm:p-4">
         {items.map((item) => (
           <NavLink
             key={item.title}

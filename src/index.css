@@ -173,4 +173,22 @@ All colors MUST be HSL.
       transform: scale(1.02);
     }
   }
+
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

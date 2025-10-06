@@ -185,30 +185,35 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
-      <div className="space-y-8 p-8">
+      <div className="space-y-4 sm:space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
               {dashboardConfig.title}
             </h1>
-            <p className="text-slate-600 text-lg">{dashboardConfig.description}</p>
+            <p className="text-slate-600 text-sm sm:text-lg">{dashboardConfig.description}</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Calendar className="h-4 w-4" />
-              <span>{new Date().toLocaleDateString('id-ID', { 
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">{new Date().toLocaleDateString('id-ID', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
+              })}</span>
+              <span className="sm:hidden">{new Date().toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
               })}</span>
             </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat, index) => (
             <Card 
               key={index} 
