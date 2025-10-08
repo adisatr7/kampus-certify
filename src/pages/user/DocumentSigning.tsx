@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { PenTool, FileText, Shield, Calendar, QrCode } from "lucide-react";
+import { PenTool, FileText, Shield, Calendar, QrCode, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
@@ -42,6 +44,7 @@ export default function DocumentSigning() {
   // Signing form state
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [selectedCertificate, setSelectedCertificate] = useState("");
+  const [certificateCode, setCertificateCode] = useState("");
 
   useEffect(() => {
     if (userProfile) {
@@ -107,18 +110,38 @@ export default function DocumentSigning() {
       return;
     }
 
+    if (!certificateCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Masukkan kode sertifikat untuk autentikasi",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSigning(true);
 
     try {
-      // Get certificate details for signing
+      // Get certificate details and verify code
       const { data: certData, error: certError } = await supabase
         .from('certificates')
-        .select('serial_number')
+        .select('serial_number, certificate_code')
         .eq('id', selectedCertificate)
         .single();
 
       if (certError || !certData) {
         throw new Error('Failed to fetch certificate details');
+      }
+
+      // Verify certificate code
+      if (certData.certificate_code !== certificateCode) {
+        toast({
+          title: "Error",
+          description: "Kode sertifikat tidak valid",
+          variant: "destructive",
+        });
+        setSigning(false);
+        return;
       }
 
       // Generate verification URL with document ID
@@ -203,6 +226,7 @@ export default function DocumentSigning() {
     setIsSignDialogOpen(false);
     setSelectedDocument(null);
     setSelectedCertificate("");
+    setCertificateCode("");
   };
 
   if (loading) {
@@ -378,7 +402,25 @@ export default function DocumentSigning() {
                 </Select>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="space-y-2">
+                <Label htmlFor="certificateCode" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Kode Sertifikat
+                </Label>
+                <Input
+                  id="certificateCode"
+                  type="password"
+                  placeholder="Masukkan kode sertifikat Anda"
+                  value={certificateCode}
+                  onChange={(e) => setCertificateCode(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Masukkan kode rahasia sertifikat Anda untuk autentikasi
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <QrCode className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="text-sm">
@@ -396,7 +438,7 @@ export default function DocumentSigning() {
                 </Button>
                 <Button 
                   onClick={signDocument}
-                  disabled={signing || !selectedCertificate}
+                  disabled={signing || !selectedCertificate || !certificateCode.trim()}
                 >
                   {signing ? (
                     <>

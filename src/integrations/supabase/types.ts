@@ -51,6 +51,7 @@ export type Database = {
       }
       certificates: {
         Row: {
+          certificate_code: string | null
           created_at: string | null
           expires_at: string
           id: string
@@ -64,6 +65,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          certificate_code?: string | null
           created_at?: string | null
           expires_at: string
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          certificate_code?: string | null
           created_at?: string | null
           expires_at?: string
           id?: string
@@ -177,6 +180,7 @@ export type Database = {
           google_id: string | null
           id: string
           name: string | null
+          nidn: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
@@ -187,6 +191,7 @@ export type Database = {
           google_id?: string | null
           id?: string
           name?: string | null
+          nidn?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -197,6 +202,7 @@ export type Database = {
           google_id?: string | null
           id?: string
           name?: string | null
+          nidn?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }

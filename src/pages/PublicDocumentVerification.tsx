@@ -26,6 +26,7 @@ interface VerificationResult {
   user?: {
     name: string;
     role: string;
+    nidn: string | null;
   } | null;
 }
 
@@ -67,7 +68,8 @@ export default function PublicDocumentVerification() {
           ),
           user:users!documents_user_id_fkey (
             name,
-            role
+            role,
+            nidn
           )
         `)
         .eq('id', docId.trim())
@@ -290,9 +292,17 @@ export default function PublicDocumentVerification() {
                           <p className="font-semibold">{getRoleLabel(verificationResult.user.role)}</p>
                         </div>
                       </div>
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Institusi</p>
-                        <p className="font-semibold">Universitas Muhammadiyah Cirebon</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        {verificationResult.user.nidn && (
+                          <div className="bg-muted/30 p-4 rounded-lg">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">NIDN</p>
+                            <p className="font-semibold font-mono">{verificationResult.user.nidn}</p>
+                          </div>
+                        )}
+                        <div className="bg-muted/30 p-4 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Institusi</p>
+                          <p className="font-semibold">Universitas Muhammadiyah Cirebon</p>
+                        </div>
                       </div>
                     </>
                   )}
