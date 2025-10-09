@@ -64,32 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               } else {
                 console.log("Auth: Successfully fetched profile:", profile);
                 setUserProfile(profile);
-                
-                // Auto-generate certificate for new user if not exists
-                setTimeout(async () => {
-                  try {
-                    const { data: existingCert } = await supabase
-                      .from('certificates')
-                      .select('id')
-                      .eq('user_id', session.user.id)
-                      .single();
-                    
-                    if (!existingCert) {
-                      console.log('Generating unique RSA certificate for user...');
-                      const { data, error } = await supabase.functions.invoke('generate-certificate', {
-                        body: { userId: session.user.id, expiryDays: 365 }
-                      });
-                      
-                      if (error) {
-                        console.error('Error generating certificate:', error);
-                      } else {
-                        console.log('Certificate generated successfully:', data);
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error checking/generating certificate:', error);
-                  }
-                }, 0);
               }
             } catch (err) {
               console.error('Auth: Profile fetch error:', err);
