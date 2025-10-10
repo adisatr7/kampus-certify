@@ -79,54 +79,58 @@ Sistem Certificate Authority (CA) internal kampus untuk penerbitan sertifikat di
 
 ### Tabel `users`
 ```sql
-id (uuid, PK)
-email (text, unique)
-name (text)
-role (enum: admin, dosen, rektor, dekan)
-google_id (text)
-certificate_id (uuid)
-created_at (timestamp)
-updated_at (timestamp)
+   id uuid NOT NULL DEFAULT gen_random_uuid(),
+   email text NOT NULL UNIQUE,
+   name text,
+   role USER-DEFINED NOT NULL,
+   google_id text UNIQUE,
+   certificate_id uuid,
+   created_at timestamp with time zone DEFAULT now(),
+   updated_at timestamp with time zone DEFAULT now(),
+   nidn text,
 ```
 
 ### Tabel `certificates`
 ```sql
-id (uuid, PK)
-user_id (uuid, FK → users.id)
-serial_number (text, unique)
-public_key (text)
-private_key (text, encrypted)
-issued_at (timestamp)
-expires_at (timestamp)
-status (enum: active, expired, revoked)
-revoked_at (timestamp, nullable)
-algorithm (text, default 'RSA-2048')
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  serial_number text NOT NULL UNIQUE,
+  public_key text NOT NULL,
+  private_key text NOT NULL,
+  issued_at timestamp with time zone DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  status USER-DEFINED DEFAULT 'active'::certificate_status,
+  revoked_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  certificate_code text,
 ```
 
 ### Tabel `documents`
 ```sql
-id (uuid, PK)
-user_id (uuid, FK → users.id)
-title (text)
-file_url (text, Supabase Storage)
-signed (boolean, default false)
-signed_at (timestamp)
-qr_code_url (text)
-status (enum: pending, signed, revoked)
-certificate_id (uuid, FK → certificates.id)
-document_hash (text)
-signature_data (jsonb)
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  file_url text,
+  signed boolean DEFAULT false,
+  signed_at timestamp with time zone,
+  qr_code_url text,
+  status USER-DEFINED DEFAULT 'pending'::document_status,
+  certificate_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  content text,
+  signed_document_url text,
 ```
 
 ### Tabel `audit_trail`
 ```sql
-id (uuid, PK)
-user_id (uuid, FK → users.id)
-action (text)
-timestamp (timestamp)
-description (text)
-ip_address (inet)
-user_agent (text)
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  action text NOT NULL,
+  timestamp timestamp with time zone DEFAULT now(),
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
 ```
 
 ## 🚀 Cara Menjalankan Aplikasi
