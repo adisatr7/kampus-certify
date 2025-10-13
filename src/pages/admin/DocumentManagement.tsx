@@ -1,27 +1,46 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Plus, FileText, Upload, Eye, Edit, Trash2, Download, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+import { Calendar, Download, Edit, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import { Textarea } from "@/components/ui/Textarea";
+import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 
 interface Document {
   id: string;
   title: string;
   file_url: string | null;
-  status: 'pending' | 'signed' | 'revoked';
+  status: "pending" | "signed" | "revoked";
   signed_at: string | null;
   created_at: string;
   user_id: string;
@@ -59,7 +78,7 @@ export default function DocumentManagement() {
   const fetchDocuments = async () => {
     try {
       const { data, error } = await supabase
-        .from('documents')
+        .from("documents")
         .select(`
           *,
           users (
@@ -68,7 +87,7 @@ export default function DocumentManagement() {
             role
           )
         `)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
@@ -86,14 +105,14 @@ export default function DocumentManagement() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, role')
-        .order('name');
+        .from("users")
+        .select("id, name, email, role")
+        .order("name");
 
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -111,45 +130,43 @@ export default function DocumentManagement() {
 
     try {
       let fileUrl = null;
-      
+
       // Upload file to Supabase Storage if file is provided
       if (file) {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         const filePath = `documents/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('documents')
+          .from("documents")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('documents')
-          .getPublicUrl(filePath);
-        
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("documents").getPublicUrl(filePath);
+
         fileUrl = publicUrl;
       }
 
       // Create document record
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          title,
-          content,
-          user_id: userId,
-          file_url: fileUrl,
-          status: 'pending'
-        });
+      const { error: insertError } = await supabase.from("documents").insert({
+        title,
+        content,
+        user_id: userId,
+        file_url: fileUrl,
+        status: "pending",
+      });
 
       if (insertError) throw insertError;
 
-      const selectedUser = users.find(u => u.id === userId);
+      const selectedUser = users.find((u) => u.id === userId);
       await createAuditEntry(
         userProfile.id,
-        'CREATE_DOCUMENT',
-        `Membuat dokumen "${title}" untuk ${selectedUser?.name}`
+        "CREATE_DOCUMENT",
+        `Membuat dokumen "${title}" untuk ${selectedUser?.name}`,
       );
 
       toast({
@@ -173,18 +190,11 @@ export default function DocumentManagement() {
 
   const deleteDocument = async (documentId: string, title: string) => {
     try {
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId);
+      const { error } = await supabase.from("documents").delete().eq("id", documentId);
 
       if (error) throw error;
 
-      await createAuditEntry(
-        userProfile.id,
-        'DELETE_DOCUMENT',
-        `Menghapus dokumen "${title}"`
-      );
+      await createAuditEntry(userProfile.id, "DELETE_DOCUMENT", `Menghapus dokumen "${title}"`);
 
       toast({
         title: "Berhasil",
@@ -209,11 +219,11 @@ export default function DocumentManagement() {
   };
 
   const handleViewDocument = (doc: Document) => {
-    if (doc.status === 'signed') {
+    if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
     } else if (doc.file_url) {
-      window.open(doc.file_url, '_blank');
+      window.open(doc.file_url, "_blank");
     }
   };
 
@@ -236,7 +246,7 @@ export default function DocumentManagement() {
             <h1 className="text-3xl font-bold text-foreground">Manajemen Dokumen</h1>
             <p className="text-muted-foreground">Kelola dokumen untuk semua pengguna sistem</p>
           </div>
-          
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
@@ -289,7 +299,7 @@ export default function DocumentManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="file">File Dokumen (Opsional)</Label>
                   <Input
@@ -302,7 +312,7 @@ export default function DocumentManagement() {
                     Format yang didukung: PDF, DOC, DOCX (opsional, konten utama dari field di atas)
                   </p>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
@@ -313,10 +323,7 @@ export default function DocumentManagement() {
                   >
                     Batal
                   </Button>
-                  <Button 
-                    onClick={uploadDocument}
-                    disabled={uploading}
-                  >
+                  <Button onClick={uploadDocument} disabled={uploading}>
                     {uploading ? (
                       <>
                         <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -384,14 +391,14 @@ export default function DocumentManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(doc.created_at).toLocaleDateString('id-ID')}
+                          {new Date(doc.created_at).toLocaleDateString("id-ID")}
                         </div>
                       </TableCell>
                       <TableCell>
                         {doc.signed_at ? (
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {new Date(doc.signed_at).toLocaleDateString('id-ID')}
+                            {new Date(doc.signed_at).toLocaleDateString("id-ID")}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -413,15 +420,15 @@ export default function DocumentManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  if (doc.status === 'signed') {
+                                  if (doc.status === "signed") {
                                     // For signed documents, trigger the formatted download
                                     setSelectedDocument(doc);
                                     setIsViewerOpen(true);
                                   } else {
                                     // For unsigned documents, direct download
-                                    const link = document.createElement('a');
+                                    const link = document.createElement("a");
                                     link.href = doc.file_url!;
-                                    link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                    link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
                                     document.body.appendChild(link);
                                     link.click();
                                     document.body.removeChild(link);
@@ -450,7 +457,7 @@ export default function DocumentManagement() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Signed Document Viewer */}
       {selectedDocument && (
         <SignedDocumentViewer

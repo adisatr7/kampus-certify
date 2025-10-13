@@ -1,22 +1,22 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { 
-  Search, 
-  FileText, 
-  Calendar,
-  User,
-  Shield,
-  Download,
-  QrCode,
+import {
   AlertCircle,
+  Calendar,
   CheckCircle2,
-  University
+  Download,
+  FileText,
+  QrCode,
+  Search,
+  Shield,
+  University,
+  User,
 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 interface VerificationResult {
   documentId: string;
@@ -24,7 +24,7 @@ interface VerificationResult {
   signerName: string;
   signerRole: string;
   signedDate: string;
-  status: 'valid' | 'invalid' | 'revoked';
+  status: "valid" | "invalid" | "revoked";
   certificateSerial: string;
   downloadUrl?: string;
 }
@@ -42,7 +42,7 @@ export default function PublicVerify() {
     }
 
     setIsVerifying(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       // Mock verification result
@@ -52,18 +52,21 @@ export default function PublicVerify() {
         signerName: "Prof. Dr. Ahmad Zain, M.Pd.",
         signerRole: "Rektor",
         signedDate: "15 Januari 2025",
-        status: documentId.includes("invalid") ? "invalid" : 
-                documentId.includes("revoked") ? "revoked" : "valid",
+        status: documentId.includes("invalid")
+          ? "invalid"
+          : documentId.includes("revoked")
+            ? "revoked"
+            : "valid",
         certificateSerial: "UMC-CERT-2025-001",
-        downloadUrl: "#"
+        downloadUrl: "#",
       };
-      
+
       setVerificationResult(mockResult);
       setIsVerifying(false);
-      
-      if (mockResult.status === 'valid') {
+
+      if (mockResult.status === "valid") {
         toast.success("Dokumen berhasil diverifikasi");
-      } else if (mockResult.status === 'invalid') {
+      } else if (mockResult.status === "invalid") {
         toast.error("Dokumen tidak valid atau telah dimodifikasi");
       } else {
         toast.warning("Sertifikat telah dicabut");
@@ -73,11 +76,11 @@ export default function PublicVerify() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'valid':
+      case "valid":
         return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-      case 'invalid':
+      case "invalid":
         return <AlertCircle className="h-5 w-5 text-red-600" />;
-      case 'revoked':
+      case "revoked":
         return <AlertCircle className="h-5 w-5 text-yellow-600" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-600" />;
@@ -86,11 +89,11 @@ export default function PublicVerify() {
 
   const getStatusMessage = (status: string) => {
     switch (status) {
-      case 'valid':
+      case "valid":
         return "Dokumen ini asli dan belum pernah dimodifikasi sejak ditandatangani.";
-      case 'invalid':
+      case "invalid":
         return "Dokumen ini tidak valid atau telah dimodifikasi setelah ditandatangani.";
-      case 'revoked':
+      case "revoked":
         return "Sertifikat yang digunakan untuk menandatangani dokumen ini telah dicabut.";
       default:
         return "Status tidak diketahui.";
@@ -100,13 +103,16 @@ export default function PublicVerify() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <AppHeader />
-      
+
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
+        <div
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft"
+          style={{ animationDelay: "1s" }}
+        ></div>
       </div>
-      
+
       <div className="flex-1 relative z-10">
         <div className="container mx-auto px-4 py-12 animate-fade-in-up">
           {/* Header */}
@@ -122,7 +128,9 @@ export default function PublicVerify() {
             <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-4">
               Portal Verifikasi Publik
             </h1>
-            <p className="text-lg text-muted-foreground mb-2 font-medium">Certificate Authority UMC</p>
+            <p className="text-lg text-muted-foreground mb-2 font-medium">
+              Certificate Authority UMC
+            </p>
             <div className="flex items-center justify-center gap-2 text-base text-muted-foreground">
               <University className="h-5 w-5" />
               <span>Universitas Muhammadiyah Cirebon</span>
@@ -147,10 +155,10 @@ export default function PublicVerify() {
                     placeholder="Masukkan ID Dokumen (contoh: DOC-2025-001)"
                     value={documentId}
                     onChange={(e) => setDocumentId(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
+                    onKeyPress={(e) => e.key === "Enter" && handleVerify()}
                     className="flex-1 h-12 text-base border-2 focus:border-primary/50 transition-all duration-200"
                   />
-                  <Button 
+                  <Button
                     onClick={handleVerify}
                     disabled={isVerifying}
                     className="h-12 px-8 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
@@ -168,9 +176,12 @@ export default function PublicVerify() {
                     )}
                   </Button>
                 </div>
-                
+
                 <div className="flex items-center justify-center pt-2">
-                  <Button variant="outline" className="flex items-center gap-2 border-2 hover:bg-accent/50 transition-all duration-200">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 border-2 hover:bg-accent/50 transition-all duration-200"
+                  >
                     <QrCode className="h-5 w-5" />
                     Scan QR Code
                   </Button>
@@ -181,67 +192,75 @@ export default function PublicVerify() {
             {/* Verification Result */}
             {verificationResult && (
               <Card className="border-0 shadow-2xl bg-card/95 backdrop-blur-xl animate-scale-in">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getStatusIcon(verificationResult.status)}
-                  Hasil Verifikasi
-                  <StatusBadge status={verificationResult.status} />
-                </CardTitle>
-                <CardDescription>
-                  {getStatusMessage(verificationResult.status)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Judul Dokumen</p>
-                        <p className="text-sm text-muted-foreground">{verificationResult.title}</p>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {getStatusIcon(verificationResult.status)}
+                    Hasil Verifikasi
+                    <StatusBadge status={verificationResult.status} />
+                  </CardTitle>
+                  <CardDescription>{getStatusMessage(verificationResult.status)}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Judul Dokumen</p>
+                          <p className="text-sm text-muted-foreground">
+                            {verificationResult.title}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Penandatangan</p>
+                          <p className="text-sm text-muted-foreground">
+                            {verificationResult.signerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {verificationResult.signerRole}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Penandatangan</p>
-                        <p className="text-sm text-muted-foreground">{verificationResult.signerName}</p>
-                        <p className="text-xs text-muted-foreground">{verificationResult.signerRole}</p>
+
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Tanggal Ditandatangani</p>
+                          <p className="text-sm text-muted-foreground">
+                            {verificationResult.signedDate}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Sertifikat Serial</p>
+                          <p className="text-sm text-muted-foreground">
+                            {verificationResult.certificateSerial}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Tanggal Ditandatangani</p>
-                        <p className="text-sm text-muted-foreground">{verificationResult.signedDate}</p>
-                      </div>
+
+                  {verificationResult.status === "valid" && verificationResult.downloadUrl && (
+                    <div className="pt-4 border-t border-border">
+                      <Button className="w-full bg-primary hover:bg-primary/90">
+                        <Download className="mr-2 h-4 w-4" />
+                        Unduh Dokumen PDF
+                      </Button>
                     </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Sertifikat Serial</p>
-                        <p className="text-sm text-muted-foreground">{verificationResult.certificateSerial}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {verificationResult.status === 'valid' && verificationResult.downloadUrl && (
-                  <div className="pt-4 border-t border-border">
-                    <Button className="w-full bg-primary hover:bg-primary/90">
-                      <Download className="mr-2 h-4 w-4" />
-                      Unduh Dokumen PDF
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Information */}
             <Card className="border-0 shadow-xl bg-gradient-to-br from-muted/50 to-muted/30 backdrop-blur-sm">
@@ -254,15 +273,24 @@ export default function PublicVerify() {
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <p>Dokumen yang valid menandakan bahwa dokumen tersebut asli dan belum dimodifikasi sejak ditandatangani.</p>
+                  <p>
+                    Dokumen yang valid menandakan bahwa dokumen tersebut asli dan belum dimodifikasi
+                    sejak ditandatangani.
+                  </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <p>Dokumen yang invalid mungkin telah dimodifikasi atau tidak berasal dari sumber resmi.</p>
+                  <p>
+                    Dokumen yang invalid mungkin telah dimodifikasi atau tidak berasal dari sumber
+                    resmi.
+                  </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <p>Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya meskipun sebelumnya valid.</p>
+                  <p>
+                    Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya meskipun sebelumnya
+                    valid.
+                  </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -274,7 +302,9 @@ export default function PublicVerify() {
 
           {/* Footer */}
           <div className="text-center mt-12 text-sm text-muted-foreground space-y-1 pb-8">
-            <p className="font-medium">© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority</p>
+            <p className="font-medium">
+              © 2025 Universitas Muhammadiyah Cirebon - Certificate Authority
+            </p>
             <p className="text-xs">Sistem Verifikasi Dokumen Digital Internal</p>
           </div>
         </div>

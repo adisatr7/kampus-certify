@@ -1,24 +1,49 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Plus, FileText, Upload, Eye, Trash2, Calendar, Download, Search, Filter, FileCheck, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Calendar,
+  Clock,
+  Download,
+  Eye,
+  FileCheck,
+  FileText,
+  Filter,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 
 interface Document {
   id: string;
   title: string;
   file_url: string | null;
-  status: 'pending' | 'signed' | 'revoked';
+  status: "pending" | "signed" | "revoked";
   signed_at: string | null;
   created_at: string;
   qr_code_url?: string | null;
@@ -60,7 +85,7 @@ export default function MyDocuments() {
 
     try {
       const { data, error } = await supabase
-        .from('documents')
+        .from("documents")
         .select(`
           *,
           users (
@@ -68,8 +93,8 @@ export default function MyDocuments() {
             role
           )
         `)
-        .eq('user_id', userProfile.id)
-        .order('created_at', { ascending: false });
+        .eq("user_id", userProfile.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
@@ -89,14 +114,14 @@ export default function MyDocuments() {
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(doc => 
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((doc) =>
+        doc.title.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter(doc => doc.status === statusFilter);
+      filtered = filtered.filter((doc) => doc.status === statusFilter);
     }
 
     setFilteredDocuments(filtered);
@@ -116,45 +141,39 @@ export default function MyDocuments() {
 
     try {
       let publicUrl = null;
-      
+
       // Upload file to Supabase Storage if file is provided
       if (file) {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         const filePath = `${userProfile.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('documents')
+          .from("documents")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         // Get public URL
-        const { data: { publicUrl: url } } = supabase.storage
-          .from('documents')
-          .getPublicUrl(filePath);
-        
+        const {
+          data: { publicUrl: url },
+        } = supabase.storage.from("documents").getPublicUrl(filePath);
+
         publicUrl = url;
       }
 
       // Create document record with content from textarea
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          title,
-          content: content.trim(),
-          user_id: userProfile.id,
-          file_url: publicUrl,
-          status: 'pending'
-        });
+      const { error: insertError } = await supabase.from("documents").insert({
+        title,
+        content: content.trim(),
+        user_id: userProfile.id,
+        file_url: publicUrl,
+        status: "pending",
+      });
 
       if (insertError) throw insertError;
 
-      await createAuditEntry(
-        userProfile.id,
-        'CREATE_DOCUMENT',
-        `Mengupload dokumen "${title}"`
-      );
+      await createAuditEntry(userProfile.id, "CREATE_DOCUMENT", `Mengupload dokumen "${title}"`);
 
       toast({
         title: "Berhasil",
@@ -180,17 +199,17 @@ export default function MyDocuments() {
 
     try {
       const { error } = await supabase
-        .from('documents')
+        .from("documents")
         .delete()
-        .eq('id', documentId)
-        .eq('user_id', userProfile.id); // Ensure user can only delete their own documents
+        .eq("id", documentId)
+        .eq("user_id", userProfile.id); // Ensure user can only delete their own documents
 
       if (error) throw error;
 
       await createAuditEntry(
         userProfile.id,
-        'DELETE_DOCUMENT',
-        `Menghapus dokumen "${documentTitle}"`
+        "DELETE_DOCUMENT",
+        `Menghapus dokumen "${documentTitle}"`,
       );
 
       toast({
@@ -215,19 +234,19 @@ export default function MyDocuments() {
   };
 
   const handleViewDocument = (doc: Document) => {
-    if (doc.status === 'signed') {
+    if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
     } else if (doc.file_url) {
-      window.open(doc.file_url, '_blank');
+      window.open(doc.file_url, "_blank");
     }
   };
 
   const getDocumentStats = () => {
     const total = documents.length;
-    const signed = documents.filter(d => d.status === 'signed').length;
-    const pending = documents.filter(d => d.status === 'pending').length;
-    const revoked = documents.filter(d => d.status === 'revoked').length;
+    const signed = documents.filter((d) => d.status === "signed").length;
+    const pending = documents.filter((d) => d.status === "pending").length;
+    const revoked = documents.filter((d) => d.status === "revoked").length;
     return { total, signed, pending, revoked };
   };
 
@@ -259,9 +278,11 @@ export default function MyDocuments() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Dokumen Saya
               </h1>
-              <p className="text-slate-600 text-lg">Kelola dokumen digital Anda dengan mudah dan aman</p>
+              <p className="text-slate-600 text-lg">
+                Kelola dokumen digital Anda dengan mudah dan aman
+              </p>
             </div>
-            
+
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
@@ -271,11 +292,15 @@ export default function MyDocuments() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-slate-900">Upload Dokumen Baru</DialogTitle>
+                  <DialogTitle className="text-xl font-bold text-slate-900">
+                    Upload Dokumen Baru
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">Judul Dokumen *</Label>
+                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
+                      Judul Dokumen *
+                    </Label>
                     <Input
                       id="title"
                       value={title}
@@ -284,9 +309,11 @@ export default function MyDocuments() {
                       className="mt-1 border-slate-300"
                     />
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="content" className="text-sm font-semibold text-slate-700">Isi Dokumen *</Label>
+                    <Label htmlFor="content" className="text-sm font-semibold text-slate-700">
+                      Isi Dokumen *
+                    </Label>
                     <textarea
                       id="content"
                       value={content}
@@ -299,9 +326,11 @@ export default function MyDocuments() {
                       Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
                     </p>
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">File Dokumen (Opsional)</Label>
+                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">
+                      File Dokumen (Opsional)
+                    </Label>
                     <Input
                       id="file"
                       type="file"
@@ -313,7 +342,7 @@ export default function MyDocuments() {
                       File referensi (opsional): PDF, DOC, DOCX (Maks. 10MB)
                     </p>
                   </div>
-                  
+
                   <div className="flex justify-end space-x-3 pt-4">
                     <Button
                       variant="outline"
@@ -325,7 +354,7 @@ export default function MyDocuments() {
                     >
                       Batal
                     </Button>
-                    <Button 
+                    <Button
                       onClick={uploadDocument}
                       disabled={uploading}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-w-[100px]"
@@ -454,9 +483,13 @@ export default function MyDocuments() {
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">Belum Ada Dokumen</h3>
                   <p className="text-slate-500 mb-6 max-w-md mx-auto">
-                    Mulai dengan mengupload dokumen pertama Anda untuk memulai proses penandatanganan digital
+                    Mulai dengan mengupload dokumen pertama Anda untuk memulai proses
+                    penandatanganan digital
                   </p>
-                  <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                  <Button
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Upload Dokumen Pertama
                   </Button>
@@ -470,8 +503,8 @@ export default function MyDocuments() {
                   <p className="text-slate-500 mb-4">
                     Tidak ada dokumen yang sesuai dengan filter pencarian Anda
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setSearchTerm("");
                       setStatusFilter("all");
@@ -498,14 +531,24 @@ export default function MyDocuments() {
                         <TableRow key={doc.id} className="hover:bg-slate-50/50 transition-colors">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${
-                                doc.status === 'signed' ? 'bg-emerald-100' : 
-                                doc.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
-                              }`}>
-                                <FileText className={`h-5 w-5 ${
-                                  doc.status === 'signed' ? 'text-emerald-600' : 
-                                  doc.status === 'pending' ? 'text-amber-600' : 'text-red-600'
-                                }`} />
+                              <div
+                                className={`p-2 rounded-lg ${
+                                  doc.status === "signed"
+                                    ? "bg-emerald-100"
+                                    : doc.status === "pending"
+                                      ? "bg-amber-100"
+                                      : "bg-red-100"
+                                }`}
+                              >
+                                <FileText
+                                  className={`h-5 w-5 ${
+                                    doc.status === "signed"
+                                      ? "text-emerald-600"
+                                      : doc.status === "pending"
+                                        ? "text-amber-600"
+                                        : "text-red-600"
+                                  }`}
+                                />
                               </div>
                               <div>
                                 <span className="font-semibold text-slate-900">{doc.title}</span>
@@ -520,7 +563,7 @@ export default function MyDocuments() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-slate-400" />
                               <span className="text-sm text-slate-600">
-                                {new Date(doc.created_at).toLocaleDateString('id-ID')}
+                                {new Date(doc.created_at).toLocaleDateString("id-ID")}
                               </span>
                             </div>
                           </TableCell>
@@ -529,7 +572,7 @@ export default function MyDocuments() {
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-emerald-500" />
                                 <span className="text-sm text-slate-600">
-                                  {new Date(doc.signed_at).toLocaleDateString('id-ID')}
+                                  {new Date(doc.signed_at).toLocaleDateString("id-ID")}
                                 </span>
                               </div>
                             ) : (
@@ -553,15 +596,15 @@ export default function MyDocuments() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      if (doc.status === 'signed') {
+                                      if (doc.status === "signed") {
                                         // For signed documents, trigger the formatted download
                                         setSelectedDocument(doc);
                                         setIsViewerOpen(true);
                                       } else {
                                         // For unsigned documents, direct download
-                                        const link = document.createElement('a');
+                                        const link = document.createElement("a");
                                         link.href = doc.file_url!;
-                                        link.download = `${doc.title}.${doc.file_url!.split('.').pop()}`;
+                                        link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
                                         document.body.appendChild(link);
                                         link.click();
                                         document.body.removeChild(link);
@@ -574,7 +617,7 @@ export default function MyDocuments() {
                                   </Button>
                                 </>
                               )}
-                              {doc.status === 'pending' && (
+                              {doc.status === "pending" && (
                                 <Button
                                   variant="destructive"
                                   size="sm"
@@ -597,7 +640,7 @@ export default function MyDocuments() {
           </Card>
         </div>
       </div>
-      
+
       {/* Signed Document Viewer */}
       {selectedDocument && (
         <SignedDocumentViewer

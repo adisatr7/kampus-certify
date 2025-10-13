@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { FileText, Calendar, CheckCircle, XCircle, AlertTriangle, Shield } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { AlertTriangle, Calendar, CheckCircle, FileText, Shield, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import campusBackground from "@/assets/campus-bg.jpg";
-import SignedDocumentViewer from "@/components/SignedDocumentViewer";
-import { useSearchParams, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
+import SignedDocumentViewer from "@/components/SignedDocumentViewer";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VerificationResult {
   id: string;
   title: string;
-  status: 'signed' | 'revoked' | 'pending';
+  status: "signed" | "revoked" | "pending";
   signed_at: string | null;
   file_url: string | null;
   qr_code_url: string | null;
@@ -39,15 +39,15 @@ export default function PublicDocumentVerification() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const documentId = searchParams.get('id') || searchParams.get('documentId');
-    
+    const documentId = searchParams.get("id") || searchParams.get("documentId");
+
     if (!documentId) {
       toast({
         title: "Error",
         description: "ID dokumen tidak ditemukan",
         variant: "destructive",
       });
-      navigate('/verify');
+      navigate("/verify");
       return;
     }
 
@@ -59,7 +59,7 @@ export default function PublicDocumentVerification() {
 
     try {
       const { data, error } = await supabase
-        .from('documents')
+        .from("documents")
         .select(`
           *,
           certificate:certificates!documents_certificate_id_fkey (
@@ -72,7 +72,7 @@ export default function PublicDocumentVerification() {
             nidn
           )
         `)
-        .eq('id', docId.trim())
+        .eq("id", docId.trim())
         .maybeSingle();
 
       if (error) throw error;
@@ -88,16 +88,16 @@ export default function PublicDocumentVerification() {
       }
 
       setVerificationResult(data);
-      
+
       // Log verification attempt
       try {
-        await supabase.rpc('create_audit_entry', {
+        await supabase.rpc("create_audit_entry", {
           p_user_id: null,
-          p_action: 'VERIFY_DOCUMENT',
-          p_description: `Verifikasi dokumen "${data.title}" dari QR code`
+          p_action: "VERIFY_DOCUMENT",
+          p_description: `Verifikasi dokumen "${data.title}" dari QR code`,
         });
       } catch (auditError) {
-        console.error('Failed to log verification:', auditError);
+        console.error("Failed to log verification:", auditError);
       }
     } catch (error) {
       toast({
@@ -112,47 +112,47 @@ export default function PublicDocumentVerification() {
   };
 
   const getStatusIcon = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
+    if (documentStatus === "signed" && certificateStatus === "active") {
       return <CheckCircle className="h-12 w-12 text-status-valid" />;
     }
-    if (documentStatus === 'revoked' || certificateStatus === 'revoked') {
+    if (documentStatus === "revoked" || certificateStatus === "revoked") {
       return <XCircle className="h-12 w-12 text-status-invalid" />;
     }
     return <AlertTriangle className="h-12 w-12 text-orange-500" />;
   };
 
   const getStatusMessage = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
-      return 'adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh Certificate Authority UMC melalui Sistem Certificate Authority Berbasis Digital.';
+    if (documentStatus === "signed" && certificateStatus === "active") {
+      return "adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh Certificate Authority UMC melalui Sistem Certificate Authority Berbasis Digital.";
     }
-    if (documentStatus === 'revoked') {
-      return 'telah dicabut dan tidak lagi valid.';
+    if (documentStatus === "revoked") {
+      return "telah dicabut dan tidak lagi valid.";
     }
-    if (certificateStatus === 'revoked') {
-      return 'memiliki sertifikat yang telah dicabut dan tidak lagi valid.';
+    if (certificateStatus === "revoked") {
+      return "memiliki sertifikat yang telah dicabut dan tidak lagi valid.";
     }
-    if (documentStatus === 'pending') {
-      return 'masih dalam proses penandatanganan.';
+    if (documentStatus === "pending") {
+      return "masih dalam proses penandatanganan.";
     }
-    return 'memiliki status yang tidak valid.';
+    return "memiliki status yang tidak valid.";
   };
 
   const getOverallStatus = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
-      return 'valid';
+    if (documentStatus === "signed" && certificateStatus === "active") {
+      return "valid";
     }
-    if (documentStatus === 'revoked' || certificateStatus === 'revoked') {
-      return 'revoked';
+    if (documentStatus === "revoked" || certificateStatus === "revoked") {
+      return "revoked";
     }
-    return 'invalid';
+    return "invalid";
   };
 
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, string> = {
-      'rektor': 'Rektor',
-      'dekan': 'Dekan',
-      'dosen': 'Dosen',
-      'admin': 'Administrator'
+      rektor: "Rektor",
+      dekan: "Dekan",
+      dosen: "Dosen",
+      admin: "Administrator",
     };
     return roleMap[role] || role;
   };
@@ -173,9 +173,18 @@ export default function PublicDocumentVerification() {
               <h3 className="text-2xl font-bold text-foreground mb-3">Memverifikasi Dokumen</h3>
               <p className="text-muted-foreground mb-6">Sedang memeriksa keaslian dokumen...</p>
               <div className="flex justify-center gap-2">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                <div
+                  className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0s" }}
+                ></div>
+                <div
+                  className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+                <div
+                  className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -201,8 +210,8 @@ export default function PublicDocumentVerification() {
               <p className="text-muted-foreground mb-6">
                 ID dokumen tidak valid atau dokumen tidak ada dalam sistem
               </p>
-              <Button 
-                onClick={() => navigate('/verify')} 
+              <Button
+                onClick={() => navigate("/verify")}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 Kembali ke Portal Verifikasi
@@ -221,9 +230,12 @@ export default function PublicDocumentVerification() {
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
+          <div
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft"
+            style={{ animationDelay: "1s" }}
+          ></div>
         </div>
-        
+
         <main className="relative z-10 container mx-auto px-6 py-12 flex items-center justify-center animate-fade-in-up">
           <Card className="max-w-3xl w-full shadow-2xl border-0 bg-card/95 backdrop-blur-xl hover:shadow-3xl transition-all duration-300">
             <CardHeader className="text-center pb-6 border-b border-border/50">
@@ -241,9 +253,7 @@ export default function PublicDocumentVerification() {
                 <p className="text-sm text-muted-foreground">
                   Jl. Tuparev No.70, Kedawung, Kec. Cirebon, Kota Cirebon
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Jawa Barat 45153, Indonesia
-                </p>
+                <p className="text-sm text-muted-foreground">Jawa Barat 45153, Indonesia</p>
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mt-3">
                   <Shield className="h-4 w-4 text-primary" />
                   <p className="text-sm font-semibold text-primary">
@@ -252,7 +262,9 @@ export default function PublicDocumentVerification() {
                 </div>
               </div>
               <div className="mt-6 pt-6 border-t border-border/50">
-                <p className="text-xl font-bold text-foreground mb-2">SURAT KETERANGAN VERIFIKASI</p>
+                <p className="text-xl font-bold text-foreground mb-2">
+                  SURAT KETERANGAN VERIFIKASI
+                </p>
                 <p className="text-base text-muted-foreground">menyatakan bahwa :</p>
               </div>
             </CardHeader>
@@ -260,8 +272,12 @@ export default function PublicDocumentVerification() {
             <CardContent className="space-y-6 p-8">
               {/* Document ID */}
               <div className="text-center bg-gradient-to-r from-muted/50 to-muted/30 p-5 rounded-xl border border-border/50 shadow-sm">
-                <p className="text-sm text-muted-foreground mb-2 font-medium uppercase tracking-wide">ID Dokumen</p>
-                <p className="font-mono font-bold text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">{verificationResult.id}</p>
+                <p className="text-sm text-muted-foreground mb-2 font-medium uppercase tracking-wide">
+                  ID Dokumen
+                </p>
+                <p className="font-mono font-bold text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  {verificationResult.id}
+                </p>
               </div>
 
               {/* Document Information */}
@@ -273,34 +289,48 @@ export default function PublicDocumentVerification() {
                   </h3>
                   <p className="text-sm text-muted-foreground">Detail dokumen yang diverifikasi</p>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Judul Dokumen</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                      Judul Dokumen
+                    </p>
                     <p className="font-semibold text-lg">{verificationResult.title}</p>
                   </div>
-                  
+
                   {verificationResult.user && (
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nama Penandatangan</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                            Nama Penandatangan
+                          </p>
                           <p className="font-semibold">{verificationResult.user.name}</p>
                         </div>
                         <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Jabatan</p>
-                          <p className="font-semibold">{getRoleLabel(verificationResult.user.role)}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                            Jabatan
+                          </p>
+                          <p className="font-semibold">
+                            {getRoleLabel(verificationResult.user.role)}
+                          </p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         {verificationResult.user.nidn && (
                           <div className="bg-muted/30 p-4 rounded-lg">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">NIDN</p>
-                            <p className="font-semibold font-mono">{verificationResult.user.nidn}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                              NIDN
+                            </p>
+                            <p className="font-semibold font-mono">
+                              {verificationResult.user.nidn}
+                            </p>
                           </div>
                         )}
                         <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Institusi</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                            Institusi
+                          </p>
                           <p className="font-semibold">Universitas Muhammadiyah Cirebon</p>
                         </div>
                       </div>
@@ -309,39 +339,50 @@ export default function PublicDocumentVerification() {
 
                   {verificationResult.certificate && (
                     <div className="bg-muted/30 p-4 rounded-lg">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nomor Serial Sertifikat Digital</p>
-                      <p className="font-mono text-sm font-semibold">{verificationResult.certificate.serial_number}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                        Nomor Serial Sertifikat Digital
+                      </p>
+                      <p className="font-mono text-sm font-semibold">
+                        {verificationResult.certificate.serial_number}
+                      </p>
                     </div>
                   )}
 
                   {verificationResult.signed_at && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tanggal Penandatanganan</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Tanggal Penandatanganan
+                        </p>
                         <p className="font-semibold">
-                          {new Date(verificationResult.signed_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
+                          {new Date(verificationResult.signed_at).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
                           })}
                         </p>
                       </div>
                       <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Waktu Penandatanganan</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Waktu Penandatanganan
+                        </p>
                         <p className="font-semibold">
-                          {new Date(verificationResult.signed_at).toLocaleTimeString('id-ID', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                          })} WIB
+                          {new Date(verificationResult.signed_at).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                            hour12: false,
+                          })}{" "}
+                          WIB
                         </p>
                       </div>
                     </div>
                   )}
 
                   <div className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Metode Verifikasi</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                      Metode Verifikasi
+                    </p>
                     <p className="font-semibold">QR Code - Blockchain-based Digital Signature</p>
                   </div>
                 </div>
@@ -354,48 +395,60 @@ export default function PublicDocumentVerification() {
                     <CheckCircle className="h-6 w-6 text-primary" />
                     Status Verifikasi
                   </h3>
-                  <p className="text-sm text-muted-foreground">Hasil pemeriksaan keaslian dokumen</p>
+                  <p className="text-sm text-muted-foreground">
+                    Hasil pemeriksaan keaslian dokumen
+                  </p>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-5 py-6">
                   {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
-                  <StatusBadge 
-                    status={getOverallStatus(verificationResult.status, verificationResult.certificate?.status) as any}
+                  <StatusBadge
+                    status={
+                      getOverallStatus(
+                        verificationResult.status,
+                        verificationResult.certificate?.status,
+                      ) as any
+                    }
                     className="text-xl px-10 py-4 shadow-2xl transform hover:scale-105 transition-transform duration-200"
                   />
                 </div>
 
                 <div className="bg-background/50 backdrop-blur-sm p-6 rounded-xl border border-border/50 shadow-inner">
                   <p className="text-base leading-relaxed font-medium">
-                    Dokumen dengan judul <span className="font-bold text-primary">"{verificationResult.title}"</span>{' '}
-                    {getStatusMessage(verificationResult.status, verificationResult.certificate?.status)}
+                    Dokumen dengan judul{" "}
+                    <span className="font-bold text-primary">"{verificationResult.title}"</span>{" "}
+                    {getStatusMessage(
+                      verificationResult.status,
+                      verificationResult.certificate?.status,
+                    )}
                   </p>
                 </div>
 
-                {verificationResult.status === 'signed' && verificationResult.certificate?.status === 'active' && (
-                  <div className="pt-4 space-y-3">
-                    <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-semibold">Tanda tangan digital terverifikasi</span>
+                {verificationResult.status === "signed" &&
+                  verificationResult.certificate?.status === "active" && (
+                    <div className="pt-4 space-y-3">
+                      <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
+                        <CheckCircle className="h-5 w-5" />
+                        <span className="font-semibold">Tanda tangan digital terverifikasi</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
+                        <CheckCircle className="h-5 w-5" />
+                        <span className="font-semibold">Sertifikat digital aktif dan valid</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
+                        <CheckCircle className="h-5 w-5" />
+                        <span className="font-semibold">Integritas dokumen terjaga</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-semibold">Sertifikat digital aktif dan valid</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-base text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-semibold">Integritas dokumen terjaga</span>
-                    </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Verification Link */}
               <div className="text-center text-sm text-muted-foreground bg-gradient-to-r from-muted/50 to-muted/30 p-5 rounded-xl border border-border/50 shadow-sm">
-                Pastikan Anda mengakses data yang benar melalui{' '}
-                <a 
-                  href="https://ca-umc.vercel.app" 
-                  target="_blank" 
+                Pastikan Anda mengakses data yang benar melalui{" "}
+                <a
+                  href="https://ca-umc.vercel.app"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-primary hover:underline transition-all duration-200"
                 >
@@ -404,7 +457,7 @@ export default function PublicDocumentVerification() {
               </div>
 
               {/* Download Button */}
-              {verificationResult.file_url && verificationResult.status === 'signed' && (
+              {verificationResult.file_url && verificationResult.status === "signed" && (
                 <div className="text-center pt-4">
                   <Button
                     onClick={() => setIsViewerOpen(true)}

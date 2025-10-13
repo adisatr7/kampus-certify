@@ -1,6 +1,6 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 
 interface SignedDocumentViewerProps {
@@ -20,11 +20,15 @@ interface SignedDocumentViewerProps {
   };
 }
 
-export default function SignedDocumentViewer({ isOpen, onClose, document }: SignedDocumentViewerProps) {
+export default function SignedDocumentViewer({
+  isOpen,
+  onClose,
+  document,
+}: SignedDocumentViewerProps) {
   const handlePrint = () => {
     if (document.signed_document_url) {
       // Open PDF in new window for printing
-      window.open(document.signed_document_url, '_blank');
+      window.open(document.signed_document_url, "_blank");
     } else {
       window.print();
     }
@@ -33,16 +37,16 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
   const handleDownload = () => {
     if (document.signed_document_url) {
       // Download the actual signed PDF file
-      const link = window.document.createElement('a');
+      const link = window.document.createElement("a");
       link.href = document.signed_document_url;
       link.download = `${document.title}-signed.pdf`;
-      link.target = '_blank';
+      link.target = "_blank";
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
     } else {
       // Fallback to HTML print
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       if (!printWindow) return;
 
       const templateHtml = `
@@ -73,7 +77,7 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
           <body>
             <div class="container">
               <h1>${document.title}</h1>
-              <p>${document.content || 'Konten tidak tersedia'}</p>
+              <p>${document.content || "Konten tidak tersedia"}</p>
             </div>
           </body>
         </html>
@@ -81,7 +85,7 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
 
       printWindow.document.write(templateHtml);
       printWindow.document.close();
-      
+
       setTimeout(() => {
         printWindow.print();
       }, 500);
@@ -95,28 +99,18 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
           <div className="flex items-center justify-between">
             <DialogTitle>Dokumen Ditandatangani: {document.title}</DialogTitle>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handlePrint}
-                className="print:hidden"
-              >
+              <Button variant="outline" size="sm" onClick={handlePrint} className="print:hidden">
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownload}
-                className="print:hidden"
-              >
+              <Button variant="outline" size="sm" onClick={handleDownload} className="print:hidden">
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="mt-4">
           {document.signed_document_url ? (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
@@ -127,8 +121,8 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
               />
             </div>
           ) : (
-            <SignedDocumentTemplate 
-              document={document} 
+            <SignedDocumentTemplate
+              document={document}
               qrCodeUrl={document.qr_code_url || undefined}
             />
           )}
