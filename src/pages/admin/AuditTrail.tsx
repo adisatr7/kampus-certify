@@ -1,14 +1,36 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Calendar, Search, Activity, User, FileText, Shield, AlertTriangle, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
+import {
+  Activity,
+  AlertTriangle,
+  Calendar,
+  FileText,
+  RefreshCw,
+  Search,
+  Shield,
+  User,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 interface AuditEntry {
@@ -50,9 +72,11 @@ export default function AuditTrail() {
       jumlah: auditEntries.length,
       entries: auditEntries.slice(0, 2), // Hanya tampilkan 2 entry pertama untuk debug
       loading,
-      roleUser: userProfile?.role
+      roleUser: userProfile?.role,
     });
-    setDebugInfo(`Entries: ${auditEntries.length}, Loading: ${loading}, Role: ${userProfile?.role}`);
+    setDebugInfo(
+      `Entries: ${auditEntries.length}, Loading: ${loading}, Role: ${userProfile?.role}`,
+    );
   }, [auditEntries.length, loading, userProfile?.role]); // Dependencies yang lebih spesifik
 
   useEffect(() => {
@@ -68,32 +92,32 @@ export default function AuditTrail() {
 
       // Check total audit entries without joins
       const { count: auditCount, error: auditCountError } = await supabase
-        .from('audit_trail')
-        .select('*', { count: 'exact', head: true });
+        .from("audit_trail")
+        .select("*", { count: "exact", head: true });
 
       // Check total users
       const { count: userCount, error: userCountError } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true });
+        .from("users")
+        .select("*", { count: "exact", head: true });
 
       // Try to get a sample audit entry
       const { data: sampleData, error: sampleError } = await supabase
-        .from('audit_trail')
-        .select('*')
+        .from("audit_trail")
+        .select("*")
         .limit(1);
 
       // Test RLS access
       const { data: rlsTest, error: rlsError } = await supabase
-        .from('audit_trail')
-        .select('id')
+        .from("audit_trail")
+        .select("id")
         .limit(1);
 
       const diagnosticInfo: DiagnosticInfo = {
         totalAuditEntries: auditCount || 0,
         totalUsers: userCount || 0,
-        currentUserRole: userProfile?.role || 'unknown',
+        currentUserRole: userProfile?.role || "unknown",
         hasRLSAccess: !rlsError,
-        sampleEntry: sampleData?.[0] || null
+        sampleEntry: sampleData?.[0] || null,
       };
 
       setDiagnostic(diagnosticInfo);
@@ -107,9 +131,8 @@ export default function AuditTrail() {
         sampleError,
         rlsTest,
         rlsError,
-        currentUser: userProfile
+        currentUser: userProfile,
       });
-
     } catch (error) {
       console.error("🔍 Diagnostic error:", error);
     }
@@ -120,21 +143,21 @@ export default function AuditTrail() {
       console.log("🧪 Creating test audit entry...");
 
       // Use the public function if available, or direct insert
-      const { data, error } = await supabase.rpc('create_audit_entry', {
+      const { data, error } = await supabase.rpc("create_audit_entry", {
         p_user_id: userProfile.id,
-        p_action: 'TEST_LOGIN',
-        p_description: `Test audit entry created at ${new Date().toISOString()}`
+        p_action: "TEST_LOGIN",
+        p_description: `Test audit entry created at ${new Date().toISOString()}`,
       });
 
       if (error) {
         console.log("🧪 Function call failed, trying direct insert...");
         // Fallback to direct insert
         const { data: insertData, error: insertError } = await supabase
-          .from('audit_trail')
+          .from("audit_trail")
           .insert({
             user_id: userProfile.id,
-            action: 'TEST_LOGIN',
-            description: `Test audit entry created at ${new Date().toISOString()}`
+            action: "TEST_LOGIN",
+            description: `Test audit entry created at ${new Date().toISOString()}`,
           })
           .select();
 
@@ -153,7 +176,6 @@ export default function AuditTrail() {
       // Refresh data
       await runDiagnostics();
       await fetchAuditEntries();
-
     } catch (error) {
       console.error("🧪 Error creating test entry:", error);
       toast({
@@ -175,9 +197,9 @@ export default function AuditTrail() {
 
       // Ambil data audit tanpa join terlebih dahulu
       const { data: auditData, error: auditError } = await supabase
-        .from('audit_trail')
-        .select('*')
-        .order('timestamp', { ascending: false })
+        .from("audit_trail")
+        .select("*")
+        .order("timestamp", { ascending: false })
         .limit(100);
 
       console.log("📊 Data audit mentah:", auditData);
@@ -192,14 +214,14 @@ export default function AuditTrail() {
       }
 
       // Ambil semua user ID yang unik
-      const userIds = [...new Set(auditData.map(entry => entry.user_id).filter(Boolean))];
+      const userIds = [...new Set(auditData.map((entry) => entry.user_id).filter(Boolean))];
       console.log("📊 User ID yang akan dicari:", userIds);
 
       // Ambil data user secara terpisah
       const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, name, email, role')
-        .in('id', userIds);
+        .from("users")
+        .select("id, name, email, role")
+        .in("id", userIds);
 
       console.log("📊 Data user:", userData);
       console.log("📊 Error user:", userError);
@@ -207,13 +229,13 @@ export default function AuditTrail() {
       // Buat peta pencarian user
       const userMap = new Map();
       if (userData && !userError) {
-        userData.forEach(user => userMap.set(user.id, user));
+        userData.forEach((user) => userMap.set(user.id, user));
       }
 
       // Gabungkan data audit dengan data user
-      const combinedData = auditData.map(entry => ({
+      const combinedData = auditData.map((entry) => ({
         ...entry,
-        users: userMap.get(entry.user_id) || null
+        users: userMap.get(entry.user_id) || null,
       }));
 
       console.log("📊 Data gabungan:", combinedData);
@@ -222,7 +244,6 @@ export default function AuditTrail() {
       // Update state langsung tanpa setTimeout
       setAuditEntries(combinedData);
       console.log("📊 State diperbarui, panjang auditEntries saat ini:", combinedData.length);
-
     } catch (error) {
       console.error("📊 Error mengambil audit entries:", error);
       toast({
@@ -238,15 +259,15 @@ export default function AuditTrail() {
 
   const getActionIcon = (action: string) => {
     switch (action) {
-      case 'LOGIN':
-      case 'TEST_LOGIN':
+      case "LOGIN":
+      case "TEST_LOGIN":
         return <User className="h-4 w-4 text-blue-500" />;
-      case 'CREATE_CERTIFICATE':
-      case 'REVOKE_CERTIFICATE':
+      case "CREATE_CERTIFICATE":
+      case "REVOKE_CERTIFICATE":
         return <Shield className="h-4 w-4 text-yellow-500" />;
-      case 'CREATE_DOCUMENT':
-      case 'SIGN_DOCUMENT':
-      case 'DELETE_DOCUMENT':
+      case "CREATE_DOCUMENT":
+      case "SIGN_DOCUMENT":
+      case "DELETE_DOCUMENT":
         return <FileText className="h-4 w-4 text-green-500" />;
       default:
         return <Activity className="h-4 w-4 text-gray-500" />;
@@ -255,54 +276,49 @@ export default function AuditTrail() {
 
   const getActionBadge = (action: string) => {
     const actionLabels: Record<string, string> = {
-      'LOGIN': 'Login',
-      'TEST_LOGIN': 'Test Login',
-      'CREATE_CERTIFICATE': 'Buat Sertifikat',
-      'REVOKE_CERTIFICATE': 'Cabut Sertifikat',
-      'CREATE_DOCUMENT': 'Buat Dokumen',
-      'SIGN_DOCUMENT': 'Tanda Tangan',
-      'DELETE_DOCUMENT': 'Hapus Dokumen',
-      'VERIFY_DOCUMENT': 'Verifikasi'
+      LOGIN: "Login",
+      TEST_LOGIN: "Test Login",
+      CREATE_CERTIFICATE: "Buat Sertifikat",
+      REVOKE_CERTIFICATE: "Cabut Sertifikat",
+      CREATE_DOCUMENT: "Buat Dokumen",
+      SIGN_DOCUMENT: "Tanda Tangan",
+      DELETE_DOCUMENT: "Hapus Dokumen",
+      VERIFY_DOCUMENT: "Verifikasi",
     };
 
     const getVariant = (action: string) => {
-      if (action.includes('CREATE') || action.includes('LOGIN')) return 'default';
-      if (action.includes('DELETE') || action.includes('REVOKE')) return 'destructive';
-      if (action.includes('SIGN') || action.includes('VERIFY')) return 'secondary';
-      return 'outline';
+      if (action.includes("CREATE") || action.includes("LOGIN")) return "default";
+      if (action.includes("DELETE") || action.includes("REVOKE")) return "destructive";
+      if (action.includes("SIGN") || action.includes("VERIFY")) return "secondary";
+      return "outline";
     };
 
-    return (
-      <Badge variant={getVariant(action) as any}>
-        {actionLabels[action] || action}
-      </Badge>
-    );
+    return <Badge variant={getVariant(action) as any}>{actionLabels[action] || action}</Badge>;
   };
 
-  const filteredEntries = auditEntries.filter(entry => {
+  const filteredEntries = auditEntries.filter((entry) => {
     const matchesSearch =
       entry.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.users?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.users?.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesAction = filterAction === "" || filterAction === "all" || entry.action === filterAction;
+    const matchesAction =
+      filterAction === "" || filterAction === "all" || entry.action === filterAction;
 
     return matchesSearch && matchesAction;
   });
 
-  const uniqueActions = [...new Set(auditEntries.map(entry => entry.action))];
+  const uniqueActions = [...new Set(auditEntries.map((entry) => entry.action))];
 
   // Check if user is admin
-  if (!loading && userProfile?.role !== 'admin') {
+  if (!loading && userProfile?.role !== "admin") {
     return (
       <DashboardLayout userRole={userProfile?.role as any}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Akses Ditolak</h2>
-            <p className="text-muted-foreground">
-              Hanya admin yang dapat mengakses audit trail
-            </p>
+            <p className="text-muted-foreground">Hanya admin yang dapat mengakses audit trail</p>
           </div>
         </div>
       </DashboardLayout>
@@ -332,17 +348,11 @@ export default function AuditTrail() {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowDiagnostics(!showDiagnostics)}
-            >
+            <Button variant="outline" onClick={() => setShowDiagnostics(!showDiagnostics)}>
               <AlertTriangle className="mr-2 h-4 w-4" />
               Diagnostics
             </Button>
-            <Button
-              variant="outline"
-              onClick={createTestAuditEntry}
-            >
+            <Button variant="outline" onClick={createTestAuditEntry}>
               <Activity className="mr-2 h-4 w-4" />
               Test Entry
             </Button>
@@ -381,13 +391,13 @@ export default function AuditTrail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">RLS Access</p>
-                  <p className={`text-lg font-bold ${diagnostic.hasRLSAccess ? 'text-green-600' : 'text-red-600'}`}>
-                    {diagnostic.hasRLSAccess ? 'Yes' : 'No'}
+                  <p
+                    className={`text-lg font-bold ${diagnostic.hasRLSAccess ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {diagnostic.hasRLSAccess ? "Yes" : "No"}
                   </p>
                 </div>
               </div>
-
-
             </CardContent>
           </Card>
         )}
@@ -414,11 +424,13 @@ export default function AuditTrail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Aksi</SelectItem>
-                    {uniqueActions.filter(action => action && action.trim() !== '').map((action) => (
-                      <SelectItem key={action} value={action}>
-                        {action}
-                      </SelectItem>
-                    ))}
+                    {uniqueActions
+                      .filter((action) => action && action.trim() !== "")
+                      .map((action) => (
+                        <SelectItem key={action} value={action}>
+                          {action}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -460,9 +472,7 @@ export default function AuditTrail() {
                 return (
                   <div className="text-center py-8">
                     <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-2">
-                      Belum ada aktivitas yang tercatat
-                    </p>
+                    <p className="text-muted-foreground mb-2">Belum ada aktivitas yang tercatat</p>
                     <p className="text-sm text-muted-foreground mb-4">
                       Audit trail akan muncul ketika ada aktivitas dalam sistem
                     </p>
@@ -483,8 +493,8 @@ export default function AuditTrail() {
                     </p>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p>Filter saat ini:</p>
-                      <p>- Pencarian: "{searchTerm || 'kosong'}"</p>
-                      <p>- Aksi: "{filterAction || 'semua'}"</p>
+                      <p>- Pencarian: "{searchTerm || "kosong"}"</p>
+                      <p>- Aksi: "{filterAction || "semua"}"</p>
                       <p>- Total data: {auditEntries.length}</p>
                     </div>
                   </div>
@@ -515,9 +525,9 @@ export default function AuditTrail() {
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div className="text-sm">
-                                  <div>{new Date(entry.timestamp).toLocaleDateString('id-ID')}</div>
+                                  <div>{new Date(entry.timestamp).toLocaleDateString("id-ID")}</div>
                                   <div className="text-muted-foreground">
-                                    {new Date(entry.timestamp).toLocaleTimeString('id-ID')}
+                                    {new Date(entry.timestamp).toLocaleTimeString("id-ID")}
                                   </div>
                                 </div>
                               </div>
@@ -526,7 +536,9 @@ export default function AuditTrail() {
                               {entry.users ? (
                                 <div>
                                   <div className="font-medium">{entry.users.name}</div>
-                                  <div className="text-sm text-muted-foreground">{entry.users.email}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {entry.users.email}
+                                  </div>
                                   <Badge variant="outline" className="text-xs mt-1">
                                     {entry.users.role}
                                   </Badge>
@@ -547,7 +559,9 @@ export default function AuditTrail() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <p className="text-sm">{entry.description || 'Tidak ada deskripsi'}</p>
+                              <p className="text-sm">
+                                {entry.description || "Tidak ada deskripsi"}
+                              </p>
                             </TableCell>
                           </TableRow>
                         );

@@ -1,18 +1,37 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { AlertCircle, Calendar, CheckCircle, Plus, Shield, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Plus, Shield, Calendar, AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { useToast } from "@/hooks/useToast";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 
 interface Certificate {
   id: string;
@@ -48,7 +67,7 @@ export default function CertificateManagement() {
   const fetchCertificates = async () => {
     try {
       const { data, error } = await supabase
-        .from('certificates')
+        .from("certificates")
         .select(`
                 id,
                 serial_number,
@@ -62,7 +81,7 @@ export default function CertificateManagement() {
                     role
                 )
             `)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setCertificates(data || []);
@@ -80,14 +99,14 @@ export default function CertificateManagement() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, role')
-        .order('name');
+        .from("users")
+        .select("id, name, email, role")
+        .order("name");
 
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -102,35 +121,34 @@ export default function CertificateManagement() {
     }
 
     try {
-      const selectedUser = users.find(u => u.id === userId);
+      const selectedUser = users.find((u) => u.id === userId);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + parseInt(expiryDays));
 
       // Generate serial number
-      const serialNumber = `UMC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
+      const serialNumber =
+        `UMC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
 
       // In a real implementation, you would generate actual RSA key pairs
       // For demo purposes, we'll create placeholder keys
       const publicKey = `-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----`;
       const privateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD...\n-----END PRIVATE KEY-----`;
 
-      const { error } = await supabase
-        .from('certificates')
-        .insert({
-          user_id: userId,
-          serial_number: serialNumber,
-          public_key: publicKey,
-          private_key: privateKey,
-          expires_at: expiresAt.toISOString(),
-          status: 'active'
-        });
+      const { error } = await supabase.from("certificates").insert({
+        user_id: userId,
+        serial_number: serialNumber,
+        public_key: publicKey,
+        private_key: privateKey,
+        expires_at: expiresAt.toISOString(),
+        status: "active",
+      });
 
       if (error) throw error;
 
       await createAuditEntry(
         userProfile.id,
-        'CREATE_CERTIFICATE',
-        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`
+        "CREATE_CERTIFICATE",
+        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`,
       );
 
       toast({
@@ -153,19 +171,19 @@ export default function CertificateManagement() {
   const revokeCertificate = async (certificateId: string, userName: string) => {
     try {
       const { error } = await supabase
-        .from('certificates')
+        .from("certificates")
         .update({
-          status: 'revoked',
-          revoked_at: new Date().toISOString()
+          status: "revoked",
+          revoked_at: new Date().toISOString(),
         })
-        .eq('id', certificateId);
+        .eq("id", certificateId);
 
       if (error) throw error;
 
       await createAuditEntry(
         userProfile.id,
-        'REVOKE_CERTIFICATE',
-        `Mencabut sertifikat milik ${userName}`
+        "REVOKE_CERTIFICATE",
+        `Mencabut sertifikat milik ${userName}`,
       );
 
       toast({
@@ -190,11 +208,11 @@ export default function CertificateManagement() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return <CheckCircle className="h-4 w-4 text-status-valid" />;
-      case 'expired':
+      case "expired":
         return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      case 'revoked':
+      case "revoked":
         return <XCircle className="h-4 w-4 text-status-invalid" />;
       default:
         return <Shield className="h-4 w-4" />;
@@ -203,11 +221,11 @@ export default function CertificateManagement() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return <Badge className="bg-status-valid text-white">Aktif</Badge>;
-      case 'expired':
+      case "expired":
         return <Badge className="bg-orange-500 text-white">Kadaluarsa</Badge>;
-      case 'revoked':
+      case "revoked":
         return <Badge className="bg-status-invalid text-white">Dicabut</Badge>;
       default:
         return <Badge>{status}</Badge>;
@@ -231,7 +249,9 @@ export default function CertificateManagement() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
-            <p className="text-muted-foreground">Kelola sertifikat digital untuk penandatanganan dokumen</p>
+            <p className="text-muted-foreground">
+              Kelola sertifikat digital untuk penandatanganan dokumen
+            </p>
           </div>
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -262,7 +282,6 @@ export default function CertificateManagement() {
                   </Select>
                 </div>
 
-
                 <div>
                   <Label htmlFor="expiry">Masa Berlaku (hari)</Label>
                   <Input
@@ -284,9 +303,7 @@ export default function CertificateManagement() {
                   >
                     Batal
                   </Button>
-                  <Button onClick={generateCertificate}>
-                    Buat Sertifikat
-                  </Button>
+                  <Button onClick={generateCertificate}>Buat Sertifikat</Button>
                 </div>
               </div>
             </DialogContent>
@@ -330,19 +347,17 @@ export default function CertificateManagement() {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {cert.serial_number}
-                      </TableCell>
+                      <TableCell className="font-mono text-sm">{cert.serial_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(cert.issued_at).toLocaleDateString('id-ID')}
+                          {new Date(cert.issued_at).toLocaleDateString("id-ID")}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                          {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -352,7 +367,7 @@ export default function CertificateManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {cert.status === 'active' && (
+                        {cert.status === "active" && (
                           <Button
                             variant="destructive"
                             size="sm"

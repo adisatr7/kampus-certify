@@ -1,49 +1,49 @@
+import {
+  Activity,
+  AlertCircle,
+  Award,
+  BarChart3,
+  Calendar,
+  Clock,
+  FileText,
+  Loader2,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
-  FileText,
-  Award,
-  Users,
-  Activity,
-  TrendingUp,
-  Clock,
-  AlertCircle,
-  Loader2,
-  BarChart3,
-  Calendar,
-  Zap
-} from "lucide-react";
-import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/useDashboardData";
-import { Alert, AlertDescription } from "@/components/ui/Alert";
+  useDashboardStats,
+  useRecentActivities,
+  useRecentDocuments,
+} from "@/hooks/useDashboardData";
 
 interface DashboardProps {
-  userRole: 'admin' | 'dosen' | 'rektor' | 'dekan';
+  userRole: "admin" | "dosen" | "rektor" | "dekan";
 }
 
-export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
-  const {
-    data: stats,
-    isLoading: statsLoading,
-    error: statsError
-  } = useDashboardStats(userRole);
+export default function Dashboard({ userRole = "admin" }: DashboardProps) {
+  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats(userRole);
 
   // Only fetch activities for admin users
   const {
     data: activities,
     isLoading: activitiesLoading,
-    error: activitiesError
+    error: activitiesError,
   } = useRecentActivities(userRole);
 
   // Only fetch recent documents for non-admin users
   const {
     data: recentDocuments,
     isLoading: documentsLoading,
-    error: documentsError
+    error: documentsError,
   } = useRecentDocuments(userRole);
 
   // Dashboard configuration based on role
   const getDashboardConfig = () => {
-    if (userRole === 'admin') {
+    if (userRole === "admin") {
       return {
         title: "Dashboard Administrator",
         description: "Kelola seluruh sistem Certificate Authority UMC",
@@ -54,9 +54,12 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             description: `Aktif: ${stats?.activeCertificates || 0}, Revoked: ${stats?.revokedCertificates || 0}`,
             icon: Award,
             trend: stats?.activeCertificates > stats?.revokedCertificates ? "+12%" : "-5%",
-            trendColor: stats?.activeCertificates > stats?.revokedCertificates ? "text-emerald-600" : "text-red-500",
+            trendColor:
+              stats?.activeCertificates > stats?.revokedCertificates
+                ? "text-emerald-600"
+                : "text-red-500",
             bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
-            iconColor: "text-purple-600"
+            iconColor: "text-purple-600",
           },
           {
             title: "Dokumen Ditandatangani",
@@ -66,7 +69,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             trend: `+${Math.round((stats?.signedDocuments / Math.max(stats?.totalDocuments, 1)) * 100) || 0}%`,
             trendColor: "text-emerald-600",
             bgColor: "bg-gradient-to-br from-blue-50 to-blue-100",
-            iconColor: "text-blue-600"
+            iconColor: "text-blue-600",
           },
           {
             title: "Pengguna Terdaftar",
@@ -76,7 +79,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             trend: `+${stats?.staffUsers || 0}`,
             trendColor: "text-blue-600",
             bgColor: "bg-gradient-to-br from-indigo-50 to-indigo-100",
-            iconColor: "text-indigo-600"
+            iconColor: "text-indigo-600",
           },
           {
             title: "Verifikasi Hari Ini",
@@ -84,11 +87,14 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             description: `Valid: ${stats?.validVerifications || 0}, Invalid: ${stats?.invalidVerifications || 0}`,
             icon: Activity,
             trend: `${Math.round((stats?.validVerifications / Math.max(stats?.todayVerifications, 1)) * 100) || 0}%`,
-            trendColor: stats?.validVerifications > stats?.invalidVerifications ? "text-emerald-600" : "text-amber-600",
+            trendColor:
+              stats?.validVerifications > stats?.invalidVerifications
+                ? "text-emerald-600"
+                : "text-amber-600",
             bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-            iconColor: "text-emerald-600"
-          }
-        ]
+            iconColor: "text-emerald-600",
+          },
+        ],
       };
     } else {
       return {
@@ -103,7 +109,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             trend: stats?.activeCertificates > 0 ? "Aktif" : "Tidak Ada",
             trendColor: stats?.activeCertificates > 0 ? "text-emerald-600" : "text-gray-500",
             bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
-            iconColor: "text-purple-600"
+            iconColor: "text-purple-600",
           },
           {
             title: "Dokumen Saya",
@@ -113,7 +119,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             trend: `+${stats?.pendingDocuments || 0} pending`,
             trendColor: "text-blue-600",
             bgColor: "bg-gradient-to-br from-blue-50 to-blue-100",
-            iconColor: "text-blue-600"
+            iconColor: "text-blue-600",
           },
           {
             title: "Verifikasi Bulan Ini",
@@ -123,9 +129,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
             trend: "100%",
             trendColor: "text-emerald-600",
             bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-            iconColor: "text-emerald-600"
-          }
-        ]
+            iconColor: "text-emerald-600",
+          },
+        ],
       };
     }
   };
@@ -140,7 +146,10 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
           <div className="text-center">
             <div className="relative">
               <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-400 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }}></div>
+              <div
+                className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-400 rounded-full animate-spin mx-auto"
+                style={{ animationDirection: "reverse", animationDuration: "0.8s" }}
+              ></div>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
               <h3 className="text-lg font-semibold text-slate-700 mb-2">Memuat Dashboard</h3>
@@ -153,7 +162,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
   }
 
   // Show error state
-  if (statsError || (userRole === 'admin' && activitiesError)) {
+  if (statsError || (userRole === "admin" && activitiesError)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
         <div className="flex items-center justify-center min-h-screen p-8">
@@ -197,17 +206,21 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">{new Date().toLocaleDateString('id-ID', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}</span>
-              <span className="sm:hidden">{new Date().toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}</span>
+              <span className="hidden sm:inline">
+                {new Date().toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+              <span className="sm:hidden">
+                {new Date().toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
             </div>
           </div>
         </div>
@@ -220,7 +233,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
               className="group relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               style={{
                 animationDelay: `${index * 100}ms`,
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+                background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
               }}
             >
               <div className={`absolute inset-0 opacity-30 ${stat.bgColor}`} />
@@ -234,7 +247,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                 <div className="text-3xl font-bold text-slate-900 mb-2">{stat.value}</div>
                 <p className="text-sm text-slate-600 mb-3">{stat.description}</p>
                 <div className="flex items-center gap-1">
-                  <div className={`p-1 rounded-full ${stat.trendColor === 'text-emerald-600' ? 'bg-emerald-100' : stat.trendColor === 'text-blue-600' ? 'bg-blue-100' : 'bg-amber-100'}`}>
+                  <div
+                    className={`p-1 rounded-full ${stat.trendColor === "text-emerald-600" ? "bg-emerald-100" : stat.trendColor === "text-blue-600" ? "bg-blue-100" : "bg-amber-100"}`}
+                  >
                     <TrendingUp className="h-3 w-3 text-emerald-600" />
                   </div>
                   <span className={`text-sm font-medium ${stat.trendColor}`}>{stat.trend}</span>
@@ -245,7 +260,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
         </div>
 
         {/* Main Content Grid */}
-        {userRole === 'admin' ? (
+        {userRole === "admin" ? (
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Recent Activities - Admin Only */}
             <Card className="lg:col-span-2 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
@@ -255,7 +270,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                     <BarChart3 className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-slate-900">Aktivitas Terbaru</CardTitle>
+                    <CardTitle className="text-xl font-bold text-slate-900">
+                      Aktivitas Terbaru
+                    </CardTitle>
                     <CardDescription className="text-slate-600">
                       Riwayat aktivitas sistem dalam 7 hari terakhir
                     </CardDescription>
@@ -271,16 +288,34 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                 ) : activities && activities.length > 0 ? (
                   <div className="space-y-4 max-h-96 overflow-y-auto">
                     {activities.map((activity, index) => (
-                      <div key={activity.id} className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-blue-50 hover:to-indigo-50/50 transition-all duration-200 group">
+                      <div
+                        key={activity.id}
+                        className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-blue-50 hover:to-indigo-50/50 transition-all duration-200 group"
+                      >
                         <div className="flex-shrink-0">
-                          <div className={`p-3 rounded-full ${activity.type === 'certificate' ? 'bg-purple-100' :
-                            activity.type === 'document' ? 'bg-blue-100' :
-                              activity.type === 'verification' ? 'bg-emerald-100' : 'bg-red-100'
-                            }`}>
-                            {activity.type === 'certificate' && <Award className="h-5 w-5 text-purple-600" />}
-                            {activity.type === 'document' && <FileText className="h-5 w-5 text-blue-600" />}
-                            {activity.type === 'verification' && <Activity className="h-5 w-5 text-emerald-600" />}
-                            {activity.type === 'revoke' && <AlertCircle className="h-5 w-5 text-red-600" />}
+                          <div
+                            className={`p-3 rounded-full ${
+                              activity.type === "certificate"
+                                ? "bg-purple-100"
+                                : activity.type === "document"
+                                  ? "bg-blue-100"
+                                  : activity.type === "verification"
+                                    ? "bg-emerald-100"
+                                    : "bg-red-100"
+                            }`}
+                          >
+                            {activity.type === "certificate" && (
+                              <Award className="h-5 w-5 text-purple-600" />
+                            )}
+                            {activity.type === "document" && (
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            )}
+                            {activity.type === "verification" && (
+                              <Activity className="h-5 w-5 text-emerald-600" />
+                            )}
+                            {activity.type === "revoke" && (
+                              <AlertCircle className="h-5 w-5 text-red-600" />
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -292,7 +327,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                           </div>
                           <p className="text-sm text-slate-600 mb-2">{activity.description}</p>
                           {activity.user_name && (
-                            <p className="text-xs text-slate-500 mb-2">oleh <span className="font-medium">{activity.user_name}</span></p>
+                            <p className="text-xs text-slate-500 mb-2">
+                              oleh <span className="font-medium">{activity.user_name}</span>
+                            </p>
                           )}
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-slate-400" />
@@ -308,7 +345,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                       <Activity className="h-8 w-8 text-slate-400" />
                     </div>
                     <p className="text-slate-600 font-medium">Belum ada aktivitas terbaru</p>
-                    <p className="text-sm text-slate-500 mt-1">Aktivitas sistem akan muncul di sini</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Aktivitas sistem akan muncul di sini
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -411,7 +450,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                     <FileText className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-slate-900">Dokumen Terbaru</CardTitle>
+                    <CardTitle className="text-xl font-bold text-slate-900">
+                      Dokumen Terbaru
+                    </CardTitle>
                     <CardDescription className="text-slate-600">
                       Dokumen yang baru saja Anda kelola
                     </CardDescription>
@@ -427,14 +468,29 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                 ) : recentDocuments && recentDocuments.length > 0 ? (
                   <div className="space-y-4 max-h-96 overflow-y-auto">
                     {recentDocuments.map((doc, index) => (
-                      <div key={doc.id} className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-purple-50 hover:to-purple-100/50 transition-all duration-200 group">
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-purple-50 hover:to-purple-100/50 transition-all duration-200 group"
+                      >
                         <div className="flex-shrink-0">
-                          <div className={`p-3 rounded-full ${doc.status === 'signed' ? 'bg-emerald-100' :
-                            doc.status === 'pending' ? 'bg-blue-100' : 'bg-red-100'
-                            }`}>
-                            {doc.status === 'signed' && <Award className="h-5 w-5 text-emerald-600" />}
-                            {doc.status === 'pending' && <FileText className="h-5 w-5 text-blue-600" />}
-                            {doc.status === 'revoked' && <AlertCircle className="h-5 w-5 text-red-600" />}
+                          <div
+                            className={`p-3 rounded-full ${
+                              doc.status === "signed"
+                                ? "bg-emerald-100"
+                                : doc.status === "pending"
+                                  ? "bg-blue-100"
+                                  : "bg-red-100"
+                            }`}
+                          >
+                            {doc.status === "signed" && (
+                              <Award className="h-5 w-5 text-emerald-600" />
+                            )}
+                            {doc.status === "pending" && (
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            )}
+                            {doc.status === "revoked" && (
+                              <AlertCircle className="h-5 w-5 text-red-600" />
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -442,17 +498,18 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                             {doc.title}
                           </h4>
                           <p className="text-sm text-slate-600 mb-2">
-                            {doc.status === 'signed' ? 'Dokumen telah ditandatangani' :
-                              doc.status === 'pending' ? 'Menunggu tanda tangan' :
-                                'Dokumen dicabut'}
+                            {doc.status === "signed"
+                              ? "Dokumen telah ditandatangani"
+                              : doc.status === "pending"
+                                ? "Menunggu tanda tangan"
+                                : "Dokumen dicabut"}
                           </p>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-slate-400" />
                             <span className="text-xs text-slate-500">
-                              {doc.signed_at ?
-                                `Ditandatangani ${new Date(doc.signed_at).toLocaleDateString('id-ID')}` :
-                                `Dibuat ${new Date(doc.created_at).toLocaleDateString('id-ID')}`
-                              }
+                              {doc.signed_at
+                                ? `Ditandatangani ${new Date(doc.signed_at).toLocaleDateString("id-ID")}`
+                                : `Dibuat ${new Date(doc.created_at).toLocaleDateString("id-ID")}`}
                             </span>
                           </div>
                         </div>
@@ -466,7 +523,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                       <FileText className="h-8 w-8 text-slate-400" />
                     </div>
                     <p className="text-slate-600 font-medium">Belum ada dokumen</p>
-                    <p className="text-sm text-slate-500 mt-1">Mulai dengan mengupload dokumen pertama Anda</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Mulai dengan mengupload dokumen pertama Anda
+                    </p>
                   </div>
                 )}
 

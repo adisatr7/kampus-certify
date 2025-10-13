@@ -1,5 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import QRCode from 'qrcode';
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import QRCode from "qrcode";
 
 interface SignatureData {
   documentId: string;
@@ -18,7 +18,7 @@ interface SignatureData {
  */
 export async function generateSignedPDF(
   originalPdfUrl: string | null,
-  signatureData: SignatureData
+  signatureData: SignatureData,
 ): Promise<Blob> {
   let pdfDoc: PDFDocument;
 
@@ -29,7 +29,7 @@ export async function generateSignedPDF(
       const existingPdfBytes = await response.arrayBuffer();
       pdfDoc = await PDFDocument.load(existingPdfBytes);
     } catch (error) {
-      console.error('Error loading existing PDF, creating new one:', error);
+      console.error("Error loading existing PDF, creating new one:", error);
       pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
       await addDocumentContent(pdfDoc, page, signatureData.documentTitle);
@@ -38,7 +38,12 @@ export async function generateSignedPDF(
     // Create new PDF with document content
     pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    await addDocumentContent(pdfDoc, page, signatureData.documentTitle, signatureData.documentContent);
+    await addDocumentContent(
+      pdfDoc,
+      page,
+      signatureData.documentTitle,
+      signatureData.documentContent,
+    );
   }
 
   // Generate QR code
@@ -46,9 +51,9 @@ export async function generateSignedPDF(
     width: 200,
     margin: 2,
     color: {
-      dark: '#000000',
-      light: '#FFFFFF'
-    }
+      dark: "#000000",
+      light: "#FFFFFF",
+    },
   });
 
   // Convert QR code to PDF-compatible format
@@ -64,15 +69,15 @@ export async function generateSignedPDF(
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   // Format dates
-  const signedDate = new Date(signatureData.signedAt).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+  const signedDate = new Date(signatureData.signedAt).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
-  const printDate = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+  const printDate = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
   // Calculate positions (from bottom)
@@ -81,7 +86,7 @@ export async function generateSignedPDF(
   // 1. Add footer disclaimer box (bottom)
   const boxHeight = 80;
   const boxY = 40;
-  
+
   // Draw box
   lastPage.drawRectangle({
     x: 50,
@@ -94,10 +99,10 @@ export async function generateSignedPDF(
 
   // Add disclaimer text
   const disclaimers = [
-    '1.  Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.',
-    '2.  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.',
-    '3.  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.',
-    '4.  Data lengkap dapat diperoleh melalui sistem CA UMC menggunakan hak akses.'
+    "1.  Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.",
+    "2.  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.",
+    "3.  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.",
+    "4.  Data lengkap dapat diperoleh melalui sistem CA UMC menggunakan hak akses.",
   ];
 
   let disclaimerY = boxY + boxHeight - 15;
@@ -121,8 +126,8 @@ export async function generateSignedPDF(
     height: 35,
     color: rgb(0.2, 0.4, 0.8),
   });
-  
-  lastPage.drawText('BSrE', {
+
+  lastPage.drawText("BSrE", {
     x: width - 105,
     y: boxY + 30,
     size: 10,
@@ -130,15 +135,15 @@ export async function generateSignedPDF(
     color: rgb(1, 1, 1),
   });
 
-  lastPage.drawText('Balai Sertifikasi', {
+  lastPage.drawText("Balai Sertifikasi", {
     x: width - 70,
     y: boxY + 35,
     size: 7,
     font: helveticaBold,
     color: rgb(0, 0, 0),
   });
-  
-  lastPage.drawText('Elektronik', {
+
+  lastPage.drawText("Elektronik", {
     x: width - 70,
     y: boxY + 25,
     size: 7,
@@ -158,10 +163,10 @@ export async function generateSignedPDF(
 
   // 3. Add signature section (authority, QR code, and name)
   yPosition += 30;
-  
+
   // Get role title in Indonesian
   const roleTitle = getRoleTitle(signatureData.signerRole);
-  
+
   // Authority title (right-aligned)
   const authorityText = `${roleTitle}`;
   const authorityWidth = helvetica.widthOfTextAtSize(authorityText, 10);
@@ -173,7 +178,7 @@ export async function generateSignedPDF(
     color: rgb(0, 0, 0),
   });
 
-  const universityText = 'Universitas Muhammadiyah Cirebon';
+  const universityText = "Universitas Muhammadiyah Cirebon";
   const universityWidth = helvetica.widthOfTextAtSize(universityText, 10);
   lastPage.drawText(universityText, {
     x: width - 50 - universityWidth,
@@ -193,7 +198,7 @@ export async function generateSignedPDF(
   });
 
   // "Ditandatangani secara elektronik" text (centered below QR)
-  const signedElectronicallyText = 'Ditandatangani secara elektronik';
+  const signedElectronicallyText = "Ditandatangani secara elektronik";
   const signedTextWidth = helveticaBold.widthOfTextAtSize(signedElectronicallyText, 9);
   lastPage.drawText(signedElectronicallyText, {
     x: width - 50 - qrSize - 10 + (qrSize - signedTextWidth) / 2,
@@ -234,7 +239,7 @@ export async function generateSignedPDF(
 
   // Serialize the PDF
   const pdfBytes = await pdfDoc.save();
-  return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+  return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
 }
 
 /**
@@ -244,14 +249,14 @@ async function addDocumentContent(
   pdfDoc: PDFDocument,
   page: any,
   documentTitle: string,
-  documentContent?: string
+  documentContent?: string,
 ) {
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const { width, height } = page.getSize();
 
   // Header
-  const header1 = 'UNIVERSITAS MUHAMMADIYAH CIREBON';
+  const header1 = "UNIVERSITAS MUHAMMADIYAH CIREBON";
   const header1Width = helveticaBold.widthOfTextAtSize(header1, 14);
   page.drawText(header1, {
     x: (width - header1Width) / 2,
@@ -291,22 +296,22 @@ async function addDocumentContent(
 
   // Document content
   if (documentContent) {
-    const lines = documentContent.split('\n');
+    const lines = documentContent.split("\n");
     let yPosition = height - 160;
     const lineHeight = 14;
     const maxWidth = width - 100;
-    
+
     for (const line of lines) {
       if (yPosition < 350) break; // Stop if too close to bottom (leave space for signature)
-      
+
       // Word wrap for long lines
-      const words = line.split(' ');
-      let currentLine = '';
-      
+      const words = line.split(" ");
+      let currentLine = "";
+
       for (const word of words) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const testLine = currentLine + (currentLine ? " " : "") + word;
         const testWidth = helvetica.widthOfTextAtSize(testLine, 10);
-        
+
         if (testWidth > maxWidth && currentLine) {
           page.drawText(currentLine, {
             x: 50,
@@ -323,7 +328,7 @@ async function addDocumentContent(
           currentLine = testLine;
         }
       }
-      
+
       // Draw remaining text
       if (currentLine && yPosition >= 350) {
         page.drawText(currentLine, {
@@ -338,7 +343,7 @@ async function addDocumentContent(
       }
     }
   } else {
-    page.drawText('Konten dokumen tidak tersedia', {
+    page.drawText("Konten dokumen tidak tersedia", {
       x: 50,
       y: height - 160,
       size: 10,
@@ -353,16 +358,16 @@ async function addDocumentContent(
  */
 function getRoleTitle(role: string): string {
   switch (role.toLowerCase()) {
-    case 'rektor':
-      return 'Rektor';
-    case 'dekan':
-      return 'Dekan';
-    case 'dosen':
-      return 'Dosen';
-    case 'admin':
-      return 'Administrator';
+    case "rektor":
+      return "Rektor";
+    case "dekan":
+      return "Dekan";
+    case "dosen":
+      return "Dosen";
+    case "admin":
+      return "Administrator";
     default:
-      return 'Pejabat Berwenang';
+      return "Pejabat Berwenang";
   }
 }
 
@@ -373,32 +378,32 @@ export async function uploadSignedPDF(
   pdfBlob: Blob,
   userId: string,
   documentId: string,
-  supabase: any
+  supabase: any,
 ): Promise<string | null> {
   try {
     const signedFileName = `${userId}/${documentId}-signed-${Date.now()}.pdf`;
-    
+
     const { error: uploadError } = await supabase.storage
-      .from('signed-documents')
+      .from("signed-documents")
       .upload(signedFileName, pdfBlob, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-        upsert: false
+        contentType: "application/pdf",
+        cacheControl: "3600",
+        upsert: false,
       });
 
     if (uploadError) {
-      console.error('Error uploading signed PDF:', uploadError);
+      console.error("Error uploading signed PDF:", uploadError);
       return null;
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('signed-documents')
-      .getPublicUrl(signedFileName);
-    
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("signed-documents").getPublicUrl(signedFileName);
+
     return publicUrl;
   } catch (error) {
-    console.error('Error in uploadSignedPDF:', error);
+    console.error("Error in uploadSignedPDF:", error);
     return null;
   }
 }

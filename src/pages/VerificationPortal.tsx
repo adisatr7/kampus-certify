@@ -1,21 +1,32 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Download,
+  FileText,
+  QrCode,
+  Search,
+  Shield,
+  University,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import campusBackground from "@/assets/campus-bg.jpg";
+import { AppHeader } from "@/components/layout/AppHeader";
+import SignedDocumentViewer from "@/components/SignedDocumentViewer";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Badge } from "@/components/ui/Badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { Search, Shield, FileText, Calendar, Download, CheckCircle, XCircle, AlertTriangle, QrCode, University } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
-import campusBackground from "@/assets/campus-bg.jpg";
-import SignedDocumentViewer from "@/components/SignedDocumentViewer";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VerificationResult {
   id: string;
   title: string;
-  status: 'signed' | 'revoked' | 'pending';
+  status: "signed" | "revoked" | "pending";
   signed_at: string | null;
   file_url: string | null;
   qr_code_url: string | null;
@@ -40,7 +51,7 @@ export default function VerificationPortal() {
   // Auto-fill document ID from URL parameter (QR code scan)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const idFromUrl = urlParams.get('id') || urlParams.get('documentId');
+    const idFromUrl = urlParams.get("id") || urlParams.get("documentId");
     if (idFromUrl) {
       setDocumentId(idFromUrl);
       // Auto-verify if ID comes from QR code
@@ -65,7 +76,7 @@ export default function VerificationPortal() {
 
     try {
       const { data, error } = await supabase
-        .from('documents')
+        .from("documents")
         .select(`
           *,
           certificates (
@@ -77,7 +88,7 @@ export default function VerificationPortal() {
             role
           )
         `)
-        .eq('id', docId.trim())
+        .eq("id", docId.trim())
         .maybeSingle();
 
       if (error) throw error;
@@ -96,14 +107,14 @@ export default function VerificationPortal() {
 
       // Log verification attempt (optional - for audit purposes)
       try {
-        await supabase.rpc('create_audit_entry', {
+        await supabase.rpc("create_audit_entry", {
           p_user_id: null,
-          p_action: 'VERIFY_DOCUMENT',
-          p_description: `Verifikasi dokumen "${data.title}" dari portal publik`
+          p_action: "VERIFY_DOCUMENT",
+          p_description: `Verifikasi dokumen "${data.title}" dari portal publik`,
         });
       } catch (auditError) {
         // Don't fail verification if audit logging fails
-        console.error('Failed to log verification:', auditError);
+        console.error("Failed to log verification:", auditError);
       }
 
       toast({
@@ -123,43 +134,43 @@ export default function VerificationPortal() {
   };
 
   const getStatusIcon = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
+    if (documentStatus === "signed" && certificateStatus === "active") {
       return <CheckCircle className="h-8 w-8 text-status-valid" />;
     }
-    if (documentStatus === 'revoked' || certificateStatus === 'revoked') {
+    if (documentStatus === "revoked" || certificateStatus === "revoked") {
       return <XCircle className="h-8 w-8 text-status-invalid" />;
     }
     return <AlertTriangle className="h-8 w-8 text-orange-500" />;
   };
 
   const getStatusMessage = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
-      return 'VALID - Dokumen sah dan sertifikat aktif';
+    if (documentStatus === "signed" && certificateStatus === "active") {
+      return "VALID - Dokumen sah dan sertifikat aktif";
     }
-    if (documentStatus === 'revoked') {
-      return 'REVOKED - Dokumen telah dicabut';
+    if (documentStatus === "revoked") {
+      return "REVOKED - Dokumen telah dicabut";
     }
-    if (certificateStatus === 'revoked') {
-      return 'INVALID - Sertifikat telah dicabut';
+    if (certificateStatus === "revoked") {
+      return "INVALID - Sertifikat telah dicabut";
     }
-    if (documentStatus === 'pending') {
-      return 'PENDING - Dokumen belum ditandatangani';
+    if (documentStatus === "pending") {
+      return "PENDING - Dokumen belum ditandatangani";
     }
-    return 'INVALID - Status tidak valid';
+    return "INVALID - Status tidak valid";
   };
 
   const getOverallStatus = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === 'signed' && certificateStatus === 'active') {
-      return 'valid';
+    if (documentStatus === "signed" && certificateStatus === "active") {
+      return "valid";
     }
-    if (documentStatus === 'revoked' || certificateStatus === 'revoked') {
-      return 'revoked';
+    if (documentStatus === "revoked" || certificateStatus === "revoked") {
+      return "revoked";
     }
-    return 'invalid';
+    return "invalid";
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       verifyDocument();
     }
   };
@@ -171,14 +182,16 @@ export default function VerificationPortal() {
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
+        <div
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft"
+          style={{ animationDelay: "1s" }}
+        ></div>
       </div>
 
       <div className="flex-1 relative z-10">
         {/* Main Content */}
         <main className="relative z-10 container mx-auto px-6 py-12 animate-fade-in-up">
           <div className="max-w-2xl mx-auto space-y-8">
-
             {/* Verification Form */}
             <Card className="border-0 shadow-2xl bg-card/95 backdrop-blur-xl hover:shadow-3xl transition-all duration-300">
               <CardHeader className="text-center pb-6">
@@ -199,7 +212,9 @@ export default function VerificationPortal() {
               </CardHeader>
               <CardContent className="space-y-6 p-8">
                 <div className="space-y-3">
-                  <Label htmlFor="documentId" className="text-base font-semibold">ID Dokumen</Label>
+                  <Label htmlFor="documentId" className="text-base font-semibold">
+                    ID Dokumen
+                  </Label>
                   <div className="flex gap-3">
                     <Input
                       id="documentId"
@@ -280,10 +295,13 @@ export default function VerificationPortal() {
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Jabatan:</span>
                           <span className="font-medium">
-                            {verificationResult.users.role === 'rektor' ? 'Rektor' :
-                              verificationResult.users.role === 'dekan' ? 'Dekan' :
-                                verificationResult.users.role === 'dosen' ? 'Dosen' :
-                                  verificationResult.users.role}
+                            {verificationResult.users.role === "rektor"
+                              ? "Rektor"
+                              : verificationResult.users.role === "dekan"
+                                ? "Dekan"
+                                : verificationResult.users.role === "dosen"
+                                  ? "Dosen"
+                                  : verificationResult.users.role}
                           </span>
                         </div>
                       </>
@@ -292,7 +310,9 @@ export default function VerificationPortal() {
                     {verificationResult.certificate && (
                       <div className="flex justify-between border-b pb-2">
                         <span className="text-muted-foreground">Serial Sertifikat:</span>
-                        <span className="font-mono text-sm">{verificationResult.certificate.serial_number}</span>
+                        <span className="font-mono text-sm">
+                          {verificationResult.certificate.serial_number}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -300,36 +320,46 @@ export default function VerificationPortal() {
                   {/* Status Information */}
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-700 mb-2">
-                      adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh Certificate Authority UMC
-                      melalui Sistem Certificate Authority Berbasis Digital.
+                      adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh
+                      Certificate Authority UMC melalui Sistem Certificate Authority Berbasis
+                      Digital.
                     </p>
 
                     <div className="flex items-center justify-center gap-2 mt-4">
-                      {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
+                      {getStatusIcon(
+                        verificationResult.status,
+                        verificationResult.certificate?.status,
+                      )}
                       <StatusBadge
-                        status={getOverallStatus(verificationResult.status, verificationResult.certificate?.status) as any}
+                        status={
+                          getOverallStatus(
+                            verificationResult.status,
+                            verificationResult.certificate?.status,
+                          ) as any
+                        }
                         className="text-lg px-6 py-2"
                       />
                     </div>
 
                     {verificationResult.signed_at && (
                       <p className="text-sm text-center text-muted-foreground mt-2">
-                        Ditandatangani pada: {new Date(verificationResult.signed_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
+                        Ditandatangani pada:{" "}
+                        {new Date(verificationResult.signed_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
                         })}
                       </p>
                     )}
                   </div>
 
                   <p className="text-center text-sm text-muted-foreground">
-                    Pastikan Anda mengakses data yang benar melalui{' '}
+                    Pastikan Anda mengakses data yang benar melalui{" "}
                     <span className="font-semibold">https://ca-umc.vercel.app</span>
                   </p>
 
                   {/* Download Button */}
-                  {verificationResult.file_url && verificationResult.status === 'signed' && (
+                  {verificationResult.file_url && verificationResult.status === "signed" && (
                     <div className="text-center space-y-2">
                       <Button
                         onClick={() => setIsViewerOpen(true)}
@@ -392,7 +422,9 @@ export default function VerificationPortal() {
           <div className="container mx-auto px-6 py-6">
             <div className="text-center text-muted-foreground text-sm">
               <p className="font-medium">© 2025 Universitas Muhammadiyah Cirebon</p>
-              <p className="text-xs mt-1">Certificate Authority System - Powered by Digital Technology</p>
+              <p className="text-xs mt-1">
+                Certificate Authority System - Powered by Digital Technology
+              </p>
             </div>
           </div>
         </footer>

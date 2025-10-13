@@ -1,8 +1,8 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { AlertCircle, Home, Shield } from "lucide-react";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 
 const NotFound = () => {
   const location = useLocation();
@@ -46,9 +46,7 @@ const NotFound = () => {
           </div>
 
           <div className="pt-4 border-t border-border/50">
-            <p className="text-xs text-muted-foreground">
-              © 2025 UMC - Certificate Authority
-            </p>
+            <p className="text-xs text-muted-foreground">© 2025 UMC - Certificate Authority</p>
           </div>
         </CardContent>
       </Card>

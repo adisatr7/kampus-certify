@@ -18,21 +18,24 @@ interface SignedDocumentTemplateProps {
   qrCodeUrl?: string;
 }
 
-export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDocumentTemplateProps) {
+export default function SignedDocumentTemplate({
+  document,
+  qrCodeUrl,
+}: SignedDocumentTemplateProps) {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [documentContent, setDocumentContent] = useState<string>("");
-  
-  const currentDate = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+
+  const currentDate = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
-  const signedDate = document.signed_at 
-    ? new Date(document.signed_at).toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+  const signedDate = document.signed_at
+    ? new Date(document.signed_at).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : currentDate;
 
@@ -45,13 +48,13 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
           width: 200,
           margin: 2,
           color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
+            dark: "#000000",
+            light: "#FFFFFF",
+          },
         });
         setQrCodeDataUrl(qrDataUrl);
       } catch (error) {
-        console.error('Error generating QR code:', error);
+        console.error("Error generating QR code:", error);
       }
     };
 
@@ -71,7 +74,7 @@ export default function SignedDocumentTemplate({ document, qrCodeUrl }: SignedDo
 
 Konten dokumen tidak tersedia dalam sistem.
 
-Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name || 'Pejabat Berwenang'} dari Universitas Muhammadiyah Cirebon.`);
+Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name || "Pejabat Berwenang"} dari Universitas Muhammadiyah Cirebon.`);
     }
   }, [document.content, document.title, document.users?.name]);
 
@@ -100,8 +103,12 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
           </div>
         ) : (
           <div className="text-center py-8 sm:py-16 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-600 text-sm sm:text-base font-semibold px-4">Konten Dokumen: {document.title}</p>
-            <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">Konten dokumen belum tersedia</p>
+            <p className="text-gray-600 text-sm sm:text-base font-semibold px-4">
+              Konten Dokumen: {document.title}
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">
+              Konten dokumen belum tersedia
+            </p>
           </div>
         )}
       </div>
@@ -122,20 +129,24 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
               {/* Authority Title */}
               <div className="mb-3 sm:mb-4 space-y-1">
                 <p className="text-xs sm:text-sm font-bold text-gray-900 uppercase">
-                  {document.users?.role === 'rektor' ? 'Rektor' : 
-                   document.users?.role === 'dekan' ? 'Dekan' :
-                   document.users?.role === 'dosen' ? 'Dosen' : 'Pejabat Berwenang'}
+                  {document.users?.role === "rektor"
+                    ? "Rektor"
+                    : document.users?.role === "dekan"
+                      ? "Dekan"
+                      : document.users?.role === "dosen"
+                        ? "Dosen"
+                        : "Pejabat Berwenang"}
                 </p>
                 <p className="text-[10px] sm:text-xs font-semibold text-gray-900">
                   Universitas Muhammadiyah Cirebon
                 </p>
               </div>
-              
+
               {/* QR Code */}
               <div className="flex justify-center my-4 sm:my-5 p-2 bg-gray-50 rounded-lg border-2 border-gray-900 mx-auto max-w-fit">
                 {qrCodeDataUrl ? (
-                  <img 
-                    src={qrCodeDataUrl} 
+                  <img
+                    src={qrCodeDataUrl}
                     alt="QR Code untuk verifikasi dokumen"
                     className="w-24 h-24 sm:w-32 sm:h-32"
                   />
@@ -145,14 +156,14 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
                   </div>
                 )}
               </div>
-              
+
               {/* Electronic Signature Label */}
               <div className="mb-2 sm:mb-3 py-2 bg-gray-900 text-white rounded mx-4 sm:mx-0">
                 <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wide">
                   Ditandatangani Secara Elektronik
                 </p>
               </div>
-              
+
               {/* Signer Name */}
               {document.users?.name && (
                 <p className="text-xs sm:text-sm text-gray-900 font-bold border-b-2 border-gray-900 pb-1 inline-block">
@@ -175,19 +186,22 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
               <div className="flex gap-2">
                 <span className="font-bold flex-shrink-0">1.</span>
                 <p className="text-justify">
-                  Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.
+                  Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan
+                  dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.
                 </p>
               </div>
               <div className="flex gap-2">
                 <span className="font-bold flex-shrink-0">2.</span>
                 <p className="text-justify">
-                  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.
+                  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana
+                  mestinya.
                 </p>
               </div>
               <div className="flex gap-2">
                 <span className="font-bold flex-shrink-0">3.</span>
                 <p className="text-justify">
-                  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.
+                  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat
+                  elektronik yang diterbitkan oleh BSrE-BSSN.
                 </p>
               </div>
               <div className="flex gap-2">

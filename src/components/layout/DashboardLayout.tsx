@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { AppSidebar } from "./AppSidebar";
-import { AppHeader } from "./AppHeader";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/Button";
 import { Menu } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+import { AppHeader } from "./AppHeader";
+import { AppSidebar } from "./AppSidebar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  userRole?: 'admin' | 'dosen' | 'rektor' | 'dekan';
+  userRole?: "admin" | "dosen" | "rektor" | "dekan";
 }
 
-export function DashboardLayout({ children, userRole = 'dosen' }: DashboardLayoutProps) {
+export function DashboardLayout({ children, userRole = "dosen" }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   return (
@@ -32,11 +32,13 @@ export function DashboardLayout({ children, userRole = 'dosen' }: DashboardLayou
           onCollapsedChange={setSidebarCollapsed}
         />
 
-        <main className={cn(
-          "flex-1 transition-all duration-300 w-full",
-          "lg:ml-16",
-          !sidebarCollapsed && "lg:ml-64"
-        )}>
+        <main
+          className={cn(
+            "flex-1 transition-all duration-300 w-full",
+            "lg:ml-16",
+            !sidebarCollapsed && "lg:ml-64",
+          )}
+        >
           <div className="container mx-auto p-3 sm:p-6">
             {/* Mobile Menu Button */}
             <Button

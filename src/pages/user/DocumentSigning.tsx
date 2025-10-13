@@ -1,19 +1,38 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Calendar, FileText, Lock, PenTool, QrCode, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { PenTool, FileText, Shield, Calendar, QrCode, Lock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { useToast } from "@/hooks/useToast";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 
 interface Document {
@@ -21,7 +40,7 @@ interface Document {
   title: string;
   content?: string | null;
   file_url: string | null;
-  status: 'pending' | 'signed' | 'revoked';
+  status: "pending" | "signed" | "revoked";
   created_at: string;
 }
 
@@ -58,11 +77,11 @@ export default function DocumentSigning() {
 
     try {
       const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .from("documents")
+        .select("*")
+        .eq("user_id", userProfile.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
@@ -82,16 +101,16 @@ export default function DocumentSigning() {
 
     try {
       const { data, error } = await supabase
-        .from('certificates')
-        .select('id, serial_number, status, expires_at')
-        .eq('user_id', userProfile.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .from("certificates")
+        .select("id, serial_number, status, expires_at")
+        .eq("user_id", userProfile.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setCertificates(data || []);
     } catch (error) {
-      console.error('Error fetching certificates:', error);
+      console.error("Error fetching certificates:", error);
     }
   };
 
@@ -124,13 +143,13 @@ export default function DocumentSigning() {
     try {
       // Get certificate details and verify code
       const { data: certData, error: certError } = await supabase
-        .from('certificates')
-        .select('serial_number, certificate_code')
-        .eq('id', selectedCertificate)
+        .from("certificates")
+        .select("serial_number, certificate_code")
+        .eq("id", selectedCertificate)
         .single();
 
       if (certError || !certData) {
-        throw new Error('Failed to fetch certificate details');
+        throw new Error("Failed to fetch certificate details");
       }
 
       // Verify certificate code
@@ -151,54 +170,51 @@ export default function DocumentSigning() {
 
       // Generate cryptographically signed PDF with QR code
       try {
-        const signedPdfBlob = await generateSignedPDF(
-          selectedDocument.file_url,
-          {
-            documentId: selectedDocument.id,
-            documentTitle: selectedDocument.title,
-            documentContent: selectedDocument.content || undefined,
-            signerName: userProfile.name,
-            signerRole: userProfile.role,
-            signedAt: new Date().toISOString(),
-            certificateSerial: certData.serial_number,
-            verificationUrl: verificationUrl
-          }
-        );
+        const signedPdfBlob = await generateSignedPDF(selectedDocument.file_url, {
+          documentId: selectedDocument.id,
+          documentTitle: selectedDocument.title,
+          documentContent: selectedDocument.content || undefined,
+          signerName: userProfile.name,
+          signerRole: userProfile.role,
+          signedAt: new Date().toISOString(),
+          certificateSerial: certData.serial_number,
+          verificationUrl: verificationUrl,
+        });
 
         // Upload signed PDF to storage
         signedDocumentUrl = await uploadSignedPDF(
           signedPdfBlob,
           userProfile.id,
           selectedDocument.id,
-          supabase
+          supabase,
         );
 
         if (!signedDocumentUrl) {
-          throw new Error('Failed to upload signed document');
+          throw new Error("Failed to upload signed document");
         }
       } catch (pdfError) {
-        console.error('Error generating/uploading signed PDF:', pdfError);
+        console.error("Error generating/uploading signed PDF:", pdfError);
         throw pdfError;
       }
 
       // Update document with signature information
       const { error: updateError } = await supabase
-        .from('documents')
+        .from("documents")
         .update({
-          status: 'signed',
+          status: "signed",
           signed_at: new Date().toISOString(),
           certificate_id: selectedCertificate,
           qr_code_url: verificationUrl,
-          signed_document_url: signedDocumentUrl
+          signed_document_url: signedDocumentUrl,
         })
-        .eq('id', selectedDocument.id);
+        .eq("id", selectedDocument.id);
 
       if (updateError) throw updateError;
 
       await createAuditEntry(
         userProfile.id,
-        'SIGN_DOCUMENT',
-        `Menandatangani dokumen "${selectedDocument.title}"`
+        "SIGN_DOCUMENT",
+        `Menandatangani dokumen "${selectedDocument.title}"`,
       );
 
       toast({
@@ -211,7 +227,7 @@ export default function DocumentSigning() {
       setSelectedCertificate("");
       fetchDocuments();
     } catch (error) {
-      console.error('Signing error:', error);
+      console.error("Signing error:", error);
       toast({
         title: "Error",
         description: "Gagal menandatangani dokumen",
@@ -245,7 +261,9 @@ export default function DocumentSigning() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Tanda Tangan Dokumen</h1>
-          <p className="text-muted-foreground">Tandatangani dokumen Anda dengan sertifikat digital</p>
+          <p className="text-muted-foreground">
+            Tandatangani dokumen Anda dengan sertifikat digital
+          </p>
         </div>
 
         {/* Active Certificates Info */}
@@ -261,7 +279,8 @@ export default function DocumentSigning() {
               <div className="text-center py-6">
                 <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  Anda belum memiliki sertifikat aktif. Hubungi administrator untuk mendapatkan sertifikat.
+                  Anda belum memiliki sertifikat aktif. Hubungi administrator untuk mendapatkan
+                  sertifikat.
                 </p>
               </div>
             ) : (
@@ -278,7 +297,7 @@ export default function DocumentSigning() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          Berlaku hingga: {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                          Berlaku hingga: {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                         </div>
                       </div>
                     </CardContent>
@@ -332,7 +351,7 @@ export default function DocumentSigning() {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            {new Date(doc.created_at).toLocaleDateString('id-ID')}
+                            {new Date(doc.created_at).toLocaleDateString("id-ID")}
                           </span>
                         </div>
                       </TableCell>
@@ -342,7 +361,7 @@ export default function DocumentSigning() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(doc.file_url!, '_blank')}
+                              onClick={() => window.open(doc.file_url!, "_blank")}
                             >
                               Lihat
                             </Button>
@@ -393,7 +412,7 @@ export default function DocumentSigning() {
                         <div className="flex flex-col">
                           <span>{cert.serial_number}</span>
                           <span className="text-xs text-muted-foreground">
-                            Berlaku hingga {new Date(cert.expires_at).toLocaleDateString('id-ID')}
+                            Berlaku hingga {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                           </span>
                         </div>
                       </SelectItem>
