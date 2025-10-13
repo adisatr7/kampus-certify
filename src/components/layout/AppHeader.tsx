@@ -1,5 +1,5 @@
 import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useTheme } from "next-themes";
 import logoUmc from "@/assets/logo-umc.png";
 
@@ -14,9 +14,9 @@ export function AppHeader() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10 rounded-lg sm:rounded-xl blur-lg sm:blur-xl opacity-50 group-hover:opacity-70 transition-all duration-500"></div>
               <div className="relative w-10 h-10 sm:w-16 sm:h-16 bg-white dark:bg-white/95 rounded-lg sm:rounded-xl flex items-center justify-center shadow-2xl transform group-hover:scale-105 group-hover:rotate-3 transition-all duration-500 border border-primary/20 p-1 sm:p-2">
-                <img 
-                  src={logoUmc} 
-                  alt="Logo UMC" 
+                <img
+                  src={logoUmc}
+                  alt="Logo UMC"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -33,7 +33,7 @@ export function AppHeader() {
               </p>
             </div>
           </div>
-          
+
           <Button
             variant="ghost"
             size="icon"

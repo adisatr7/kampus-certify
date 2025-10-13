@@ -1,9 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import {  
-  FileText, 
-  Award, 
-  Users, 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  FileText,
+  Award,
+  Users,
   Activity,
   TrendingUp,
   Clock,
@@ -14,31 +14,31 @@ import {
   Zap
 } from "lucide-react";
 import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/useDashboardData";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
 
 interface DashboardProps {
   userRole: 'admin' | 'dosen' | 'rektor' | 'dekan';
 }
 
 export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
-  const { 
-    data: stats, 
-    isLoading: statsLoading, 
-    error: statsError 
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError
   } = useDashboardStats(userRole);
-  
+
   // Only fetch activities for admin users
-  const { 
-    data: activities, 
-    isLoading: activitiesLoading, 
-    error: activitiesError 
+  const {
+    data: activities,
+    isLoading: activitiesLoading,
+    error: activitiesError
   } = useRecentActivities(userRole);
 
   // Only fetch recent documents for non-admin users
-  const { 
-    data: recentDocuments, 
-    isLoading: documentsLoading, 
-    error: documentsError 
+  const {
+    data: recentDocuments,
+    isLoading: documentsLoading,
+    error: documentsError
   } = useRecentDocuments(userRole);
 
   // Dashboard configuration based on role
@@ -131,7 +131,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
   };
 
   const dashboardConfig = getDashboardConfig();
-  
+
   // Show loading state
   if (statsLoading) {
     return (
@@ -167,8 +167,8 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                 <p className="text-slate-600 mb-6">
                   Gagal memuat data dashboard. Silakan refresh halaman atau hubungi administrator.
                 </p>
-                <button 
-                  onClick={() => window.location.reload()} 
+                <button
+                  onClick={() => window.location.reload()}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Refresh Halaman
@@ -197,16 +197,16 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">{new Date().toLocaleDateString('id-ID', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              <span className="hidden sm:inline">{new Date().toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}</span>
-              <span className="sm:hidden">{new Date().toLocaleDateString('id-ID', { 
-                day: 'numeric', 
-                month: 'short', 
-                year: 'numeric' 
+              <span className="sm:hidden">{new Date().toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
               })}</span>
             </div>
           </div>
@@ -215,10 +215,10 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
         {/* Stats Cards */}
         <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={index}
               className="group relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-              style={{ 
+              style={{
                 animationDelay: `${index * 100}ms`,
                 background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
               }}
@@ -273,11 +273,10 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                     {activities.map((activity, index) => (
                       <div key={activity.id} className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-blue-50 hover:to-indigo-50/50 transition-all duration-200 group">
                         <div className="flex-shrink-0">
-                          <div className={`p-3 rounded-full ${
-                            activity.type === 'certificate' ? 'bg-purple-100' : 
-                            activity.type === 'document' ? 'bg-blue-100' : 
-                            activity.type === 'verification' ? 'bg-emerald-100' : 'bg-red-100'
-                          }`}>
+                          <div className={`p-3 rounded-full ${activity.type === 'certificate' ? 'bg-purple-100' :
+                            activity.type === 'document' ? 'bg-blue-100' :
+                              activity.type === 'verification' ? 'bg-emerald-100' : 'bg-red-100'
+                            }`}>
                             {activity.type === 'certificate' && <Award className="h-5 w-5 text-purple-600" />}
                             {activity.type === 'document' && <FileText className="h-5 w-5 text-blue-600" />}
                             {activity.type === 'verification' && <Activity className="h-5 w-5 text-emerald-600" />}
@@ -430,10 +429,9 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                     {recentDocuments.map((doc, index) => (
                       <div key={doc.id} className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-purple-50 hover:to-purple-100/50 transition-all duration-200 group">
                         <div className="flex-shrink-0">
-                          <div className={`p-3 rounded-full ${
-                            doc.status === 'signed' ? 'bg-emerald-100' : 
+                          <div className={`p-3 rounded-full ${doc.status === 'signed' ? 'bg-emerald-100' :
                             doc.status === 'pending' ? 'bg-blue-100' : 'bg-red-100'
-                          }`}>
+                            }`}>
                             {doc.status === 'signed' && <Award className="h-5 w-5 text-emerald-600" />}
                             {doc.status === 'pending' && <FileText className="h-5 w-5 text-blue-600" />}
                             {doc.status === 'revoked' && <AlertCircle className="h-5 w-5 text-red-600" />}
@@ -444,14 +442,14 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                             {doc.title}
                           </h4>
                           <p className="text-sm text-slate-600 mb-2">
-                            {doc.status === 'signed' ? 'Dokumen telah ditandatangani' : 
-                             doc.status === 'pending' ? 'Menunggu tanda tangan' : 
-                             'Dokumen dicabut'}
+                            {doc.status === 'signed' ? 'Dokumen telah ditandatangani' :
+                              doc.status === 'pending' ? 'Menunggu tanda tangan' :
+                                'Dokumen dicabut'}
                           </p>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-slate-400" />
                             <span className="text-xs text-slate-500">
-                              {doc.signed_at ? 
+                              {doc.signed_at ?
                                 `Ditandatangani ${new Date(doc.signed_at).toLocaleDateString('id-ID')}` :
                                 `Dibuat ${new Date(doc.created_at).toLocaleDateString('id-ID')}`
                               }
@@ -471,7 +469,7 @@ export default function Dashboard({ userRole = 'admin' }: DashboardProps) {
                     <p className="text-sm text-slate-500 mt-1">Mulai dengan mengupload dokumen pertama Anda</p>
                   </div>
                 )}
-                
+
                 <div className="mt-6 pt-4 border-t border-slate-200">
                   <button className="w-full text-center py-3 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                     Lihat Semua Dokumen →

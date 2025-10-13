@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
 import { Download, Printer } from "lucide-react";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 
@@ -81,7 +81,7 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
 
       printWindow.document.write(templateHtml);
       printWindow.document.close();
-      
+
       setTimeout(() => {
         printWindow.print();
       }, 500);
@@ -95,18 +95,18 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
           <div className="flex items-center justify-between">
             <DialogTitle>Dokumen Ditandatangani: {document.title}</DialogTitle>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handlePrint}
                 className="print:hidden"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleDownload}
                 className="print:hidden"
               >
@@ -116,7 +116,7 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="mt-4">
           {document.signed_document_url ? (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
@@ -127,8 +127,8 @@ export default function SignedDocumentViewer({ isOpen, onClose, document }: Sign
               />
             </div>
           ) : (
-            <SignedDocumentTemplate 
-              document={document} 
+            <SignedDocumentTemplate
+              document={document}
               qrCodeUrl={document.qr_code_url || undefined}
             />
           )}

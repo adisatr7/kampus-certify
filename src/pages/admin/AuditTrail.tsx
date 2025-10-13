@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Calendar, Search, Activity, User, FileText, Shield, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/lib/auth";
 
@@ -65,7 +65,7 @@ export default function AuditTrail() {
   const runDiagnostics = async () => {
     try {
       console.log("🔍 Running diagnostics...");
-      
+
       // Check total audit entries without joins
       const { count: auditCount, error: auditCountError } = await supabase
         .from('audit_trail')
@@ -97,11 +97,11 @@ export default function AuditTrail() {
       };
 
       setDiagnostic(diagnosticInfo);
-      
+
       console.log("🔍 Diagnostic results:", {
         auditCount,
         auditCountError,
-        userCount, 
+        userCount,
         userCountError,
         sampleData,
         sampleError,
@@ -118,7 +118,7 @@ export default function AuditTrail() {
   const createTestAuditEntry = async () => {
     try {
       console.log("🧪 Creating test audit entry...");
-      
+
       // Use the public function if available, or direct insert
       const { data, error } = await supabase.rpc('create_audit_entry', {
         p_user_id: userProfile.id,
@@ -139,7 +139,7 @@ export default function AuditTrail() {
           .select();
 
         if (insertError) throw insertError;
-        
+
         console.log("🧪 Direct insert successful:", insertData);
       } else {
         console.log("🧪 Function call successful:", data);
@@ -166,13 +166,13 @@ export default function AuditTrail() {
 
   const fetchAuditEntries = async () => {
     console.log("📊 Memuat data audit entries...");
-    
+
     try {
       setLoading(true);
 
       // Karena diagnostik menunjukkan data ada, gunakan pendekatan sederhana
       console.log("📊 Menggunakan query langsung tanpa join...");
-      
+
       // Ambil data audit tanpa join terlebih dahulu
       const { data: auditData, error: auditError } = await supabase
         .from('audit_trail')
@@ -280,13 +280,13 @@ export default function AuditTrail() {
   };
 
   const filteredEntries = auditEntries.filter(entry => {
-    const matchesSearch = 
+    const matchesSearch =
       entry.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.users?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.users?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesAction = filterAction === "" || filterAction === "all" || entry.action === filterAction;
-    
+
     return matchesSearch && matchesAction;
   });
 
@@ -330,7 +330,7 @@ export default function AuditTrail() {
             <h1 className="text-3xl font-bold text-foreground">Audit Trail</h1>
             <p className="text-muted-foreground">Riwayat semua aktivitas dalam sistem CA UMC</p>
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -386,8 +386,8 @@ export default function AuditTrail() {
                   </p>
                 </div>
               </div>
-              
-            
+
+
             </CardContent>
           </Card>
         )}
@@ -440,13 +440,13 @@ export default function AuditTrail() {
               console.log("🎨 Keputusan render - loading:", loading);
               console.log("🎨 Keputusan render - filterAction:", filterAction);
               console.log("🎨 Keputusan render - searchTerm:", searchTerm);
-              
+
               // Debug: Cek apakah filteredEntries ada isinya
               if (auditEntries.length > 0) {
                 console.log("🎨 Sample auditEntries[0]:", auditEntries[0]);
                 console.log("🎨 Sample filteredEntries[0]:", filteredEntries[0]);
               }
-              
+
               if (loading) {
                 return (
                   <div className="text-center py-8">
@@ -455,7 +455,7 @@ export default function AuditTrail() {
                   </div>
                 );
               }
-              
+
               if (auditEntries.length === 0) {
                 return (
                   <div className="text-center py-8">
@@ -473,7 +473,7 @@ export default function AuditTrail() {
                   </div>
                 );
               }
-              
+
               if (filteredEntries.length === 0) {
                 return (
                   <div className="text-center py-8">
@@ -490,7 +490,7 @@ export default function AuditTrail() {
                   </div>
                 );
               }
-              
+
               // Jika sampai sini, berarti ada data yang harus ditampilkan
               return (
                 <div className="overflow-x-auto">

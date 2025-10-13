@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { FileText, Calendar, CheckCircle, XCircle, AlertTriangle, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import campusBackground from "@/assets/campus-bg.jpg";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -40,7 +40,7 @@ export default function PublicDocumentVerification() {
 
   useEffect(() => {
     const documentId = searchParams.get('id') || searchParams.get('documentId');
-    
+
     if (!documentId) {
       toast({
         title: "Error",
@@ -88,7 +88,7 @@ export default function PublicDocumentVerification() {
       }
 
       setVerificationResult(data);
-      
+
       // Log verification attempt
       try {
         await supabase.rpc('create_audit_entry', {
@@ -201,8 +201,8 @@ export default function PublicDocumentVerification() {
               <p className="text-muted-foreground mb-6">
                 ID dokumen tidak valid atau dokumen tidak ada dalam sistem
               </p>
-              <Button 
-                onClick={() => navigate('/verify')} 
+              <Button
+                onClick={() => navigate('/verify')}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 Kembali ke Portal Verifikasi
@@ -223,7 +223,7 @@ export default function PublicDocumentVerification() {
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }}></div>
         </div>
-        
+
         <main className="relative z-10 container mx-auto px-6 py-12 flex items-center justify-center animate-fade-in-up">
           <Card className="max-w-3xl w-full shadow-2xl border-0 bg-card/95 backdrop-blur-xl hover:shadow-3xl transition-all duration-300">
             <CardHeader className="text-center pb-6 border-b border-border/50">
@@ -273,13 +273,13 @@ export default function PublicDocumentVerification() {
                   </h3>
                   <p className="text-sm text-muted-foreground">Detail dokumen yang diverifikasi</p>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="bg-muted/30 p-4 rounded-lg">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Judul Dokumen</p>
                     <p className="font-semibold text-lg">{verificationResult.title}</p>
                   </div>
-                  
+
                   {verificationResult.user && (
                     <>
                       <div className="grid grid-cols-2 gap-4">
@@ -356,10 +356,10 @@ export default function PublicDocumentVerification() {
                   </h3>
                   <p className="text-sm text-muted-foreground">Hasil pemeriksaan keaslian dokumen</p>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-5 py-6">
                   {getStatusIcon(verificationResult.status, verificationResult.certificate?.status)}
-                  <StatusBadge 
+                  <StatusBadge
                     status={getOverallStatus(verificationResult.status, verificationResult.certificate?.status) as any}
                     className="text-xl px-10 py-4 shadow-2xl transform hover:scale-105 transition-transform duration-200"
                   />
@@ -393,9 +393,9 @@ export default function PublicDocumentVerification() {
               {/* Verification Link */}
               <div className="text-center text-sm text-muted-foreground bg-gradient-to-r from-muted/50 to-muted/30 p-5 rounded-xl border border-border/50 shadow-sm">
                 Pastikan Anda mengakses data yang benar melalui{' '}
-                <a 
-                  href="https://ca-umc.vercel.app" 
-                  target="_blank" 
+                <a
+                  href="https://ca-umc.vercel.app"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-primary hover:underline transition-all duration-200"
                 >

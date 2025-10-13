@@ -1,6 +1,6 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/Toaster";
+import { Toaster as Sonner } from "@/components/ui/Sonner";
+import { TooltipProvider } from "@/components/ui/Tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
@@ -27,61 +27,61 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/verify" element={<VerificationPortal />} />
-            <Route path="/verification-portal" element={<VerificationPortal />} />
-            <Route path="/document-verification" element={<PublicDocumentVerification />} />
-            
-            {/* Admin Routes */}
-            <Route 
-              path="/admin/certificates" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CertificateManagement />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/documents" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <DocumentManagement />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/audit" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AuditTrail />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* User Routes */}
-            <Route 
-              path="/documents" 
-              element={
-                <ProtectedRoute allowedRoles={['dosen', 'rektor', 'dekan']}>
-                  <MyDocuments />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/sign" 
-              element={
-                <ProtectedRoute allowedRoles={['dosen', 'rektor', 'dekan']}>
-                  <DocumentSigning />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+              <Route path="/" element={<Index />} />
+              <Route path="/verify" element={<VerificationPortal />} />
+              <Route path="/verification-portal" element={<VerificationPortal />} />
+              <Route path="/document-verification" element={<PublicDocumentVerification />} />
+
+              {/* Admin Routes */}
+              <Route
+                path="/admin/certificates"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <CertificateManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/documents"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DocumentManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AuditTrail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* User Routes */}
+              <Route
+                path="/documents"
+                element={
+                  <ProtectedRoute allowedRoles={['dosen', 'rektor', 'dekan']}>
+                    <MyDocuments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sign"
+                element={
+                  <ProtectedRoute allowedRoles={['dosen', 'rektor', 'dekan']}>
+                    <DocumentSigning />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Plus, Shield, Calendar, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 interface Certificate {
@@ -47,9 +47,9 @@ export default function CertificateManagement() {
 
   const fetchCertificates = async () => {
     try {
-        const { data, error } = await supabase
-            .from('certificates')
-            .select(`
+      const { data, error } = await supabase
+        .from('certificates')
+        .select(`
                 id,
                 serial_number,
                 issued_at,
@@ -62,18 +62,18 @@ export default function CertificateManagement() {
                     role
                 )
             `)
-            .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setCertificates(data || []);
+      if (error) throw error;
+      setCertificates(data || []);
     } catch (error) {
-        toast({
-            title: "Error",
-            description: "Gagal memuat daftar sertifikat",
-            variant: "destructive",
-        });
+      toast({
+        title: "Error",
+        description: "Gagal memuat daftar sertifikat",
+        variant: "destructive",
+      });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -154,7 +154,7 @@ export default function CertificateManagement() {
     try {
       const { error } = await supabase
         .from('certificates')
-        .update({ 
+        .update({
           status: 'revoked',
           revoked_at: new Date().toISOString()
         })
@@ -233,7 +233,7 @@ export default function CertificateManagement() {
             <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
             <p className="text-muted-foreground">Kelola sertifikat digital untuk penandatanganan dokumen</p>
           </div>
-          
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
@@ -261,8 +261,8 @@ export default function CertificateManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                
+
+
                 <div>
                   <Label htmlFor="expiry">Masa Berlaku (hari)</Label>
                   <Input
@@ -273,7 +273,7 @@ export default function CertificateManagement() {
                     placeholder="365"
                   />
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"

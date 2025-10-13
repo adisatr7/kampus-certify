@@ -5,7 +5,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Dashboard from "./Dashboard";
 import PublicVerify from "./PublicVerify";
 import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
 
 const Index = () => {
   const [session, setSession] = useState(null);
@@ -19,7 +19,7 @@ const Index = () => {
       try {
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) {
           console.error('Session error:', sessionError);
           setError('Failed to get session');
@@ -41,7 +41,7 @@ const Index = () => {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
-        
+
         // Clear user role when session changes
         if (!session) {
           setUserRole(null);
@@ -62,7 +62,7 @@ const Index = () => {
 
       try {
         setError(null);
-        
+
         // Check if user exists in the users table
         const { data: userData, error: userError } = await supabase
           .from("users")
@@ -89,7 +89,7 @@ const Index = () => {
 
         // User found, set role and log login
         setUserRole(userData.role);
-        
+
         // Update last login in audit trail
         await supabase.rpc('create_audit_entry', {
           p_user_id: session.user.id,
@@ -156,7 +156,7 @@ const Index = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">

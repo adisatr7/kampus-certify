@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/Button";
+import { Separator } from "@/components/ui/Separator";
 import { useAuth } from "@/lib/auth";
 
 interface AppSidebarProps {

@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Plus, FileText, Upload, Eye, Edit, Trash2, Download, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 
@@ -111,7 +111,7 @@ export default function DocumentManagement() {
 
     try {
       let fileUrl = null;
-      
+
       // Upload file to Supabase Storage if file is provided
       if (file) {
         const fileExt = file.name.split('.').pop();
@@ -128,7 +128,7 @@ export default function DocumentManagement() {
         const { data: { publicUrl } } = supabase.storage
           .from('documents')
           .getPublicUrl(filePath);
-        
+
         fileUrl = publicUrl;
       }
 
@@ -236,7 +236,7 @@ export default function DocumentManagement() {
             <h1 className="text-3xl font-bold text-foreground">Manajemen Dokumen</h1>
             <p className="text-muted-foreground">Kelola dokumen untuk semua pengguna sistem</p>
           </div>
-          
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
@@ -289,7 +289,7 @@ export default function DocumentManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="file">File Dokumen (Opsional)</Label>
                   <Input
@@ -302,7 +302,7 @@ export default function DocumentManagement() {
                     Format yang didukung: PDF, DOC, DOCX (opsional, konten utama dari field di atas)
                   </p>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
@@ -313,7 +313,7 @@ export default function DocumentManagement() {
                   >
                     Batal
                   </Button>
-                  <Button 
+                  <Button
                     onClick={uploadDocument}
                     disabled={uploading}
                   >
@@ -450,7 +450,7 @@ export default function DocumentManagement() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Signed Document Viewer */}
       {selectedDocument && (
         <SignedDocumentViewer

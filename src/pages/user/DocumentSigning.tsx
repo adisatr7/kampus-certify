@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PenTool, FileText, Shield, Calendar, QrCode, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 
@@ -146,7 +146,7 @@ export default function DocumentSigning() {
 
       // Generate verification URL with document ID
       const verificationUrl = `${window.location.origin}/document-verification?id=${selectedDocument.id}`;
-      
+
       let signedDocumentUrl = null;
 
       // Generate cryptographically signed PDF with QR code
@@ -180,7 +180,7 @@ export default function DocumentSigning() {
         console.error('Error generating/uploading signed PDF:', pdfError);
         throw pdfError;
       }
-      
+
       // Update document with signature information
       const { error: updateError } = await supabase
         .from('documents')
@@ -436,7 +436,7 @@ export default function DocumentSigning() {
                 <Button variant="outline" onClick={closeDialog}>
                   Batal
                 </Button>
-                <Button 
+                <Button
                   onClick={signDocument}
                   disabled={signing || !selectedCertificate || !certificateCode.trim()}
                 >

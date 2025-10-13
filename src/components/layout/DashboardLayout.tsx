@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Menu } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -16,22 +16,22 @@ export function DashboardLayout({ children, userRole = 'dosen' }: DashboardLayou
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      
+
       <div className="flex flex-1 relative">
         {/* Mobile Overlay */}
         {!sidebarCollapsed && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-30 lg:hidden"
             onClick={() => setSidebarCollapsed(true)}
           />
         )}
-        
-        <AppSidebar 
+
+        <AppSidebar
           userRole={userRole}
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
         />
-        
+
         <main className={cn(
           "flex-1 transition-all duration-300 w-full",
           "lg:ml-16",
