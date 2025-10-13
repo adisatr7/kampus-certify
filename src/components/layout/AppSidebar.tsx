@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { 
-
-  FileText, 
-  Award, 
-  Users, 
-  Activity, 
+import {
+  FileText,
+  Award,
+  Users,
+  Activity,
   Search,
   Settings,
   LogOut,
@@ -59,12 +58,12 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   };
 
   const isActive = (path: string) => currentPath === path;
-  
-  const getNavClass = (path: string) => 
+
+  const getNavClass = (path: string) =>
     cn(
       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
-      isActive(path) 
-        ? "bg-primary text-primary-foreground" 
+      isActive(path)
+        ? "bg-primary text-primary-foreground"
         : "text-muted-foreground hover:text-accent-foreground"
     );
 
@@ -72,27 +71,27 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
 
   return (
     <div className={cn(
-      "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300",
-      "fixed lg:static inset-y-0 left-0 z-40",
+      "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300 pt-28",
+      "fixed inset-y-0 left-0 z-40 overflow-hidden",
       collapsed ? "w-16 -translate-x-full lg:translate-x-0" : "w-64"
     )}>
       {/* Header */}
-     <div className="flex items-center justify-between p-2 sm:p-4 border-b border-border">
-      {!collapsed && (
-        <div className="flex items-center gap-2">
-          {/* Logo */}
-          <img
-            src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
-            alt="Logo UMC"
-            className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
-          />
-          <div>
-            <h2 className="text-base sm:text-lg font-semibold text-primary">CA UMC</h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{userRole}</p>
+      <div className="flex items-center justify-between p-2 sm:p-4 border-b border-border">
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            {/* Logo */}
+            <img
+              src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
+              alt="Logo UMC"
+              className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
+            />
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-primary">CA UMC</h2>
+              <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{userRole}</p>
+            </div>
           </div>
-        </div>
-      )}
-      {collapsed && (
+        )}
+        {collapsed && (
           <div className="flex justify-center w-full">
             <img
               src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
@@ -124,7 +123,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
         ))}
-        
+
         <Separator className="my-4" />
       </nav>
 
