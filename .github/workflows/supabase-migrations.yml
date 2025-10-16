@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout repo so CI can access migration files
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: supabase/setup-cli@v1
 
