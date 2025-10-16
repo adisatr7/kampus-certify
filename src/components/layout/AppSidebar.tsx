@@ -61,7 +61,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
 
   const getNavClass = (path: string) =>
     cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
+      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
       isActive(path)
         ? "bg-primary text-primary-foreground"
         : "text-muted-foreground hover:text-accent-foreground",
