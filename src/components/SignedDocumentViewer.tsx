@@ -1,24 +1,27 @@
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { UserDocument } from "../types";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 
 interface SignedDocumentViewerProps {
   isOpen: boolean;
   onClose: () => void;
-  document: {
-    id: string;
-    title: string;
-    signed_at: string | null;
-    qr_code_url?: string | null;
-    content?: string | null;
-    signed_document_url?: string | null;
-    users?: {
-      name: string;
-      role: string;
-    };
-  };
+  document: UserDocument;
+  // document: {
+  //   id: string;
+  //   title: string;
+  //   signed_at: string | null;
+  //   qr_code_url?: string | null;
+  //   content?: string | null;
+  //   signed_document_url?: string | null;
+  //   users?: {
+  //     name: string;
+  //     role: string;
+  //   };
+  // };
 }
+// TODO: redesign viewer to match new template design
 
 export default function SignedDocumentViewer({
   isOpen,

@@ -1,5 +1,5 @@
-import { Calendar, Download, Edit, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Calendar, Download, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
 import { Badge } from "@/components/ui/Badge";
@@ -31,91 +31,42 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { Textarea } from "@/components/ui/Textarea";
+import useFetchAllDocuments from "@/hooks/document/useFetchAllDocuments";
+import useFetchAllUsers from "@/hooks/user/useFetchAllUsers";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
-
-interface Document {
-  id: string;
-  title: string;
-  file_url: string | null;
-  status: "pending" | "signed" | "revoked";
-  signed_at: string | null;
-  created_at: string;
-  user_id: string;
-  qr_code_url?: string | null;
-  content?: string | null;
-  users: {
-    name: string;
-    email: string;
-    role: string;
-  };
-}
+import { DocumentStatus, UserDocument, UserRole } from "@/types";
 
 export default function DocumentManagement() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  // Global hooks
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
-  // Form state
+  // Data hooks
+  const {
+    data: documents,
+    isLoading: isLoadingDocuments,
+    refetch: fetchDocuments,
+  } = useFetchAllDocuments();
+  const { data: listOfUsers } = useFetchAllUsers();
+
+  // UI states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  // Form states
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [userId, setUserId] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchDocuments();
-    fetchUsers();
-  }, []);
-
-  const fetchDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("documents")
-        .select(`
-          *,
-          users (
-            name,
-            email,
-            role
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat daftar dokumen",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email, role")
-        .order("name");
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    }
-  };
-
+  /**
+   * Handles the document upload process
+   */
   const uploadDocument = async () => {
     if (!title || !userId) {
       toast({
@@ -126,7 +77,7 @@ export default function DocumentManagement() {
       return;
     }
 
-    setUploading(true);
+    setIsUploading(true);
 
     try {
       let fileUrl = null;
@@ -160,9 +111,11 @@ export default function DocumentManagement() {
         status: "pending",
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        throw insertError;
+      }
 
-      const selectedUser = users.find((u) => u.id === userId);
+      const selectedUser = listOfUsers.find((u) => u.id === userId);
       await createAuditEntry(
         userProfile.id,
         "CREATE_DOCUMENT",
@@ -184,7 +137,7 @@ export default function DocumentManagement() {
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
   };
 
@@ -218,7 +171,7 @@ export default function DocumentManagement() {
     setFile(null);
   };
 
-  const handleViewDocument = (doc: Document) => {
+  const handleViewDocument = (doc: UserDocument) => {
     if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
@@ -227,7 +180,7 @@ export default function DocumentManagement() {
     }
   };
 
-  if (loading) {
+  if (isLoadingDocuments) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -239,7 +192,7 @@ export default function DocumentManagement() {
   }
 
   return (
-    <DashboardLayout userRole={userProfile?.role as any}>
+    <DashboardLayout userRole={userProfile?.role as UserRole}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -291,7 +244,7 @@ export default function DocumentManagement() {
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((user) => (
+                      {listOfUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name} ({user.email})
                         </SelectItem>
@@ -323,8 +276,8 @@ export default function DocumentManagement() {
                   >
                     Batal
                   </Button>
-                  <Button onClick={uploadDocument} disabled={uploading}>
-                    {uploading ? (
+                  <Button onClick={uploadDocument} disabled={isUploading}>
+                    {isUploading ? (
                       <>
                         <Upload className="mr-2 h-4 w-4 animate-spin" />
                         Mengupload...
@@ -378,15 +331,15 @@ export default function DocumentManagement() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{doc.users.name}</div>
-                          <div className="text-sm text-muted-foreground">{doc.users.email}</div>
+                          <div className="font-medium">{doc.user.name}</div>
+                          <div className="text-sm text-muted-foreground">{doc.user.email}</div>
                           <Badge variant="outline" className="text-xs mt-1">
-                            {doc.users.role}
+                            {doc.user.role}
                           </Badge>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={doc.status as any} />
+                        <StatusBadge status={doc.status as DocumentStatus} />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -395,10 +348,12 @@ export default function DocumentManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {doc.signed_at ? (
+                        {/* TODO: Add signed date */}
+                        {doc ? (
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {new Date(doc.signed_at).toLocaleDateString("id-ID")}
+                            TODO: Tanggal ditandatangani
+                            {/* {new Date(doc.signed_at).toLocaleDateString("id-ID")} */}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>

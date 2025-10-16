@@ -37,7 +37,7 @@ interface AuditEntry {
   id: string;
   action: string;
   description: string;
-  timestamp: string;
+  created_at: string;
   user_id: string;
   users?: {
     name: string;
@@ -199,7 +199,7 @@ export default function AuditTrail() {
       const { data: auditData, error: auditError } = await supabase
         .from("audit_trail")
         .select("*")
-        .order("timestamp", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(100);
 
       console.log("📊 Data audit mentah:", auditData);
@@ -525,9 +525,11 @@ export default function AuditTrail() {
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div className="text-sm">
-                                  <div>{new Date(entry.timestamp).toLocaleDateString("id-ID")}</div>
+                                  <div>
+                                    {new Date(entry.created_at).toLocaleDateString("id-ID")}
+                                  </div>
                                   <div className="text-muted-foreground">
-                                    {new Date(entry.timestamp).toLocaleTimeString("id-ID")}
+                                    {new Date(entry.created_at).toLocaleTimeString("id-ID")}
                                   </div>
                                 </div>
                               </div>

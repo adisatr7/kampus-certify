@@ -32,20 +32,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
-
-interface Certificate {
-  id: string;
-  user_id: string;
-  serial_number: string;
-  issued_at: string;
-  expires_at: string;
-  status: string;
-  users: {
-    name: string;
-    email: string;
-    role: string;
-  };
-}
+import { Certificate } from "../../types";
 
 export default function CertificateManagement() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
@@ -129,16 +116,9 @@ export default function CertificateManagement() {
       const serialNumber =
         `UMC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
 
-      // In a real implementation, you would generate actual RSA key pairs
-      // For demo purposes, we'll create placeholder keys
-      const publicKey = `-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----`;
-      const privateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD...\n-----END PRIVATE KEY-----`;
-
       const { error } = await supabase.from("certificates").insert({
         user_id: userId,
         serial_number: serialNumber,
-        public_key: publicKey,
-        private_key: privateKey,
         expires_at: expiresAt.toISOString(),
         status: "active",
       });

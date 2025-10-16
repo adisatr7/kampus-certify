@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import { DocumentStatus } from "@/types";
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -25,7 +26,7 @@ const badgeVariants = cva(
 export interface StatusBadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {
-  status?: "valid" | "invalid" | "revoked" | "pending";
+  status?: DocumentStatus;
 }
 
 function StatusBadge({ className, variant, status, children, ...props }: StatusBadgeProps) {
