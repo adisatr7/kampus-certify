@@ -21,17 +21,41 @@ ALTER TABLE public.certificates
   ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ;
 
 -- FK TO YOUR USERS TABLE (adjust to auth.users if that's where your users live)
-ALTER TABLE public.certificates
-  ADD CONSTRAINT IF NOT EXISTS certificates_approved_by_fkey
-  FOREIGN KEY (approved_by) REFERENCES public.users(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'certificates_approved_by_fkey'
+  ) THEN
+    ALTER TABLE public.certificates
+      ADD CONSTRAINT certificates_approved_by_fkey
+      FOREIGN KEY (approved_by) REFERENCES public.users(id) ON DELETE SET NULL;
+  END IF;˝
+END;
+$$;
 
-ALTER TABLE public.certificates
-  ADD CONSTRAINT IF NOT EXISTS certificates_rejected_by_fkey
-  FOREIGN KEY (rejected_by) REFERENCES public.users(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'certificates_rejected_by_fkey'
+  ) THEN
+    ALTER TABLE public.certificates
+      ADD CONSTRAINT certificates_rejected_by_fkey
+      FOREIGN KEY (rejected_by) REFERENCES public.users(id) ON DELETE SET NULL;
+  END IF;
+END;
+$$;
 
-ALTER TABLE public.certificates
-  ADD CONSTRAINT IF NOT EXISTS certificates_revoked_by_fkey
-  FOREIGN KEY (revoked_by) REFERENCES public.users(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'certificates_revoked_by_fkey'
+  ) THEN
+    ALTER TABLE public.certificates
+      ADD CONSTRAINT certificates_revoked_by_fkey
+      FOREIGN KEY (revoked_by) REFERENCES public.users(id) ON DELETE SET NULL;
+  END IF;
+END;
+$$;
 
 -- LIFECYCLE SANITY CHECKS
 ALTER TABLE public.certificates
