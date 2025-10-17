@@ -39,7 +39,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
-import { Certificate } from "../../types";
+import { Certificate } from "@/types";
 
 export default function CertificateManagement() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
