@@ -1,4 +1,11 @@
-import { AlertCircle, Calendar, CheckCircle, Plus, Shield, XCircle } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Plus,
+  Shield,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -72,7 +79,7 @@ export default function CertificateManagement() {
 
       if (error) throw error;
       setCertificates(data || []);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal memuat daftar sertifikat",
@@ -112,7 +119,6 @@ export default function CertificateManagement() {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + parseInt(expiryDays));
 
-      // Generate serial number
       const serialNumber =
         `UMC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
 
@@ -128,7 +134,7 @@ export default function CertificateManagement() {
       await createAuditEntry(
         userProfile.id,
         "CREATE_CERTIFICATE",
-        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`,
+        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`
       );
 
       toast({
@@ -139,7 +145,7 @@ export default function CertificateManagement() {
       setIsCreateDialogOpen(false);
       resetForm();
       fetchCertificates();
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal membuat sertifikat",
@@ -163,7 +169,7 @@ export default function CertificateManagement() {
       await createAuditEntry(
         userProfile.id,
         "REVOKE_CERTIFICATE",
-        `Mencabut sertifikat milik ${userName}`,
+        `Mencabut sertifikat milik ${userName}`
       );
 
       toast({
@@ -172,7 +178,7 @@ export default function CertificateManagement() {
       });
 
       fetchCertificates();
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal mencabut sertifikat",
@@ -226,9 +232,12 @@ export default function CertificateManagement() {
   return (
     <DashboardLayout userRole={userProfile?.role as any}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              Manajemen Sertifikat
+            </h1>
             <p className="text-muted-foreground">
               Kelola sertifikat digital untuk penandatanganan dokumen
             </p>
@@ -236,7 +245,7 @@ export default function CertificateManagement() {
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Sertifikat Baru
               </Button>
@@ -290,77 +299,155 @@ export default function CertificateManagement() {
           </Dialog>
         </div>
 
-        <Card>
+        {/* Table / Card Responsive */}
+        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
               Daftar Sertifikat
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             {certificates.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Belum ada sertifikat yang dibuat</p>
+                <p className="text-muted-foreground">
+                  Belum ada sertifikat yang dibuat
+                </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Serial Number</TableHead>
-                    <TableHead>Diterbitkan</TableHead>
-                    <TableHead>Kadaluarsa</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Serial Number</TableHead>
+                        <TableHead>Diterbitkan</TableHead>
+                        <TableHead>Kadaluarsa</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {certificates.map((cert) => (
+                        <TableRow key={cert.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {cert.users.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {cert.users.email}
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className="text-xs mt-1 capitalize"
+                              >
+                                {cert.users.role}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {cert.serial_number}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {new Date(cert.issued_at).toLocaleDateString(
+                                "id-ID"
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {new Date(cert.expires_at).toLocaleDateString(
+                                "id-ID"
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(cert.status)}
+                              {getStatusBadge(cert.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {cert.status === "active" && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() =>
+                                  revokeCertificate(cert.id, cert.users.name)
+                                }
+                              >
+                                Cabut
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-4 max-h-[500px] overflow-y-auto pr-2">
                   {certificates.map((cert) => (
-                    <TableRow key={cert.id}>
-                      <TableCell>
+                    <Card
+                      key={cert.id}
+                      className="border border-slate-200 shadow-md p-4 bg-gradient-to-r from-slate-50 to-slate-100/50"
+                    >
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className="font-medium">{cert.users.name}</div>
-                          <div className="text-sm text-muted-foreground">{cert.users.email}</div>
-                          <Badge variant="outline" className="text-xs mt-1">
-                            {cert.users.role}
-                          </Badge>
+                          <h3 className="font-semibold text-slate-900">
+                            {cert.users.name}
+                          </h3>
+                          <p className="text-sm text-slate-600">
+                            {cert.users.email}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{cert.serial_number}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                        {getStatusBadge(cert.status)}
+                      </div>
+                      <div className="text-sm text-slate-700 space-y-1">
+                        <p>
+                          <span className="font-medium">Serial:</span>{" "}
+                          {cert.serial_number}
+                        </p>
+                        <p className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
+                          Diterbitkan:{" "}
                           {new Date(cert.issued_at).toLocaleDateString("id-ID")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                        </p>
+                        <p className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
+                          Kadaluarsa:{" "}
                           {new Date(cert.expires_at).toLocaleDateString("id-ID")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(cert.status)}
-                          {getStatusBadge(cert.status)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {cert.status === "active" && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => revokeCertificate(cert.id, cert.users.name)}
-                          >
-                            Cabut
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                        </p>
+                        <p>
+                          <span className="font-medium">Role:</span>{" "}
+                          {cert.users.role}
+                        </p>
+                      </div>
+                      {cert.status === "active" && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full mt-3"
+                          onClick={() =>
+                            revokeCertificate(cert.id, cert.users.name)
+                          }
+                        >
+                          Cabut Sertifikat
+                        </Button>
+                      )}
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
