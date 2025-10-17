@@ -213,11 +213,17 @@ export default function AuditTrail() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setShowDiagnostics(!showDiagnostics)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+            >
               <AlertTriangle className="mr-2 h-4 w-4" />
               Diagnostics
             </Button>
-            <Button variant="outline" onClick={createTestAuditEntry}>
+            <Button
+              variant="outline"
+              onClick={createTestAuditEntry}
+            >
               <Activity className="mr-2 h-4 w-4" />
               Test Entry
             </Button>
@@ -283,14 +289,20 @@ export default function AuditTrail() {
                 />
               </div>
               <div className="w-full sm:w-48">
-                <Select value={filterAction} onValueChange={setFilterAction}>
+                <Select
+                  value={filterAction}
+                  onValueChange={setFilterAction}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Filter aksi..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Aksi</SelectItem>
                     {uniqueActions.map((action) => (
-                      <SelectItem key={action} value={action}>
+                      <SelectItem
+                        key={action}
+                        value={action}
+                      >
                         {action}
                       </SelectItem>
                     ))}
@@ -354,7 +366,10 @@ export default function AuditTrail() {
                               <div className="text-sm text-muted-foreground">
                                 {entry.users.email}
                               </div>
-                              <Badge variant="outline" className="text-xs mt-1">
+                              <Badge
+                                variant="outline"
+                                className="text-xs mt-1"
+                              >
                                 {entry.users.role}
                               </Badge>
                             </div>
@@ -421,10 +436,7 @@ export default function AuditTrail() {
                       {entry.description || "Tidak ada deskripsi"}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Action{" "}
-                      <span className="font-medium text-slate-700">
-                        {entry.action}
-                      </span>
+                      Action <span className="font-medium text-slate-700">{entry.action}</span>
                     </p>
                     <p className="text-xs text-blue-500 mt-0.5 flex items-center gap-1">
                       <Calendar className="h-3 w-3" />{" "}

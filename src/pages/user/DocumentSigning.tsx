@@ -222,7 +222,10 @@ export default function DocumentSigning() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {certificates.map((cert) => (
-                  <Card key={cert.id} className="border-2">
+                  <Card
+                    key={cert.id}
+                    className="border-2"
+                  >
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -320,7 +323,10 @@ export default function DocumentSigning() {
         </Card>
 
         {/* Sign Dialog */}
-        <Dialog open={isSignDialogOpen} onOpenChange={closeDialog}>
+        <Dialog
+          open={isSignDialogOpen}
+          onOpenChange={closeDialog}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Tanda Tangan Dokumen</DialogTitle>
@@ -337,13 +343,19 @@ export default function DocumentSigning() {
                 <label className="block text-sm font-medium mb-2">
                   Pilih Sertifikat untuk Menandatangani
                 </label>
-                <Select value={selectedCertificate} onValueChange={setSelectedCertificate}>
+                <Select
+                  value={selectedCertificate}
+                  onValueChange={setSelectedCertificate}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih sertifikat..." />
                   </SelectTrigger>
                   <SelectContent>
                     {certificates.map((cert) => (
-                      <SelectItem key={cert.id} value={cert.id}>
+                      <SelectItem
+                        key={cert.id}
+                        value={cert.id}
+                      >
                         <div className="flex flex-col">
                           <span>{cert.serial_number}</span>
                           <span className="text-xs text-muted-foreground">
@@ -369,7 +381,10 @@ export default function DocumentSigning() {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={closeDialog}>
+                <Button
+                  variant="outline"
+                  onClick={closeDialog}
+                >
                   Batal
                 </Button>
                 <Button

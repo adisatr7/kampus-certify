@@ -1,11 +1,4 @@
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle,
-  Plus,
-  Shield,
-  XCircle,
-} from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Plus, Shield, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -134,7 +127,7 @@ export default function CertificateManagement() {
       await createAuditEntry(
         userProfile.id,
         "CREATE_CERTIFICATE",
-        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`
+        `Membuat sertifikat untuk ${selectedUser?.name} (${selectedUser?.email})`,
       );
 
       toast({
@@ -169,7 +162,7 @@ export default function CertificateManagement() {
       await createAuditEntry(
         userProfile.id,
         "REVOKE_CERTIFICATE",
-        `Mencabut sertifikat milik ${userName}`
+        `Mencabut sertifikat milik ${userName}`,
       );
 
       toast({
@@ -235,15 +228,16 @@ export default function CertificateManagement() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              Manajemen Sertifikat
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground">Manajemen Sertifikat</h1>
             <p className="text-muted-foreground">
               Kelola sertifikat digital untuk penandatanganan dokumen
             </p>
           </div>
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
@@ -257,13 +251,19 @@ export default function CertificateManagement() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="user">Pilih User</Label>
-                  <Select value={userId} onValueChange={setUserId}>
+                  <Select
+                    value={userId}
+                    onValueChange={setUserId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
                       {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
+                        <SelectItem
+                          key={user.id}
+                          value={user.id}
+                        >
                           {user.name} ({user.email})
                         </SelectItem>
                       ))}
@@ -312,9 +312,7 @@ export default function CertificateManagement() {
             {certificates.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Belum ada sertifikat yang dibuat
-                </p>
+                <p className="text-muted-foreground">Belum ada sertifikat yang dibuat</p>
               </div>
             ) : (
               <>
@@ -336,9 +334,7 @@ export default function CertificateManagement() {
                         <TableRow key={cert.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">
-                                {cert.users.name}
-                              </div>
+                              <div className="font-medium">{cert.users.name}</div>
                               <div className="text-sm text-muted-foreground">
                                 {cert.users.email}
                               </div>
@@ -350,23 +346,17 @@ export default function CertificateManagement() {
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {cert.serial_number}
-                          </TableCell>
+                          <TableCell className="font-mono text-sm">{cert.serial_number}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {new Date(cert.issued_at).toLocaleDateString(
-                                "id-ID"
-                              )}
+                              {new Date(cert.issued_at).toLocaleDateString("id-ID")}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {new Date(cert.expires_at).toLocaleDateString(
-                                "id-ID"
-                              )}
+                              {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -380,9 +370,7 @@ export default function CertificateManagement() {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() =>
-                                  revokeCertificate(cert.id, cert.users.name)
-                                }
+                                onClick={() => revokeCertificate(cert.id, cert.users.name)}
                               >
                                 Cabut
                               </Button>
@@ -403,33 +391,25 @@ export default function CertificateManagement() {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h3 className="font-semibold text-slate-900">
-                            {cert.users.name}
-                          </h3>
-                          <p className="text-sm text-slate-600">
-                            {cert.users.email}
-                          </p>
+                          <h3 className="font-semibold text-slate-900">{cert.users.name}</h3>
+                          <p className="text-sm text-slate-600">{cert.users.email}</p>
                         </div>
                         {getStatusBadge(cert.status)}
                       </div>
                       <div className="text-sm text-slate-700 space-y-1">
                         <p>
-                          <span className="font-medium">Serial:</span>{" "}
-                          {cert.serial_number}
+                          <span className="font-medium">Serial:</span> {cert.serial_number}
                         </p>
                         <p className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          Diterbitkan:{" "}
-                          {new Date(cert.issued_at).toLocaleDateString("id-ID")}
+                          Diterbitkan: {new Date(cert.issued_at).toLocaleDateString("id-ID")}
                         </p>
                         <p className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          Kadaluarsa:{" "}
-                          {new Date(cert.expires_at).toLocaleDateString("id-ID")}
+                          Kadaluarsa: {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                         </p>
                         <p>
-                          <span className="font-medium">Role:</span>{" "}
-                          {cert.users.role}
+                          <span className="font-medium">Role:</span> {cert.users.role}
                         </p>
                       </div>
                       {cert.status === "active" && (
@@ -437,9 +417,7 @@ export default function CertificateManagement() {
                           variant="destructive"
                           size="sm"
                           className="w-full mt-3"
-                          onClick={() =>
-                            revokeCertificate(cert.id, cert.users.name)
-                          }
+                          onClick={() => revokeCertificate(cert.id, cert.users.name)}
                         >
                           Cabut Sertifikat
                         </Button>

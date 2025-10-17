@@ -120,7 +120,11 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       {/* Navigation Menu */}
       <nav className="flex-1 space-y-2 p-2 sm:p-4">
         {items.map((item) => (
-          <NavLink key={item.title} to={item.url} className={getNavClass(item.url)}>
+          <NavLink
+            key={item.title}
+            to={item.url}
+            className={getNavClass(item.url)}
+          >
             <item.icon className="h-4 w-4 shrink-0" />
             {!collapsed && <span>{item.title}</span>}
           </NavLink>

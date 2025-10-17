@@ -283,7 +283,10 @@ export default function MyDocuments() {
               </p>
             </div>
 
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
                   <Plus className="mr-2 h-4 w-4" />
@@ -298,7 +301,10 @@ export default function MyDocuments() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
+                    <Label
+                      htmlFor="title"
+                      className="text-sm font-semibold text-slate-700"
+                    >
                       Judul Dokumen *
                     </Label>
                     <Input
@@ -311,7 +317,10 @@ export default function MyDocuments() {
                   </div>
 
                   <div>
-                    <Label htmlFor="content" className="text-sm font-semibold text-slate-700">
+                    <Label
+                      htmlFor="content"
+                      className="text-sm font-semibold text-slate-700"
+                    >
                       Isi Dokumen *
                     </Label>
                     <textarea
@@ -328,7 +337,10 @@ export default function MyDocuments() {
                   </div>
 
                   <div>
-                    <Label htmlFor="file" className="text-sm font-semibold text-slate-700">
+                    <Label
+                      htmlFor="file"
+                      className="text-sm font-semibold text-slate-700"
+                    >
                       File Dokumen (Opsional)
                     </Label>
                     <Input
@@ -528,7 +540,10 @@ export default function MyDocuments() {
                     </TableHeader>
                     <TableBody>
                       {filteredDocuments.map((doc) => (
-                        <TableRow key={doc.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableRow
+                          key={doc.id}
+                          className="hover:bg-slate-50/50 transition-colors"
+                        >
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div

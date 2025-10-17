@@ -212,7 +212,10 @@ export default function VerificationPortal() {
               </CardHeader>
               <CardContent className="space-y-6 p-8">
                 <div className="space-y-3">
-                  <Label htmlFor="documentId" className="text-base font-semibold">
+                  <Label
+                    htmlFor="documentId"
+                    className="text-base font-semibold"
+                  >
                     ID Dokumen
                   </Label>
                   <div className="flex gap-3">

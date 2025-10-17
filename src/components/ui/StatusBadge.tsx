@@ -41,7 +41,10 @@ function StatusBadge({ className, variant, status, children, ...props }: StatusB
   };
 
   return (
-    <div className={cn(badgeVariants({ variant: badgeVariant }), className)} {...props}>
+    <div
+      className={cn(badgeVariants({ variant: badgeVariant }), className)}
+      {...props}
+    >
       {children || (status && statusText[status])}
     </div>
   );

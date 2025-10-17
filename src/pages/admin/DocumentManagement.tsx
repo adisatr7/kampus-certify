@@ -1,13 +1,4 @@
-import {
-  Calendar,
-  Download,
-  Eye,
-  FileText,
-  Plus,
-  Trash2,
-  Upload,
-  User,
-} from "lucide-react";
+import { Calendar, Download, Eye, FileText, Plus, Trash2, Upload, User } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
@@ -60,8 +51,7 @@ export default function DocumentManagement() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedDocument, setSelectedDocument] =
-    useState<UserDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -86,9 +76,7 @@ export default function DocumentManagement() {
 
       if (file) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substr(2, 9)}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         const filePath = `documents/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -118,7 +106,7 @@ export default function DocumentManagement() {
       await createAuditEntry(
         userProfile.id,
         "CREATE_DOCUMENT",
-        `Membuat dokumen "${title}" untuk ${selectedUser?.name}`
+        `Membuat dokumen "${title}" untuk ${selectedUser?.name}`,
       );
 
       toast({
@@ -142,17 +130,10 @@ export default function DocumentManagement() {
 
   const deleteDocument = async (documentId: string, title: string) => {
     try {
-      const { error } = await supabase
-        .from("documents")
-        .delete()
-        .eq("id", documentId);
+      const { error } = await supabase.from("documents").delete().eq("id", documentId);
       if (error) throw error;
 
-      await createAuditEntry(
-        userProfile.id,
-        "DELETE_DOCUMENT",
-        `Menghapus dokumen "${title}"`
-      );
+      await createAuditEntry(userProfile.id, "DELETE_DOCUMENT", `Menghapus dokumen "${title}"`);
 
       toast({
         title: "Berhasil",
@@ -202,15 +183,16 @@ export default function DocumentManagement() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Manajemen Dokumen
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-800">Manajemen Dokumen</h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Kelola dokumen untuk semua pengguna sistem
             </p>
           </div>
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
@@ -251,13 +233,19 @@ export default function DocumentManagement() {
 
                 <div>
                   <Label htmlFor="user">Pilih User</Label>
-                  <Select value={userId} onValueChange={setUserId}>
+                  <Select
+                    value={userId}
+                    onValueChange={setUserId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
                       {listOfUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
+                        <SelectItem
+                          key={user.id}
+                          value={user.id}
+                        >
                           {user.name} ({user.email})
                         </SelectItem>
                       ))}
@@ -288,7 +276,10 @@ export default function DocumentManagement() {
                   >
                     Batal
                   </Button>
-                  <Button onClick={uploadDocument} disabled={isUploading}>
+                  <Button
+                    onClick={uploadDocument}
+                    disabled={isUploading}
+                  >
                     {isUploading ? (
                       <>
                         <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -337,16 +328,12 @@ export default function DocumentManagement() {
                       <TableCell className="font-medium">{doc.title}</TableCell>
                       <TableCell>
                         <div className="font-semibold">{doc.user.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {doc.user.email}
-                        </div>
+                        <div className="text-sm text-muted-foreground">{doc.user.email}</div>
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={doc.status as DocumentStatus} />
                       </TableCell>
-                      <TableCell>
-                        {new Date(doc.created_at).toLocaleDateString("id-ID")}
-                      </TableCell>
+                      <TableCell>{new Date(doc.created_at).toLocaleDateString("id-ID")}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           {doc.file_url && (
@@ -377,9 +364,7 @@ export default function DocumentManagement() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() =>
-                              deleteDocument(doc.id, doc.title)
-                            }
+                            onClick={() => deleteDocument(doc.id, doc.title)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -403,9 +388,7 @@ export default function DocumentManagement() {
           </CardHeader>
           <CardContent className="max-h-[70vh] overflow-y-auto space-y-4 p-4">
             {documents.length === 0 ? (
-              <div className="text-center py-6 text-slate-500">
-                Belum ada dokumen yang diupload
-              </div>
+              <div className="text-center py-6 text-slate-500">Belum ada dokumen yang diupload</div>
             ) : (
               documents.map((doc) => (
                 <div
@@ -417,17 +400,11 @@ export default function DocumentManagement() {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-semibold text-slate-800">
-                        {doc.title}
-                      </h3>
+                      <h3 className="font-semibold text-slate-800">{doc.title}</h3>
                       <StatusBadge status={doc.status as DocumentStatus} />
                     </div>
-                    <p className="text-sm text-slate-600 mt-1">
-                      oleh {doc.user.name}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      {doc.user.email}
-                    </p>
+                    <p className="text-sm text-slate-600 mt-1">oleh {doc.user.name}</p>
+                    <p className="text-sm text-slate-600">{doc.user.email}</p>
                     <p className="text-xs text-slate-400">
                       {new Date(doc.created_at).toLocaleDateString("id-ID")}
                     </p>

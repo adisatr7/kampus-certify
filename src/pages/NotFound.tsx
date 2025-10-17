@@ -30,15 +30,27 @@ const NotFound = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button asChild className="bg-primary hover:bg-primary/90">
-              <a href="/" className="flex items-center gap-2">
+            <Button
+              asChild
+              className="bg-primary hover:bg-primary/90"
+            >
+              <a
+                href="/"
+                className="flex items-center gap-2"
+              >
                 <Home className="h-4 w-4" />
                 Kembali ke Beranda
               </a>
             </Button>
 
-            <Button variant="outline" asChild>
-              <a href="/verify" className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              asChild
+            >
+              <a
+                href="/verify"
+                className="flex items-center gap-2"
+              >
                 <Shield className="h-4 w-4" />
                 Portal Verifikasi
               </a>

@@ -96,17 +96,30 @@ export default function SignedDocumentViewer({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Dokumen Ditandatangani: {document.title}</DialogTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="print:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                className="print:hidden"
+              >
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload} className="print:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="print:hidden"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>
