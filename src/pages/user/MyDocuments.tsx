@@ -10,6 +10,9 @@ import {
   Search,
   Trash2,
   Upload,
+  Activity as LucideActivity,
+  Award,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -281,112 +284,124 @@ export default function MyDocuments() {
               <p className="text-slate-600 text-lg">
                 Kelola dokumen digital Anda dengan mudah dan aman
               </p>
+
+              {/* Mobile: Upload button under title */}
+              <div className="mt-2 md:hidden">
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Upload Dokumen
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </div>
             </div>
 
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Upload Dokumen
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-slate-900">
-                    Upload Dokumen Baru
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label
-                      htmlFor="title"
-                      className="text-sm font-semibold text-slate-700"
-                    >
-                      Judul Dokumen *
-                    </Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Masukkan judul dokumen"
-                      className="mt-1 border-slate-300"
-                    />
-                  </div>
+            {/* Desktop / tablet upload button (original position) */}
+            <div className="hidden md:block">
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Upload Dokumen
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-slate-900">
+                      Upload Dokumen Baru
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label
+                        htmlFor="title"
+                        className="text-sm font-semibold text-slate-700"
+                      >
+                        Judul Dokumen *
+                      </Label>
+                      <Input
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Masukkan judul dokumen"
+                        className="mt-1 border-slate-300"
+                      />
+                    </div>
 
-                  <div>
-                    <Label
-                      htmlFor="content"
-                      className="text-sm font-semibold text-slate-700"
-                    >
-                      Isi Dokumen *
-                    </Label>
-                    <textarea
-                      id="content"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      placeholder="Masukkan isi dokumen yang akan ditandatangani..."
-                      className="mt-1 w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md resize-y"
-                      rows={10}
-                    />
-                    <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
-                      Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
-                    </p>
-                  </div>
+                    <div>
+                      <Label
+                        htmlFor="content"
+                        className="text-sm font-semibold text-slate-700"
+                      >
+                        Isi Dokumen *
+                      </Label>
+                      <textarea
+                        id="content"
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="Masukkan isi dokumen yang akan ditandatangani..."
+                        className="mt-1 w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md resize-y"
+                        rows={10}
+                      />
+                      <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
+                        Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
+                      </p>
+                    </div>
 
-                  <div>
-                    <Label
-                      htmlFor="file"
-                      className="text-sm font-semibold text-slate-700"
-                    >
-                      File Dokumen (Opsional)
-                    </Label>
-                    <Input
-                      id="file"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="mt-1 border-slate-300"
-                    />
-                    <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
-                      File referensi (opsional): PDF, DOC, DOCX (Maks. 10MB)
-                    </p>
-                  </div>
+                    <div>
+                      <Label
+                        htmlFor="file"
+                        className="text-sm font-semibold text-slate-700"
+                      >
+                        File Dokumen (Opsional)
+                      </Label>
+                      <Input
+                        id="file"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="mt-1 border-slate-300"
+                      />
+                      <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">
+                        File referensi (opsional): PDF, DOC, DOCX (Maks. 10MB)
+                      </p>
+                    </div>
 
-                  <div className="flex justify-end space-x-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsCreateDialogOpen(false);
-                        resetForm();
-                      }}
-                      className="border-slate-300"
-                    >
-                      Batal
-                    </Button>
-                    <Button
-                      onClick={uploadDocument}
-                      disabled={uploading}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-w-[100px]"
-                    >
-                      {uploading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          Mengupload...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsCreateDialogOpen(false);
+                          resetForm();
+                        }}
+                        className="border-slate-300"
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        onClick={uploadDocument}
+                        disabled={uploading}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-w-[100px]"
+                      >
+                        {uploading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Mengupload...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -498,13 +513,15 @@ export default function MyDocuments() {
                     Mulai dengan mengupload dokumen pertama Anda untuk memulai proses
                     penandatanganan digital
                   </p>
-                  <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Upload Dokumen Pertama
-                  </Button>
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={() => setIsCreateDialogOpen(true)}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Upload Dokumen Pertama
+                    </Button>
+                  </div>
                 </div>
               ) : filteredDocuments.length === 0 ? (
                 <div className="text-center py-12">
@@ -527,96 +544,196 @@ export default function MyDocuments() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-slate-50/50">
-                        <TableHead className="font-semibold">Dokumen</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="font-semibold">Dibuat</TableHead>
-                        <TableHead className="font-semibold">Ditandatangani</TableHead>
-                        <TableHead className="font-semibold text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDocuments.map((doc) => (
-                        <TableRow
-                          key={doc.id}
-                          className="hover:bg-slate-50/50 transition-colors"
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`p-2 rounded-lg ${
-                                  doc.status === "signed"
-                                    ? "bg-emerald-100"
-                                    : doc.status === "pending"
-                                      ? "bg-amber-100"
-                                      : "bg-red-100"
-                                }`}
-                              >
-                                <FileText
-                                  className={`h-5 w-5 ${
+                <>
+                  {/* Desktop Table (visible md+) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50/50">
+                          <TableHead className="font-semibold">Dokumen</TableHead>
+                          <TableHead className="font-semibold">Status</TableHead>
+                          <TableHead className="font-semibold">Dibuat</TableHead>
+                          <TableHead className="font-semibold">Ditandatangani</TableHead>
+                          <TableHead className="font-semibold text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredDocuments.map((doc) => (
+                          <TableRow
+                            key={doc.id}
+                            className="hover:bg-slate-50/50 transition-colors"
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`p-2 rounded-lg ${
                                     doc.status === "signed"
-                                      ? "text-emerald-600"
+                                      ? "bg-emerald-100"
                                       : doc.status === "pending"
-                                        ? "text-amber-600"
-                                        : "text-red-600"
+                                        ? "bg-amber-100"
+                                        : "bg-red-100"
                                   }`}
-                                />
+                                >
+                                  <FileText
+                                    className={`h-5 w-5 ${
+                                      doc.status === "signed"
+                                        ? "text-emerald-600"
+                                        : doc.status === "pending"
+                                          ? "text-amber-600"
+                                          : "text-red-600"
+                                    }`}
+                                  />
+                                </div>
+                                <div>
+                                  <span className="font-semibold text-slate-900">{doc.title}</span>
+                                  <p className="text-sm text-slate-500">Dokumen digital</p>
+                                </div>
                               </div>
-                              <div>
-                                <span className="font-semibold text-slate-900">{doc.title}</span>
-                                <p className="text-sm text-slate-500">Dokumen digital</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={doc.status as any} />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-slate-400" />
-                              <span className="text-sm text-slate-600">
-                                {new Date(doc.created_at).toLocaleDateString("id-ID")}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {doc.signed_at ? (
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={doc.status as any} />
+                            </TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-emerald-500" />
+                                <Calendar className="h-4 w-4 text-slate-400" />
                                 <span className="text-sm text-slate-600">
-                                  {new Date(doc.signed_at).toLocaleDateString("id-ID")}
+                                  {new Date(doc.created_at).toLocaleDateString("id-ID")}
                                 </span>
                               </div>
-                            ) : (
-                              <span className="text-slate-400 text-sm">Belum ditandatangani</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            </TableCell>
+                            <TableCell>
+                              {doc.signed_at ? (
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-emerald-500" />
+                                  <span className="text-sm text-slate-600">
+                                    {new Date(doc.signed_at).toLocaleDateString("id-ID")}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-sm">Belum ditandatangani</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {doc.file_url && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleViewDocument(doc)}
+                                      title="Lihat dokumen"
+                                      className="text-slate-600 border-slate-200 hover:bg-slate-50"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (doc.status === "signed") {
+                                          // For signed documents, trigger the formatted download
+                                          setSelectedDocument(doc);
+                                          setIsViewerOpen(true);
+                                        } else {
+                                          // For unsigned documents, direct download
+                                          const link = document.createElement("a");
+                                          link.href = doc.file_url!;
+                                          link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        }
+                                      }}
+                                      title="Download dokumen"
+                                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                {doc.status === "pending" && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => deleteDocument(doc.id, doc.title)}
+                                    title="Hapus dokumen"
+                                    className="hover:bg-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View (visible on small screens) */}
+                  <div className="block md:hidden">
+                    {/* Use a scrollable container and card style similar to the example you provided */}
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                      {filteredDocuments.map((doc) => (
+                        <Card
+                          key={doc.id}
+                          className="border-0 shadow-lg bg-white/80 backdrop-blur-sm"
+                        >
+                          <CardHeader className="border-b border-slate-200/60">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                                <FileText className="h-5 w-5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-base font-semibold text-slate-900 truncate">
+                                  {doc.title}
+                                </CardTitle>
+                                <p className="text-sm text-slate-600 truncate">
+                                  {doc.file_url ? "Dokumen dengan lampiran" : "Dokumen (tanpa lampiran)"}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <StatusBadge status={doc.status as any} />
+                              </div>
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="p-4">
+                            <p className="text-sm text-slate-700 mb-3">
+                              {doc.content ? (doc.content.length > 120 ? doc.content.slice(0, 120) + "..." : doc.content) : "Tidak ada ringkasan."}
+                            </p>
+
+                            <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{new Date(doc.created_at).toLocaleDateString("id-ID")}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <LucideActivity className="h-4 w-4" />
+                                <span>{doc.signed_at ? new Date(doc.signed_at).toLocaleDateString("id-ID") : "Belum ditandatangani"}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
                               {doc.file_url && (
                                 <>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleViewDocument(doc)}
-                                    title="Lihat dokumen"
-                                    className="text-slate-600 border-slate-200 hover:bg-slate-50"
+                                    className="flex-1 text-slate-600 border-slate-200 hover:bg-slate-50"
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Lihat
                                   </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
                                       if (doc.status === "signed") {
-                                        // For signed documents, trigger the formatted download
                                         setSelectedDocument(doc);
                                         setIsViewerOpen(true);
                                       } else {
-                                        // For unsigned documents, direct download
                                         const link = document.createElement("a");
                                         link.href = doc.file_url!;
                                         link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
@@ -625,31 +742,32 @@ export default function MyDocuments() {
                                         document.body.removeChild(link);
                                       }
                                     }}
-                                    title="Download dokumen"
-                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
                                   >
-                                    <Download className="h-4 w-4" />
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
                                   </Button>
                                 </>
                               )}
+
                               {doc.status === "pending" && (
                                 <Button
                                   variant="destructive"
                                   size="sm"
                                   onClick={() => deleteDocument(doc.id, doc.title)}
-                                  title="Hapus dokumen"
-                                  className="hover:bg-red-600"
+                                  className="flex-1"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Hapus
                                 </Button>
                               )}
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
