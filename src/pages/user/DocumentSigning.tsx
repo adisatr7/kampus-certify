@@ -304,7 +304,6 @@ export default function DocumentSigning() {
                           )}
                           <Button
                             onClick={() => openSignDialog(doc)}
-                            disabled={certificates.length === 0}
                             size="sm"
                           >
                             <PenTool className="mr-2 h-4 w-4" />
