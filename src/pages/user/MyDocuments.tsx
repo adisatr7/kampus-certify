@@ -1,4 +1,5 @@
 import {
+  Award,
   Calendar,
   Clock,
   Download,
@@ -6,12 +7,11 @@ import {
   FileCheck,
   FileText,
   Filter,
+  Activity as LucideActivity,
   Plus,
   Search,
   Trash2,
   Upload,
-  Activity as LucideActivity,
-  Award,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -287,7 +287,10 @@ export default function MyDocuments() {
 
               {/* Mobile: Upload button under title */}
               <div className="mt-2 md:hidden">
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <Dialog
+                  open={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
                       <Plus className="mr-2 h-4 w-4" />
@@ -300,7 +303,10 @@ export default function MyDocuments() {
 
             {/* Desktop / tablet upload button (original position) */}
             <div className="hidden md:block">
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
                     <Plus className="mr-2 h-4 w-4" />
@@ -689,7 +695,9 @@ export default function MyDocuments() {
                                   {doc.title}
                                 </CardTitle>
                                 <p className="text-sm text-slate-600 truncate">
-                                  {doc.file_url ? "Dokumen dengan lampiran" : "Dokumen (tanpa lampiran)"}
+                                  {doc.file_url
+                                    ? "Dokumen dengan lampiran"
+                                    : "Dokumen (tanpa lampiran)"}
                                 </p>
                               </div>
                               <div className="flex-shrink-0">
@@ -700,7 +708,11 @@ export default function MyDocuments() {
 
                           <CardContent className="p-4">
                             <p className="text-sm text-slate-700 mb-3">
-                              {doc.content ? (doc.content.length > 120 ? doc.content.slice(0, 120) + "..." : doc.content) : "Tidak ada ringkasan."}
+                              {doc.content
+                                ? doc.content.length > 120
+                                  ? doc.content.slice(0, 120) + "..."
+                                  : doc.content
+                                : "Tidak ada ringkasan."}
                             </p>
 
                             <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
@@ -710,7 +722,11 @@ export default function MyDocuments() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <LucideActivity className="h-4 w-4" />
-                                <span>{doc.signed_at ? new Date(doc.signed_at).toLocaleDateString("id-ID") : "Belum ditandatangani"}</span>
+                                <span>
+                                  {doc.signed_at
+                                    ? new Date(doc.signed_at).toLocaleDateString("id-ID")
+                                    : "Belum ditandatangani"}
+                                </span>
                               </div>
                             </div>
 
