@@ -2,11 +2,12 @@ import { Session, User } from "@supabase/supabase-js";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { User as UserProfile } from "../types";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  userProfile: any | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -17,7 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
