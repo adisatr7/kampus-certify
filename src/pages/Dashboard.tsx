@@ -11,14 +11,10 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import {
-  useDashboardStats,
-  useRecentActivities,
-  useRecentDocuments,
-} from "@/hooks/useDashboardData";
+import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/dashboard";
+import { DocumentStatus } from "../types";
 
 interface DashboardProps {
   userRole: "admin" | "dosen" | "rektor" | "dekan";
@@ -35,11 +31,7 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
   } = useRecentActivities(userRole);
 
   // Only fetch recent documents for non-admin users
-  const {
-    data: recentDocuments,
-    isLoading: documentsLoading,
-    error: documentsError,
-  } = useRecentDocuments(userRole);
+  const { data: recentDocuments, isLoading: documentsLoading } = useRecentDocuments(userRole);
 
   // Dashboard configuration based on role
   const getDashboardConfig = () => {
@@ -48,19 +40,6 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
         title: "Dashboard Administrator",
         description: "Kelola seluruh sistem Certificate Authority UMC",
         getStatsCards: (stats) => [
-          {
-            title: "Total Sertifikat",
-            value: stats?.totalCertificates?.toString() || "0",
-            description: `Aktif: ${stats?.activeCertificates || 0}, Revoked: ${stats?.revokedCertificates || 0}`,
-            icon: Award,
-            trend: stats?.activeCertificates > stats?.revokedCertificates ? "+12%" : "-5%",
-            trendColor:
-              stats?.activeCertificates > stats?.revokedCertificates
-                ? "text-emerald-600"
-                : "text-red-500",
-            bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
-            iconColor: "text-purple-600",
-          },
           {
             title: "Dokumen Ditandatangani",
             value: stats?.signedDocuments?.toString() || "0",
@@ -318,7 +297,7 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                             <h4 className="font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
                               {activity.title}
                             </h4>
-                            <StatusBadge status={activity.status} />
+                            <StatusBadge status={activity.status as DocumentStatus} />
                           </div>
                           <p className="text-sm text-slate-600 mb-2">{activity.description}</p>
                           {activity.user_name && (
@@ -492,13 +471,13 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-slate-400" />
                             <span className="text-xs text-slate-500">
-                              {doc.signed_at
-                                ? `Ditandatangani ${new Date(doc.signed_at).toLocaleDateString("id-ID")}`
+                              {doc.status === "signed" && doc.updated_at
+                                ? `Ditandatangani ${new Date(doc.updated_at).toLocaleDateString("id-ID")}`
                                 : `Dibuat ${new Date(doc.created_at).toLocaleDateString("id-ID")}`}
                             </span>
                           </div>
                         </div>
-                        <StatusBadge status={doc.status as any} />
+                        <StatusBadge status={doc.status as DocumentStatus} />
                       </div>
                     ))}
                   </div>
