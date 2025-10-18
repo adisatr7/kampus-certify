@@ -1,11 +1,29 @@
-// deno-lint-ignore-file no-explicit-any
-
-import { decode as base64Decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SERVICE_ROLE_KEY")!);
 
+/**
+ * Small local base64 decoder returning a Uint8Array. Avoids compatibility issues
+ * with std library exports across Deno versions and the Edge runtime.
+ */
+function base64Decode(b64: string): Uint8Array {
+  if (typeof atob !== "function") throw new Error("base64 decoding not available");
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 Deno.serve(async (req) => {
+  const headers: Headers = new Headers(corsHeaders);
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers });
+  }
+
   try {
     const { documentId } = await req.json();
 
@@ -15,9 +33,12 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("id", documentId)
       .single();
+
+    // Handle missing document error
     if (error || !doc) {
       return new Response(JSON.stringify({ error: "Document not found" }), {
         status: 404,
+        headers,
       });
     }
 
@@ -42,9 +63,17 @@ Deno.serve(async (req) => {
     const keyId = Deno.env.get("SIGNING_KEY_ID")!;
 
     const privateKeyBuffer = base64Decode(privateKeyB64);
+    // crypto.subtle.importKey expects an ArrayBuffer / ArrayBufferView with
+    // a concrete ArrayBuffer; create a slice to ensure compatibility across
+    // runtimes and to satisfy typed signatures.
+    // Copy into a fresh Uint8Array so we have a concrete ArrayBuffer (not
+    // a SharedArrayBuffer view) — this avoids typing/runtime mismatches.
+    const keyCopy = new Uint8Array(privateKeyBuffer);
+    const keyArrayBuffer = keyCopy.buffer;
+
     const cryptoKey = await crypto.subtle.importKey(
       "pkcs8",
-      privateKeyBuffer,
+      keyArrayBuffer,
       { name: "Ed25519" },
       false,
       ["sign"],
@@ -67,12 +96,27 @@ Deno.serve(async (req) => {
       throw insertError;
     }
 
+    // Update document status
+    const { error: updateError } = await supabase
+      .from("documents")
+      .update({ status: "signed" })
+      .eq("id", documentId);
+    if (updateError) {
+      throw updateError;
+    }
+
+    headers.set("Content-Type", "application/json");
+
     return new Response(JSON.stringify({ ok: true, keyId, hash, signature }), {
-      headers: { "Content-Type": "application/json" },
+      headers,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error("Sign function error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    headers.set("Content-Type", "application/json");
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers,
+    });
   }
 });
