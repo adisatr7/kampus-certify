@@ -14,7 +14,6 @@ export type Database = {
           created_at: string | null;
           description: string | null;
           id: string;
-          timestamp: string | null;
           user_id: string | null;
         };
         Insert: {
@@ -22,7 +21,6 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           id?: string;
-          timestamp?: string | null;
           user_id?: string | null;
         };
         Update: {
@@ -30,7 +28,6 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           id?: string;
-          timestamp?: string | null;
           user_id?: string | null;
         };
         Relationships: [
@@ -43,44 +40,105 @@ export type Database = {
           },
         ];
       };
+      certificate_signatures: {
+        Row: {
+          certificate_id: string;
+          id: string;
+          key_id: string;
+          payload_hash: string;
+          signature: string;
+          signed_at: string | null;
+          signer_user_id: string | null;
+        };
+        Insert: {
+          certificate_id: string;
+          id?: string;
+          key_id: string;
+          payload_hash: string;
+          signature: string;
+          signed_at?: string | null;
+          signer_user_id?: string | null;
+        };
+        Update: {
+          certificate_id?: string;
+          id?: string;
+          key_id?: string;
+          payload_hash?: string;
+          signature?: string;
+          signed_at?: string | null;
+          signer_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "certificate_signatures_certificate_id_fkey";
+            columns: ["certificate_id"];
+            isOneToOne: false;
+            referencedRelation: "certificate_verification";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "certificate_signatures_certificate_id_fkey";
+            columns: ["certificate_id"];
+            isOneToOne: false;
+            referencedRelation: "certificates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "certificate_signatures_key_id_fkey";
+            columns: ["key_id"];
+            isOneToOne: false;
+            referencedRelation: "signing_keys";
+            referencedColumns: ["kid"];
+          },
+        ];
+      };
       certificates: {
         Row: {
-          certificate_code: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
           created_at: string | null;
           expires_at: string;
           id: string;
           issued_at: string | null;
-          private_key: string;
-          public_key: string;
+          payload: Json | null;
+          rejected_at: string | null;
+          rejected_by: string | null;
           revoked_at: string | null;
+          revoked_by: string | null;
           serial_number: string;
           status: Database["public"]["Enums"]["certificate_status"] | null;
           updated_at: string | null;
           user_id: string;
         };
         Insert: {
-          certificate_code?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           expires_at: string;
           id?: string;
           issued_at?: string | null;
-          private_key: string;
-          public_key: string;
+          payload?: Json | null;
+          rejected_at?: string | null;
+          rejected_by?: string | null;
           revoked_at?: string | null;
+          revoked_by?: string | null;
           serial_number: string;
           status?: Database["public"]["Enums"]["certificate_status"] | null;
           updated_at?: string | null;
           user_id: string;
         };
         Update: {
-          certificate_code?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string | null;
           expires_at?: string;
           id?: string;
           issued_at?: string | null;
-          private_key?: string;
-          public_key?: string;
+          payload?: Json | null;
+          rejected_at?: string | null;
+          rejected_by?: string | null;
           revoked_at?: string | null;
+          revoked_by?: string | null;
           serial_number?: string;
           status?: Database["public"]["Enums"]["certificate_status"] | null;
           updated_at?: string | null;
@@ -88,11 +146,115 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "certificates_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "certificates_rejected_by_fkey";
+            columns: ["rejected_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "certificates_revoked_by_fkey";
+            columns: ["revoked_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "certificates_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      device_nonces: {
+        Row: {
+          created_at: string | null;
+          device_id: string;
+          expires_at: string;
+          id: string;
+          nonce: string;
+          used: boolean | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          device_id: string;
+          expires_at: string;
+          id?: string;
+          nonce: string;
+          used?: boolean | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          device_id?: string;
+          expires_at?: string;
+          id?: string;
+          nonce?: string;
+          used?: boolean | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "device_nonces_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "user_devices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      document_signatures: {
+        Row: {
+          document_id: string;
+          id: string;
+          key_id: string;
+          payload_hash: string;
+          signature: string;
+          signed_at: string | null;
+          signer_user_id: string | null;
+        };
+        Insert: {
+          document_id: string;
+          id?: string;
+          key_id: string;
+          payload_hash: string;
+          signature: string;
+          signed_at?: string | null;
+          signer_user_id?: string | null;
+        };
+        Update: {
+          document_id?: string;
+          id?: string;
+          key_id?: string;
+          payload_hash?: string;
+          signature?: string;
+          signed_at?: string | null;
+          signer_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_signatures_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_signatures_key_id_fkey";
+            columns: ["key_id"];
+            isOneToOne: false;
+            referencedRelation: "signing_keys";
+            referencedColumns: ["kid"];
           },
         ];
       };
@@ -104,9 +266,6 @@ export type Database = {
           file_url: string | null;
           id: string;
           qr_code_url: string | null;
-          signed: boolean | null;
-          signed_at: string | null;
-          signed_document_url: string | null;
           status: Database["public"]["Enums"]["document_status"] | null;
           title: string;
           updated_at: string | null;
@@ -119,9 +278,6 @@ export type Database = {
           file_url?: string | null;
           id?: string;
           qr_code_url?: string | null;
-          signed?: boolean | null;
-          signed_at?: string | null;
-          signed_document_url?: string | null;
           status?: Database["public"]["Enums"]["document_status"] | null;
           title: string;
           updated_at?: string | null;
@@ -134,9 +290,6 @@ export type Database = {
           file_url?: string | null;
           id?: string;
           qr_code_url?: string | null;
-          signed?: boolean | null;
-          signed_at?: string | null;
-          signed_document_url?: string | null;
           status?: Database["public"]["Enums"]["document_status"] | null;
           title?: string;
           updated_at?: string | null;
@@ -166,56 +319,95 @@ export type Database = {
           },
         ];
       };
+      signing_keys: {
+        Row: {
+          active: boolean | null;
+          created_at: string | null;
+          crv: string | null;
+          e: string | null;
+          kid: string;
+          kty: string;
+          n: string | null;
+          x: string | null;
+        };
+        Insert: {
+          active?: boolean | null;
+          created_at?: string | null;
+          crv?: string | null;
+          e?: string | null;
+          kid: string;
+          kty: string;
+          n?: string | null;
+          x?: string | null;
+        };
+        Update: {
+          active?: boolean | null;
+          created_at?: string | null;
+          crv?: string | null;
+          e?: string | null;
+          kid?: string;
+          kty?: string;
+          n?: string | null;
+          x?: string | null;
+        };
+        Relationships: [];
+      };
+      user_devices: {
+        Row: {
+          created_at: string | null;
+          device_name: string;
+          id: string;
+          public_key_jwk: Json;
+          revoked: boolean | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          device_name: string;
+          id?: string;
+          public_key_jwk: Json;
+          revoked?: boolean | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          device_name?: string;
+          id?: string;
+          public_key_jwk?: Json;
+          revoked?: boolean | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       users: {
         Row: {
-          certificate_id: string | null;
           created_at: string | null;
           email: string;
-          google_id: string | null;
           id: string;
-          name: string | null;
+          name: string;
           nidn: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at: string | null;
         };
         Insert: {
-          certificate_id?: string | null;
           created_at?: string | null;
           email: string;
-          google_id?: string | null;
           id?: string;
-          name?: string | null;
+          name: string;
           nidn?: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
         Update: {
-          certificate_id?: string | null;
           created_at?: string | null;
           email?: string;
-          google_id?: string | null;
           id?: string;
-          name?: string | null;
+          name?: string;
           nidn?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "fk_users_certificate_id";
-            columns: ["certificate_id"];
-            isOneToOne: false;
-            referencedRelation: "certificate_verification";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "fk_users_certificate_id";
-            columns: ["certificate_id"];
-            isOneToOne: false;
-            referencedRelation: "certificates";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
     };
     Views: {
@@ -224,7 +416,6 @@ export type Database = {
           expires_at: string | null;
           id: string | null;
           issued_at: string | null;
-          public_key: string | null;
           serial_number: string | null;
           status: Database["public"]["Enums"]["certificate_status"] | null;
         };
@@ -232,7 +423,6 @@ export type Database = {
           expires_at?: string | null;
           id?: string | null;
           issued_at?: string | null;
-          public_key?: string | null;
           serial_number?: string | null;
           status?: Database["public"]["Enums"]["certificate_status"] | null;
         };
@@ -240,7 +430,6 @@ export type Database = {
           expires_at?: string | null;
           id?: string | null;
           issued_at?: string | null;
-          public_key?: string | null;
           serial_number?: string | null;
           status?: Database["public"]["Enums"]["certificate_status"] | null;
         };

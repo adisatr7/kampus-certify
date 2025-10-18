@@ -20,17 +20,33 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+    >
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/verify" element={<VerificationPortal />} />
-              <Route path="/verification-portal" element={<VerificationPortal />} />
-              <Route path="/document-verification" element={<PublicDocumentVerification />} />
+              <Route
+                path="/"
+                element={<Index />}
+              />
+              <Route
+                path="/verify"
+                element={<VerificationPortal />}
+              />
+              <Route
+                path="/verification-portal"
+                element={<VerificationPortal />}
+              />
+              <Route
+                path="/document-verification"
+                element={<PublicDocumentVerification />}
+              />
 
               {/* Admin Routes */}
               <Route
@@ -77,7 +93,10 @@ const App = () => (
               />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route
+                path="*"
+                element={<NotFound />}
+              />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

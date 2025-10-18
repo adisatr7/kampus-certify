@@ -127,7 +127,10 @@ const Index = () => {
   if (error && !session) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Alert variant="destructive" className="max-w-md">
+        <Alert
+          variant="destructive"
+          className="max-w-md"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {error}. Silakan refresh halaman atau hubungi administrator.
@@ -152,7 +155,10 @@ const Index = () => {
     if (error) {
       return (
         <div className="flex items-center justify-center min-h-screen p-4">
-          <Alert variant="destructive" className="max-w-md">
+          <Alert
+            variant="destructive"
+            className="max-w-md"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}. Silakan refresh halaman atau hubungi administrator.

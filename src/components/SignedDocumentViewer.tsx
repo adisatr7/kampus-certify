@@ -1,24 +1,27 @@
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { UserDocument } from "../types";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 
 interface SignedDocumentViewerProps {
   isOpen: boolean;
   onClose: () => void;
-  document: {
-    id: string;
-    title: string;
-    signed_at: string | null;
-    qr_code_url?: string | null;
-    content?: string | null;
-    signed_document_url?: string | null;
-    users?: {
-      name: string;
-      role: string;
-    };
-  };
+  document: UserDocument;
+  // document: {
+  //   id: string;
+  //   title: string;
+  //   signed_at: string | null;
+  //   qr_code_url?: string | null;
+  //   content?: string | null;
+  //   signed_document_url?: string | null;
+  //   users?: {
+  //     name: string;
+  //     role: string;
+  //   };
+  // };
 }
+// TODO: redesign viewer to match new template design
 
 export default function SignedDocumentViewer({
   isOpen,
@@ -93,17 +96,30 @@ export default function SignedDocumentViewer({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Dokumen Ditandatangani: {document.title}</DialogTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="print:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                className="print:hidden"
+              >
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload} className="print:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="print:hidden"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>

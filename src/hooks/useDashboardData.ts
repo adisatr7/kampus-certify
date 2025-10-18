@@ -1,6 +1,7 @@
 // hooks/useDashboardData.ts
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DocumentStatus } from "../types";
 
 export interface DashboardStats {
   totalCertificates: number;
@@ -46,7 +47,7 @@ export const useDashboardStats = (userRole: string) => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      let stats: DashboardStats = {
+      const stats: DashboardStats = {
         totalCertificates: 0,
         activeCertificates: 0,
         revokedCertificates: 0,
@@ -108,8 +109,8 @@ export const useDashboardStats = (userRole: string) => {
           const { data: auditData } = await supabase
             .from("audit_trail")
             .select("action, description")
-            .gte("timestamp", `${today}T00:00:00.000Z`)
-            .lt("timestamp", `${today}T23:59:59.999Z`)
+            .gte("created_at", `${today}T00:00:00.000Z`)
+            .lt("created_at", `${today}T23:59:59.999Z`)
             .ilike("action", "%verification%");
 
           if (auditData) {
@@ -151,10 +152,10 @@ export const useRecentActivities = (userRole?: string) => {
           id,
           action,
           description,
-          timestamp,
+          created_at,
           user_id
         `)
-        .order("timestamp", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(10);
 
       if (error) {
@@ -196,7 +197,7 @@ export const useRecentActivities = (userRole?: string) => {
         }
 
         // Calculate time ago
-        const createdAt = new Date(activity.timestamp);
+        const createdAt = new Date(activity.created_at);
         const now = new Date();
         const diffInMs = now.getTime() - createdAt.getTime();
         const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
@@ -222,7 +223,7 @@ export const useRecentActivities = (userRole?: string) => {
           time: timeAgo,
           status,
           user_name: user?.name,
-          created_at: activity.timestamp,
+          created_at: activity.created_at,
         };
       });
 
@@ -238,12 +239,16 @@ export const useRecentDocuments = (userRole: string) => {
   return useQuery({
     queryKey: ["recent-documents", userRole],
     queryFn: async (): Promise<RecentDocument[]> => {
-      if (userRole === "admin") return [];
+      if (userRole === "admin") {
+        return [];
+      }
 
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
 
       const { data: documents, error } = await supabase
         .from("documents")
@@ -257,11 +262,12 @@ export const useRecentDocuments = (userRole: string) => {
         return [];
       }
 
+      // TODO: Beware, potential error
       return (
         documents?.map((doc) => ({
           id: doc.id,
           title: doc.title,
-          status: doc.status as "pending" | "signed" | "revoked",
+          status: doc.status as DocumentStatus,
           created_at: doc.created_at,
           signed_at: doc.signed_at,
         })) || []

@@ -9,7 +9,7 @@
     "ignoreUnknown": true
   },
   "formatter": {
-    "attributePosition": "auto",
+    "attributePosition": "multiline",
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,

@@ -1,18 +1,10 @@
-import { Calendar, FileText, Lock, PenTool, QrCode, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Calendar, FileText, PenTool, QrCode, Shield } from "lucide-react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/Dialog";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import {
   Select,
   SelectContent,
@@ -34,87 +26,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
-
-interface Document {
-  id: string;
-  title: string;
-  content?: string | null;
-  file_url: string | null;
-  status: "pending" | "signed" | "revoked";
-  created_at: string;
-}
-
-interface Certificate {
-  id: string;
-  serial_number: string;
-  status: string;
-  expires_at: string;
-}
+import useFetchCertificatesById from "../../hooks/certificate/useFetchCertificatesById";
+import useFetchDocumentsById from "../../hooks/document/useFetchDocumentsById";
+import { UserDocument } from "../../types";
 
 export default function DocumentSigning() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { userProfile } = useAuth();
+
+  const {
+    documents,
+    isLoading: isLoadingDocuments,
+    refetch: refetchDocuments,
+  } = useFetchDocumentsById(userProfile?.id ?? "");
+  const { certificates, isLoading: isLoadingCertificates } = useFetchCertificatesById(
+    userProfile?.id ?? "",
+  );
+
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [signing, setSigning] = useState(false);
-  const { userProfile } = useAuth();
-  const { toast } = useToast();
 
-  // Signing form state
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
   const [selectedCertificate, setSelectedCertificate] = useState("");
   const [certificateCode, setCertificateCode] = useState("");
 
-  useEffect(() => {
-    if (userProfile) {
-      fetchDocuments();
-      fetchCertificates();
-    }
-  }, [userProfile]);
-
-  const fetchDocuments = async () => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("user_id", userProfile.id)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat dokumen",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCertificates = async () => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("certificates")
-        .select("id, serial_number, status, expires_at")
-        .eq("user_id", userProfile.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setCertificates(data || []);
-    } catch (error) {
-      console.error("Error fetching certificates:", error);
-    }
-  };
-
-  const openSignDialog = (document: Document) => {
+  const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
     setIsSignDialogOpen(true);
   };
@@ -225,7 +161,7 @@ export default function DocumentSigning() {
       setIsSignDialogOpen(false);
       setSelectedDocument(null);
       setSelectedCertificate("");
-      fetchDocuments();
+      refetchDocuments(userProfile.id);
     } catch (error) {
       console.error("Signing error:", error);
       toast({
@@ -245,7 +181,7 @@ export default function DocumentSigning() {
     setCertificateCode("");
   };
 
-  if (loading) {
+  if (isLoadingDocuments || isLoadingCertificates) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -286,7 +222,10 @@ export default function DocumentSigning() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {certificates.map((cert) => (
-                  <Card key={cert.id} className="border-2">
+                  <Card
+                    key={cert.id}
+                    className="border-2"
+                  >
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -368,7 +307,6 @@ export default function DocumentSigning() {
                           )}
                           <Button
                             onClick={() => openSignDialog(doc)}
-                            disabled={certificates.length === 0}
                             size="sm"
                           >
                             <PenTool className="mr-2 h-4 w-4" />
@@ -385,7 +323,10 @@ export default function DocumentSigning() {
         </Card>
 
         {/* Sign Dialog */}
-        <Dialog open={isSignDialogOpen} onOpenChange={closeDialog}>
+        <Dialog
+          open={isSignDialogOpen}
+          onOpenChange={closeDialog}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Tanda Tangan Dokumen</DialogTitle>
@@ -402,13 +343,19 @@ export default function DocumentSigning() {
                 <label className="block text-sm font-medium mb-2">
                   Pilih Sertifikat untuk Menandatangani
                 </label>
-                <Select value={selectedCertificate} onValueChange={setSelectedCertificate}>
+                <Select
+                  value={selectedCertificate}
+                  onValueChange={setSelectedCertificate}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih sertifikat..." />
                   </SelectTrigger>
                   <SelectContent>
                     {certificates.map((cert) => (
-                      <SelectItem key={cert.id} value={cert.id}>
+                      <SelectItem
+                        key={cert.id}
+                        value={cert.id}
+                      >
                         <div className="flex flex-col">
                           <span>{cert.serial_number}</span>
                           <span className="text-xs text-muted-foreground">
@@ -419,24 +366,6 @@ export default function DocumentSigning() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="certificateCode" className="flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Kode Sertifikat
-                </Label>
-                <Input
-                  id="certificateCode"
-                  type="password"
-                  placeholder="Masukkan kode sertifikat Anda"
-                  value={certificateCode}
-                  onChange={(e) => setCertificateCode(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Masukkan kode rahasia sertifikat Anda untuk autentikasi
-                </p>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
@@ -452,7 +381,10 @@ export default function DocumentSigning() {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={closeDialog}>
+                <Button
+                  variant="outline"
+                  onClick={closeDialog}
+                >
                   Batal
                 </Button>
                 <Button
