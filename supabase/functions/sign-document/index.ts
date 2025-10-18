@@ -110,10 +110,16 @@ Deno.serve(async (req) => {
       headers,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Sign function error:", err);
     headers.set("Content-Type", "application/json");
-    return new Response(JSON.stringify({ error: String(err) }), {
+    let errorMessage: string;
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else {
+      errorMessage = String(err);
+    }
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers,
     });
