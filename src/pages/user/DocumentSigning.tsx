@@ -1,17 +1,11 @@
-import { Calendar, FileText, PenTool, QrCode, Shield } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from "axios";
+import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   Table,
@@ -21,34 +15,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import useFetchDocumentsByUserId from "@/hooks/document/useFetchDocumentsByUserId";
+import useFetchLatestKey from "@/hooks/signingKey/useFetchLatestKey";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
-import useFetchCertificatesById from "../../hooks/certificate/useFetchCertificatesById";
-import useFetchDocumentsById from "../../hooks/document/useFetchDocumentsById";
-import { UserDocument } from "../../types";
+import { UserDocument } from "@/types";
 
 export default function DocumentSigning() {
   const { toast } = useToast();
   const { userProfile } = useAuth();
 
+  const { latestKey } = useFetchLatestKey();
   const {
-    documents,
+    data: documents,
     isLoading: isLoadingDocuments,
     refetch: refetchDocuments,
-  } = useFetchDocumentsById(userProfile?.id ?? "");
-  const { certificates, isLoading: isLoadingCertificates } = useFetchCertificatesById(
-    userProfile?.id ?? "",
-  );
+  } = useFetchDocumentsByUserId(userProfile?.id ?? "", "pending");
 
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
-  const [selectedCertificate, setSelectedCertificate] = useState("");
-  const [certificateCode, setCertificateCode] = useState("");
 
   const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
@@ -56,96 +46,61 @@ export default function DocumentSigning() {
   };
 
   const signDocument = async () => {
-    if (!selectedDocument || !selectedCertificate || !userProfile) {
+    if (!selectedDocument || !userProfile) {
       toast({
         title: "Error",
-        description: "Pilih sertifikat untuk menandatangani dokumen",
+        description: "Pilih dokumen dan sertifikat terlebih dahulu",
         variant: "destructive",
       });
       return;
     }
 
-    if (!certificateCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Masukkan kode sertifikat untuk autentikasi",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSigning(true);
-
+    setIsSigning(true);
     try {
-      // Get certificate details and verify code
-      const { data: certData, error: certError } = await supabase
-        .from("certificates")
-        .select("serial_number, certificate_code")
-        .eq("id", selectedCertificate)
-        .single();
+      // current auth session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
 
-      if (certError || !certData) {
-        throw new Error("Failed to fetch certificate details");
-      }
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
 
-      // Verify certificate code
-      if (certData.certificate_code !== certificateCode) {
-        toast({
-          title: "Error",
-          description: "Kode sertifikat tidak valid",
-          variant: "destructive",
-        });
-        setSigning(false);
-        return;
-      }
-
-      // Generate verification URL with document ID
-      const verificationUrl = `${window.location.origin}/document-verification?id=${selectedDocument.id}`;
-
-      let signedDocumentUrl = null;
-
-      // Generate cryptographically signed PDF with QR code
-      try {
-        const signedPdfBlob = await generateSignedPDF(selectedDocument.file_url, {
+      const response = await axios.post(
+        url,
+        {
           documentId: selectedDocument.id,
-          documentTitle: selectedDocument.title,
-          documentContent: selectedDocument.content || undefined,
-          signerName: userProfile.name,
-          signerRole: userProfile.role,
-          signedAt: new Date().toISOString(),
-          certificateSerial: certData.serial_number,
-          verificationUrl: verificationUrl,
-        });
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
 
-        // Upload signed PDF to storage
-        signedDocumentUrl = await uploadSignedPDF(
-          signedPdfBlob,
-          userProfile.id,
-          selectedDocument.id,
-          supabase,
-        );
+      const result = response.data;
+      console.log("Signature result:", result);
 
-        if (!signedDocumentUrl) {
-          throw new Error("Failed to upload signed document");
-        }
-      } catch (pdfError) {
-        console.error("Error generating/uploading signed PDF:", pdfError);
-        throw pdfError;
+      let signedDocumentUrl = "";
+
+      const signedPdfBlob = await generateSignedPDF(selectedDocument.file_url, {
+        documentId: selectedDocument.id,
+        documentTitle: selectedDocument.title,
+        documentContent: selectedDocument.content || undefined,
+        signerName: userProfile.name,
+        signerRole: userProfile.role,
+        signedAt: new Date().toISOString(),
+      });
+
+      // Upload signed PDF to storage
+      signedDocumentUrl = await uploadSignedPDF(
+        signedPdfBlob,
+        userProfile.id,
+        selectedDocument.id,
+        supabase,
+      );
+
+      if (!signedDocumentUrl) {
+        throw new Error("Gagal mengunggah dokumen yang telah ditandatangani");
       }
-
-      // Update document with signature information
-      const { error: updateError } = await supabase
-        .from("documents")
-        .update({
-          status: "signed",
-          signed_at: new Date().toISOString(),
-          certificate_id: selectedCertificate,
-          qr_code_url: verificationUrl,
-          signed_document_url: signedDocumentUrl,
-        })
-        .eq("id", selectedDocument.id);
-
-      if (updateError) throw updateError;
 
       await createAuditEntry(
         userProfile.id,
@@ -158,30 +113,41 @@ export default function DocumentSigning() {
         description: "Dokumen berhasil ditandatangani dan disimpan",
       });
 
-      setIsSignDialogOpen(false);
       setSelectedDocument(null);
-      setSelectedCertificate("");
-      refetchDocuments(userProfile.id);
-    } catch (error) {
-      console.error("Signing error:", error);
+      closeDialog();
+    } catch (err) {
+      // Improve axios error logging
+      const serverMessage =
+        (err as any)?.response?.data?.message ??
+        (err as any)?.response?.data ??
+        (err as Error)?.message ??
+        String(err);
+
+      toast({
+        title: "Gagal menandatangani dokumen",
+        description: String(serverMessage),
+        variant: "destructive",
+      });
+
+      console.error("Gagal menandatangani dokumen:", err);
+
       toast({
         title: "Error",
         description: "Gagal menandatangani dokumen",
         variant: "destructive",
       });
     } finally {
-      setSigning(false);
+      setIsSigning(false);
+      refetchDocuments();
     }
   };
 
   const closeDialog = () => {
     setIsSignDialogOpen(false);
     setSelectedDocument(null);
-    setSelectedCertificate("");
-    setCertificateCode("");
   };
 
-  if (isLoadingDocuments || isLoadingCertificates) {
+  if (isLoadingDocuments) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -201,51 +167,6 @@ export default function DocumentSigning() {
             Tandatangani dokumen Anda dengan sertifikat digital
           </p>
         </div>
-
-        {/* Active Certificates Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Sertifikat Aktif Anda
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {certificates.length === 0 ? (
-              <div className="text-center py-6">
-                <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Anda belum memiliki sertifikat aktif. Hubungi administrator untuk mendapatkan
-                  sertifikat.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {certificates.map((cert) => (
-                  <Card
-                    key={cert.id}
-                    className="border-2"
-                  >
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-status-valid text-white">Aktif</Badge>
-                        </div>
-                        <div>
-                          <p className="font-mono text-sm">{cert.serial_number}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          Berlaku hingga: {new Date(cert.expires_at).toLocaleDateString("id-ID")}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Documents to Sign */}
         <Card>
@@ -333,40 +254,17 @@ export default function DocumentSigning() {
             </DialogHeader>
             <div className="space-y-4">
               {selectedDocument && (
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Dokumen yang akan ditandatangani:</h4>
-                  <p className="text-sm">{selectedDocument.title}</p>
-                </div>
+                <>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Anda akan menandatangani:</h4>
+                    <p className="text-sm">{selectedDocument.title}</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Dengan key ID:</h4>
+                    <p className="text-sm">{latestKey}</p>
+                  </div>
+                </>
               )}
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Pilih Sertifikat untuk Menandatangani
-                </label>
-                <Select
-                  value={selectedCertificate}
-                  onValueChange={setSelectedCertificate}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih sertifikat..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {certificates.map((cert) => (
-                      <SelectItem
-                        key={cert.id}
-                        value={cert.id}
-                      >
-                        <div className="flex flex-col">
-                          <span>{cert.serial_number}</span>
-                          <span className="text-xs text-muted-foreground">
-                            Berlaku hingga {new Date(cert.expires_at).toLocaleDateString("id-ID")}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
@@ -389,9 +287,9 @@ export default function DocumentSigning() {
                 </Button>
                 <Button
                   onClick={signDocument}
-                  disabled={signing || !selectedCertificate || !certificateCode.trim()}
+                  disabled={isSigning}
                 >
-                  {signing ? (
+                  {isSigning ? (
                     <>
                       <PenTool className="mr-2 h-4 w-4 animate-pulse" />
                       Menandatangani...
@@ -399,7 +297,7 @@ export default function DocumentSigning() {
                   ) : (
                     <>
                       <PenTool className="mr-2 h-4 w-4" />
-                      Tanda Tangan
+                      Beri Tanda Tangan
                     </>
                   )}
                 </Button>

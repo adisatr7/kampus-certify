@@ -1,30 +1,41 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserDocument } from "@/types";
+import type { DocumentStatus } from "@/types/DocumentStatus";
 import { useToast } from "../useToast";
 
-export default function useFetchDocumentsById(userId: string) {
+export default function useFetchDocumentsByUserId(userId: string, status?: DocumentStatus) {
   const { toast } = useToast();
   const [data, setData] = useState<UserDocument[]>([]);
   const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData(userId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+    fetchData(userId, status);
+  }, [userId, status]);
 
-  const fetchData = async (userId: string) => {
+  const fetchData = async (userId: string, statusParam?: DocumentStatus) => {
     if (!userId) {
       return;
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("documents")
-        .select("*")
+        .select(`
+          *,
+          user:users (
+            name,
+            role
+          )
+        `)
         .eq("user_id", userId)
-        .eq("status", "pending")
         .order("created_at", { ascending: false });
+
+      if (statusParam) {
+        query = query.eq("status", statusParam);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -41,5 +52,5 @@ export default function useFetchDocumentsById(userId: string) {
     }
   };
 
-  return { documents: data, isLoading, refetch: fetchData };
+  return { data, isLoading, refetch: () => fetchData(userId, status) };
 }

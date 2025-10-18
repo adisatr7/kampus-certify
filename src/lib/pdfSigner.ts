@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import QRCode from "qrcode";
 
 interface SignatureData {
@@ -8,8 +9,6 @@ interface SignatureData {
   signerName: string;
   signerRole: string;
   signedAt: string;
-  certificateSerial: string;
-  verificationUrl: string;
 }
 
 /**
@@ -47,7 +46,8 @@ export async function generateSignedPDF(
   }
 
   // Generate QR code
-  const qrCodeDataUrl = await QRCode.toDataURL(signatureData.verificationUrl, {
+  const qrContent = `${window.location.origin}/document-verification?id=${signatureData.documentId}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,
     color: {
@@ -247,7 +247,7 @@ export async function generateSignedPDF(
  */
 async function addDocumentContent(
   pdfDoc: PDFDocument,
-  page: any,
+  page: PDFPage,
   documentTitle: string,
   documentContent?: string,
 ) {
@@ -378,7 +378,7 @@ export async function uploadSignedPDF(
   pdfBlob: Blob,
   userId: string,
   documentId: string,
-  supabase: any,
+  supabase: SupabaseClient,
 ): Promise<string | null> {
   try {
     const signedFileName = `${userId}/${documentId}-signed-${Date.now()}.pdf`;
