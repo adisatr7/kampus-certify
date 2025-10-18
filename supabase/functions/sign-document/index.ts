@@ -90,7 +90,6 @@ Deno.serve(async (req) => {
       key_id: keyId,
       payload_hash: hash,
       signature,
-      signed_at: new Date().toISOString(),
     });
     if (insertError) {
       throw insertError;
