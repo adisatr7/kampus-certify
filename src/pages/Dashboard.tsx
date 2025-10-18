@@ -295,18 +295,13 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                         <div className="flex-shrink-0">
                           <div
                             className={`p-3 rounded-full ${
-                              activity.type === "certificate"
-                                ? "bg-purple-100"
-                                : activity.type === "document"
-                                  ? "bg-blue-100"
-                                  : activity.type === "verification"
-                                    ? "bg-emerald-100"
-                                    : "bg-red-100"
+                              activity.type === "document"
+                                ? "bg-blue-100"
+                                : activity.type === "verification"
+                                  ? "bg-emerald-100"
+                                  : "bg-red-100"
                             }`}
                           >
-                            {activity.type === "certificate" && (
-                              <Award className="h-5 w-5 text-purple-600" />
-                            )}
                             {activity.type === "document" && (
                               <FileText className="h-5 w-5 text-blue-600" />
                             )}
@@ -369,16 +364,6 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                 </div>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
-                <button className="w-full group relative overflow-hidden text-left p-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold">Terbitkan Sertifikat</div>
-                      <Award className="h-5 w-5 opacity-80" />
-                    </div>
-                    <div className="text-sm opacity-90 mt-1">Buat sertifikat baru</div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
-                </button>
                 <button className="w-full group text-left p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-blue-700">Kelola Dokumen</div>
