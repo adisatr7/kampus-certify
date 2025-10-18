@@ -20,7 +20,7 @@ export default function useFetchLatestKey() {
         throw error;
       }
 
-      setLatestKey(data[0]?.kid || null);
+      setLatestKey(data?.[0]?.kid || null);
     } catch (error) {
       console.error("Error fetching latest signing key:", error);
     }
