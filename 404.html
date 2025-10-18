@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting…</title>
+    <script>
+      // 404 fallback for GitHub Pages to support BrowserRouter (pretty URLs).
+      // This fetches the site's index.html and replaces the current document
+      // while preserving the original URL so the client-side router can handle it.
+      (async function () {
+        try {
+          var origin = location.origin;
+          var pathname = location.pathname || '/';
+
+          // Determine repo base: first path segment if it doesn't look like a file
+          var segments = pathname.split('/').filter(function (s) { return s.length > 0; });
+          var base = '/';
+          if (segments.length > 0 && segments[0].indexOf('.') === -1) {
+            base = '/' + segments[0] + '/';
+          }
+
+          var indexUrl = base + 'index.html';
+          var res = await fetch(indexUrl, { cache: 'no-store' });
+          if (!res.ok) {
+            // If index.html isn't reachable, fallback to base
+            location.replace(base);
+            return;
+          }
+
+          var html = await res.text();
+          // Replace current document with index.html content
+          document.open();
+          document.write(html);
+          document.close();
+
+          // Restore the original path (so BrowserRouter can route)
+          history.replaceState({}, '', pathname + location.search + location.hash);
+        } catch (err) {
+          // On error, fallback to site base
+          try { location.replace('/'); } catch (e) { /* noop */ }
+        }
+      })();
+    </script>
+  </head>
+  <body>Redirecting…</body>
+</html>
