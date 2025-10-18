@@ -11,6 +11,7 @@ const badgeVariants = cva(
         secondary:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         valid: "border-transparent bg-status-valid text-white hover:bg-status-valid/80",
+        signed: "border-transparent bg-status-valid text-white hover:bg-status-valid/80",
         invalid: "border-transparent bg-status-invalid text-white hover:bg-status-invalid/80",
         revoked: "border-transparent bg-status-revoked text-white hover:bg-status-revoked/80",
         pending: "border-transparent bg-muted text-muted-foreground hover:bg-muted/80",
@@ -35,6 +36,7 @@ function StatusBadge({ className, variant, status, children, ...props }: StatusB
 
   const statusText = {
     valid: "VALID",
+    signed: "SIGNED",
     invalid: "INVALID",
     revoked: "REVOKED",
     pending: "PENDING",

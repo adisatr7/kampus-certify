@@ -32,7 +32,6 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   const menuItems = {
     admin: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },
       { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },

@@ -1,18 +1,15 @@
 import {
-  Award,
   Calendar,
   Clock,
   Download,
   Eye,
   FileCheck,
   FileText,
-  Filter,
   Activity as LucideActivity,
   Plus,
   Search,
   Trash2,
   Upload,
-  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -37,38 +34,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import useFetchDocumentsByUserId from "@/hooks/document/useFetchDocumentsByUserId";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
-
-interface Document {
-  id: string;
-  title: string;
-  file_url: string | null;
-  status: "pending" | "signed" | "revoked";
-  signed_at: string | null;
-  created_at: string;
-  qr_code_url?: string | null;
-  content?: string | null;
-  users?: {
-    name: string;
-    role: string;
-  };
-}
+import { DocumentStatus, UserDocument, UserRole } from "@/types";
 
 export default function MyDocuments() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
+
+  const {
+    data: documents,
+    isLoading,
+    refetch: refetchDocument,
+  } = useFetchDocumentsByUserId(userProfile?.id ?? "");
+
+  const [filteredDocuments, setFilteredDocuments] = useState<UserDocument[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<DocumentStatus | "all">("all");
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -76,41 +65,8 @@ export default function MyDocuments() {
   const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchMyDocuments();
-  }, [userProfile]);
-
-  useEffect(() => {
     filterDocuments();
   }, [documents, searchTerm, statusFilter]);
-
-  const fetchMyDocuments = async () => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("documents")
-        .select(`
-          *,
-          users (
-            name,
-            role
-          )
-        `)
-        .eq("user_id", userProfile.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat dokumen Anda",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filterDocuments = () => {
     let filtered = documents;
@@ -140,7 +96,7 @@ export default function MyDocuments() {
       return;
     }
 
-    setUploading(true);
+    setIsUploading(true);
 
     try {
       let publicUrl = null;
@@ -152,15 +108,17 @@ export default function MyDocuments() {
         const filePath = `${userProfile.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("documents")
+          .from("signed-documents")
           .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
 
-        // Get public URL
+        // Get public URL from the same bucket we uploaded to
         const {
           data: { publicUrl: url },
-        } = supabase.storage.from("documents").getPublicUrl(filePath);
+        } = supabase.storage.from("signed-documents").getPublicUrl(filePath);
 
         publicUrl = url;
       }
@@ -174,7 +132,9 @@ export default function MyDocuments() {
         status: "pending",
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        throw insertError;
+      }
 
       await createAuditEntry(userProfile.id, "CREATE_DOCUMENT", `Mengupload dokumen "${title}"`);
 
@@ -185,7 +145,7 @@ export default function MyDocuments() {
 
       setIsCreateDialogOpen(false);
       resetForm();
-      fetchMyDocuments();
+      refetchDocument();
     } catch (error) {
       toast({
         title: "Error",
@@ -193,21 +153,26 @@ export default function MyDocuments() {
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
   };
 
   const deleteDocument = async (documentId: string, documentTitle: string) => {
-    if (!userProfile) return;
+    if (!userProfile) {
+      return;
+    }
 
     try {
-      const { error } = await supabase
+      // Request the deleted row(s) back so we can confirm deletion succeeded.
+      const { data, error } = await supabase
         .from("documents")
         .delete()
         .eq("id", documentId)
-        .eq("user_id", userProfile.id); // Ensure user can only delete their own documents
+        .eq("user_id", userProfile.id);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       await createAuditEntry(
         userProfile.id,
@@ -219,14 +184,14 @@ export default function MyDocuments() {
         title: "Berhasil",
         description: "Dokumen berhasil dihapus",
       });
-
-      fetchMyDocuments();
     } catch (error) {
       toast({
         title: "Error",
         description: "Gagal menghapus dokumen",
         variant: "destructive",
       });
+    } finally {
+      refetchDocument();
     }
   };
 
@@ -236,7 +201,7 @@ export default function MyDocuments() {
     setFile(null);
   };
 
-  const handleViewDocument = (doc: Document) => {
+  const handleViewDocument = (doc: UserDocument) => {
     if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
@@ -255,7 +220,7 @@ export default function MyDocuments() {
 
   const stats = getDocumentStats();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
         <div className="flex items-center justify-center min-h-screen">
@@ -272,7 +237,7 @@ export default function MyDocuments() {
   }
 
   return (
-    <DashboardLayout userRole={userProfile?.role as any}>
+    <DashboardLayout userRole={userProfile?.role as UserRole}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50">
         <div className="space-y-8 p-8">
           {/* Header */}
@@ -388,10 +353,10 @@ export default function MyDocuments() {
                       </Button>
                       <Button
                         onClick={uploadDocument}
-                        disabled={uploading}
+                        disabled={isUploading}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-w-[100px]"
                       >
-                        {uploading ? (
+                        {isUploading ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                             Mengupload...
@@ -487,7 +452,7 @@ export default function MyDocuments() {
                 <div className="w-full sm:w-48">
                   <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    onChange={(e) => setStatusFilter(e.target.value as DocumentStatus | "all")}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm"
                   >
                     <option value="all">Semua Status</option>
@@ -597,7 +562,7 @@ export default function MyDocuments() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <StatusBadge status={doc.status as any} />
+                              <StatusBadge status={doc.status as DocumentStatus} />
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -608,11 +573,11 @@ export default function MyDocuments() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {doc.signed_at ? (
+                              {doc.status === "signed" && doc.updated_at ? (
                                 <div className="flex items-center gap-2">
                                   <Calendar className="h-4 w-4 text-emerald-500" />
                                   <span className="text-sm text-slate-600">
-                                    {new Date(doc.signed_at).toLocaleDateString("id-ID")}
+                                    {new Date(doc.updated_at).toLocaleDateString("id-ID")}
                                   </span>
                                 </div>
                               ) : (
@@ -701,7 +666,7 @@ export default function MyDocuments() {
                                 </p>
                               </div>
                               <div className="flex-shrink-0">
-                                <StatusBadge status={doc.status as any} />
+                                <StatusBadge status={doc.status as DocumentStatus} />
                               </div>
                             </div>
                           </CardHeader>
@@ -723,8 +688,8 @@ export default function MyDocuments() {
                               <div className="flex items-center gap-2">
                                 <LucideActivity className="h-4 w-4" />
                                 <span>
-                                  {doc.signed_at
-                                    ? new Date(doc.signed_at).toLocaleDateString("id-ID")
+                                  {doc.updated_at
+                                    ? new Date(doc.updated_at).toLocaleDateString("id-ID")
                                     : "Belum ditandatangani"}
                                 </span>
                               </div>

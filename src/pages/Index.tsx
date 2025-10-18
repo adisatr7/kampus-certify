@@ -98,7 +98,7 @@ const Index = () => {
         // Update last login in audit trail
         await supabase.rpc("create_audit_entry", {
           p_user_id: session.user.id,
-          p_action: "user_login",
+          p_action: "USER_LOGIN",
           p_description: `User logged in: ${userData.name}`,
         });
       } catch (err) {

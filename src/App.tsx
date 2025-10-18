@@ -7,7 +7,6 @@ import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { AuthProvider } from "@/lib/auth";
 import AuditTrail from "./pages/admin/AuditTrail";
-import CertificateManagement from "./pages/admin/CertificateManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -49,14 +48,6 @@ const App = () => (
               />
 
               {/* Admin Routes */}
-              <Route
-                path="/admin/certificates"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <CertificateManagement />
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path="/admin/documents"
                 element={

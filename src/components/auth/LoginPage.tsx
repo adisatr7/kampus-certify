@@ -97,7 +97,7 @@ export function LoginPage() {
             {/* Footer */}
             <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-border">
               <p className="text-[10px] sm:text-xs text-center text-muted-foreground">
-                © 2025 UMC Certificate Authority
+                © {new Date().getFullYear()} UMC Certificate Authority
               </p>
             </div>
           </CardContent>

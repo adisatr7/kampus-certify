@@ -11,14 +11,10 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import {
-  useDashboardStats,
-  useRecentActivities,
-  useRecentDocuments,
-} from "@/hooks/useDashboardData";
+import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/dashboard";
+import { DocumentStatus } from "../types";
 
 interface DashboardProps {
   userRole: "admin" | "dosen" | "rektor" | "dekan";
@@ -35,11 +31,7 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
   } = useRecentActivities(userRole);
 
   // Only fetch recent documents for non-admin users
-  const {
-    data: recentDocuments,
-    isLoading: documentsLoading,
-    error: documentsError,
-  } = useRecentDocuments(userRole);
+  const { data: recentDocuments, isLoading: documentsLoading } = useRecentDocuments(userRole);
 
   // Dashboard configuration based on role
   const getDashboardConfig = () => {
@@ -48,19 +40,6 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
         title: "Dashboard Administrator",
         description: "Kelola seluruh sistem Certificate Authority UMC",
         getStatsCards: (stats) => [
-          {
-            title: "Total Sertifikat",
-            value: stats?.totalCertificates?.toString() || "0",
-            description: `Aktif: ${stats?.activeCertificates || 0}, Revoked: ${stats?.revokedCertificates || 0}`,
-            icon: Award,
-            trend: stats?.activeCertificates > stats?.revokedCertificates ? "+12%" : "-5%",
-            trendColor:
-              stats?.activeCertificates > stats?.revokedCertificates
-                ? "text-emerald-600"
-                : "text-red-500",
-            bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
-            iconColor: "text-purple-600",
-          },
           {
             title: "Dokumen Ditandatangani",
             value: stats?.signedDocuments?.toString() || "0",
@@ -295,18 +274,13 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                         <div className="flex-shrink-0">
                           <div
                             className={`p-3 rounded-full ${
-                              activity.type === "certificate"
-                                ? "bg-purple-100"
-                                : activity.type === "document"
-                                  ? "bg-blue-100"
-                                  : activity.type === "verification"
-                                    ? "bg-emerald-100"
-                                    : "bg-red-100"
+                              activity.type === "document"
+                                ? "bg-blue-100"
+                                : activity.type === "verification"
+                                  ? "bg-emerald-100"
+                                  : "bg-red-100"
                             }`}
                           >
-                            {activity.type === "certificate" && (
-                              <Award className="h-5 w-5 text-purple-600" />
-                            )}
                             {activity.type === "document" && (
                               <FileText className="h-5 w-5 text-blue-600" />
                             )}
@@ -323,7 +297,7 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                             <h4 className="font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
                               {activity.title}
                             </h4>
-                            <StatusBadge status={activity.status} />
+                            <StatusBadge status={activity.status as DocumentStatus} />
                           </div>
                           <p className="text-sm text-slate-600 mb-2">{activity.description}</p>
                           {activity.user_name && (
@@ -369,16 +343,6 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                 </div>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
-                <button className="w-full group relative overflow-hidden text-left p-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold">Terbitkan Sertifikat</div>
-                      <Award className="h-5 w-5 opacity-80" />
-                    </div>
-                    <div className="text-sm opacity-90 mt-1">Buat sertifikat baru</div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
-                </button>
                 <button className="w-full group text-left p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-blue-700">Kelola Dokumen</div>
@@ -507,13 +471,13 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-slate-400" />
                             <span className="text-xs text-slate-500">
-                              {doc.signed_at
-                                ? `Ditandatangani ${new Date(doc.signed_at).toLocaleDateString("id-ID")}`
+                              {doc.status === "signed" && doc.updated_at
+                                ? `Ditandatangani ${new Date(doc.updated_at).toLocaleDateString("id-ID")}`
                                 : `Dibuat ${new Date(doc.created_at).toLocaleDateString("id-ID")}`}
                             </span>
                           </div>
                         </div>
-                        <StatusBadge status={doc.status as any} />
+                        <StatusBadge status={doc.status as DocumentStatus} />
                       </div>
                     ))}
                   </div>
