@@ -9,7 +9,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  base: '/kampus-certify/',
+  // Use root during development so localhost paths work, but use the repo subpath
+  // for production builds (GitHub Pages).
+  base: mode === "development" ? "/" : "/kampus-certify/",
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
