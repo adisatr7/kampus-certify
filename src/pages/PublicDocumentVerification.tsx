@@ -75,7 +75,9 @@ export default function PublicDocumentVerification() {
         .eq("id", docId.trim())
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (!data) {
         toast({

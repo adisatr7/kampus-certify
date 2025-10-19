@@ -1,3 +1,4 @@
+import axios from "axios";
 import { AlertTriangle, CheckCircle, FileText, Menu, QrCode, Search, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -11,8 +12,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { UserRole } from "@/types/UserRole";
 import { DocumentStatus, UserDocument } from "@/types";
+import { UserRole } from "@/types/UserRole";
 
 export default function VerificationPortal() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -51,54 +52,65 @@ export default function VerificationPortal() {
     setVerifying(true);
 
     try {
-      const { data, error } = await supabase
-        .from("documents")
-        .select(`
-          *,
-          user:users (
-            name,
-            role
-          )
-        `)
-        .eq("id", docId.trim())
-        .maybeSingle();
+      // Call the new Edge Function
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-document`;
+      const response = await axios.post(url, { documentId: docId.trim() });
 
-      if (error) {
-        throw error;
-      }
+      const result = response.data; // result = { valid, keyId, signedAt, reason }
 
-      if (!data) {
+      if (!result.valid) {
         toast({
-          title: "Dokumen Tidak Ditemukan",
-          description: "ID dokumen tidak valid atau dokumen tidak ada dalam sistem",
+          title: "Dokumen Tidak Valid",
+          description:
+            result.reason === "PAYLOAD_HASH_MISMATCH"
+              ? "Isi dokumen telah berubah atau tidak sesuai tanda tangan."
+              : result.reason === "SIGNATURE_INVALID"
+                ? "Tanda tangan digital tidak cocok."
+                : "Tanda tangan tidak valid.",
           variant: "destructive",
         });
         setVerificationResult(null);
         return;
       }
 
-      setVerificationResult(data as UserDocument);
+      // Fetch the document for display
+      const { data: docData } = await supabase
+        .from("documents")
+        .select(`
+          *,
+          user:users (
+            name,
+            role
+          ),
+          document_signatures (
+            key_id
+          )
+        `)
+        .eq("id", docId)
+        .maybeSingle();
 
-      // Log verification attempt (optional - for audit purposes)
-      try {
-        await supabase.rpc("create_audit_entry", {
-          p_user_id: null,
-          p_action: "VERIFY_DOCUMENT",
-          p_description: `Verifikasi dokumen "${data.title}" dari portal publik`,
-        });
-      } catch (auditError) {
-        // Don't fail verification if audit logging fails
-        console.error("Failed to log verification:", auditError);
-      }
+      setVerificationResult(docData as UserDocument);
 
       toast({
         title: "Verifikasi Berhasil",
-        description: `Status dokumen: ${getStatusMessage(data.status)}`,
+        description: `Dokumen valid (key: ${result.keyId})`,
       });
-    } catch (error) {
+
+      // Optional audit entry
+      await supabase.rpc("create_audit_entry", {
+        p_user_id: null,
+        p_action: "VERIFY_DOCUMENT",
+        p_description: `Verifikasi dokumen "${docData?.title}" dari portal publik`,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      const message =
+        err.response?.data?.error ?? err.message ?? "Terjadi kesalahan saat memverifikasi dokumen";
+      console.error("Verification error:", err);
+
       toast({
         title: "Error Verifikasi",
-        description: "Terjadi kesalahan saat memverifikasi dokumen",
+        description: message,
         variant: "destructive",
       });
       setVerificationResult(null);
@@ -302,10 +314,9 @@ export default function VerificationPortal() {
 
                     {verificationResult.status === "signed" && (
                       <div className="flex justify-between border-b pb-2">
-                        <span className="text-muted-foreground">Serial Sertifikat:</span>
+                        <span className="text-muted-foreground">Ditandatangani dengan Key ID:</span>
                         <span className="font-mono text-sm">
-                          {/* TODO: Fetch the public key ID used by the document */}
-                          {/* {verificationResult.certificate.serial_number} */}
+                          {verificationResult.document_signatures?.[0]?.key_id}
                         </span>
                       </div>
                     )}

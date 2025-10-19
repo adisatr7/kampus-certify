@@ -135,7 +135,9 @@ export default function AuditTrail() {
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (auditError) throw auditError;
+      if (auditError) {
+        throw auditError;
+      }
 
       const userIds = [...new Set(auditData.map((e) => e.user_id).filter(Boolean))];
       const { data: userData } = await supabase

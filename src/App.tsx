@@ -10,7 +10,7 @@ import AuditTrail from "./pages/admin/AuditTrail";
 import DocumentManagement from "./pages/admin/DocumentManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import PublicDocumentVerification from "./pages/PublicDocumentVerification";
+// import PublicDocumentVerification from "./pages/PublicDocumentVerification";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
 import VerificationPortal from "./pages/VerificationPortal";

@@ -13,4 +13,7 @@ export interface UserDocument {
   updated_at: string;
   content?: string | null;
   user?: User;
+  document_signatures?: {
+    key_id: string;
+  }[];
 }
