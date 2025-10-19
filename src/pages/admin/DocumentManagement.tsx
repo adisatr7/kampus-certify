@@ -100,7 +100,7 @@ export default function DocumentManagement() {
       const { error: insertError } = await supabase.from("documents").insert({
         title,
         content: content.trim(),
-        user_id: userProfile.id,
+        user_id: userId,
         file_url: publicUrl,
         status: "pending",
       });
