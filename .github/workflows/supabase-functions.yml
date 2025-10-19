@@ -28,4 +28,7 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Push Edge Functions
-        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
+        run: |
+          supabase functions deploy sign-document --project-ref "$SUPABASE_PROJECT_ID"
+          supabase functions deploy verify-document --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"
+
