@@ -17,6 +17,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DocumentStatus } from "@/types";
+
+type VerificationStatus = DocumentStatus | "valid" | "invalid";
 
 interface VerificationResult {
   documentId: string;
@@ -24,10 +27,11 @@ interface VerificationResult {
   signerName: string;
   signerRole: string;
   signedDate: string;
-  status: "valid" | "invalid" | "revoked";
+  status: VerificationStatus;
   certificateSerial: string;
   downloadUrl?: string;
 }
+// TODO: Implement the revamped verification logic with latest API integration
 
 export default function PublicVerify() {
   const [documentId, setDocumentId] = useState("");
@@ -74,7 +78,7 @@ export default function PublicVerify() {
     }, 2000);
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: VerificationStatus) => {
     switch (status) {
       case "valid":
         return <CheckCircle2 className="h-5 w-5 text-green-600" />;
@@ -87,7 +91,7 @@ export default function PublicVerify() {
     }
   };
 
-  const getStatusMessage = (status: string) => {
+  const getStatusMessage = (status: VerificationStatus) => {
     switch (status) {
       case "valid":
         return "Dokumen ini asli dan belum pernah dimodifikasi sejak ditandatangani.";
@@ -196,7 +200,16 @@ export default function PublicVerify() {
                   <CardTitle className="flex items-center gap-2">
                     {getStatusIcon(verificationResult.status)}
                     Hasil Verifikasi
-                    <StatusBadge status={verificationResult.status} />
+                    {/* Map verification status to DocumentStatus for StatusBadge */}
+                    <StatusBadge
+                      status={
+                        verificationResult.status === "valid"
+                          ? ("signed" as DocumentStatus)
+                          : verificationResult.status === "revoked"
+                            ? ("revoked" as DocumentStatus)
+                            : ("pending" as DocumentStatus)
+                      }
+                    />
                   </CardTitle>
                   <CardDescription>{getStatusMessage(verificationResult.status)}</CardDescription>
                 </CardHeader>
