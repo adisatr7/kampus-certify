@@ -1,3 +1,5 @@
+name: Push Supabase Edge Functions
+
 on:
   push:
     branches:
@@ -5,7 +7,6 @@ on:
 
 jobs:
   push-edge-functions:
-    name: Push Supabase Edge Functions
     runs-on: ubuntu-latest
 
     steps:
