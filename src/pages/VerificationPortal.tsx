@@ -159,10 +159,11 @@ export default function VerificationPortal() {
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
-        <div
+        {/* This causes the background colors to not be scrollable, and for that reason is disabled. */}
+        {/* <div
           className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft"
           style={{ animationDelay: "1s" }}
-        />
+        /> */}
       </div>
 
       <div className="flex-1 relative z-10">
