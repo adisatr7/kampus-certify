@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
-import { useState } from "react";
+import { Calendar, FileText, PenTool, QrCode} from "lucide-react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -27,6 +27,15 @@ import { UserDocument } from "@/types";
 export default function DocumentSigning() {
   const { toast } = useToast();
   const { userProfile } = useAuth();
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkScreen = () => setIsMobile(window.innerWidth < 768);
+    checkScreen();
+    window.addEventListener("resize", checkScreen);
+    return () => window.removeEventListener("resize", checkScreen);
+  }, []);
+
 
   const { latestKey } = useFetchLatestKey();
   const {
@@ -185,7 +194,55 @@ export default function DocumentSigning() {
                   Semua dokumen Anda sudah ditandatangani atau belum ada dokumen yang diupload
                 </p>
               </div>
-            ) : (
+            ) : isMobile ? (
+              // === Tampilan Mobile → Card Layout ===
+              <div className="space-y-4 max-h-[450px] overflow-y-auto">
+                {documents.map((doc) => (
+                  <Card
+                    key={doc.id}
+                    className="border-0 shadow-md bg-white/80 backdrop-blur-sm"
+                  >
+                    <CardHeader className="border-b border-slate-200/60">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                          <FileText className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-semibold text-slate-900">
+                            {doc.title}
+                          </CardTitle>
+                          <p className="text-sm text-slate-600">
+                            Dibuat:{" "}
+                            {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700">Status:</span>
+                        <StatusBadge status={doc.status as any} />
+                      </div>
+                      <div className="flex items-center gap-2 justify-end">
+                        {doc.file_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(doc.file_url!, "_blank")}
+                          >
+                            Lihat
+                          </Button>
+                        )}
+                        <Button size="sm" onClick={() => openSignDialog(doc)}>
+                          <PenTool className="mr-2 h-4 w-4" />
+                          Tanda Tangan
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )  : (
               <Table>
                 <TableHeader>
                   <TableRow>
