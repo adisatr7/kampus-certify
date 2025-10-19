@@ -1,3 +1,5 @@
+name: Check for code quality with Biome linter
+
 on:
   push:
     branches:
@@ -5,7 +7,6 @@ on:
 
 jobs:
   lint:
-    name: Check for code quality with Biome linter
     runs-on: ubuntu-latest
     permissions:
       contents: read

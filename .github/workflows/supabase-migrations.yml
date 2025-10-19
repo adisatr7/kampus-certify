@@ -1,10 +1,11 @@
+name: Apply Supabase Migrations
+
 on:
   push:
     branches: [ "main" ]
 
 jobs:
   apply-migrations:
-    name: Apply Supabase Migrations
     runs-on: ubuntu-latest
 
     steps:
