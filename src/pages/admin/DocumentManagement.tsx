@@ -45,7 +45,7 @@ export default function DocumentManagement() {
   const {
     data: documents,
     isLoading: isLoadingDocuments,
-    refetch: fetchDocuments,
+    refetch: refetchDocuments,
   } = useFetchAllDocuments();
   const { data: listOfUsers } = useFetchAllUsers();
 
@@ -72,42 +72,44 @@ export default function DocumentManagement() {
     setIsUploading(true);
 
     try {
-      let fileUrl = null;
+      let publicUrl = null;
 
+      // Upload file to Supabase Storage if file is provided
       if (file) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-        const filePath = `documents/${fileName}`;
+        const filePath = `${userProfile.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("documents")
+          .from("signed-documents")
           .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
 
+        // Get public URL from the same bucket we uploaded to
         const {
-          data: { publicUrl },
-        } = supabase.storage.from("documents").getPublicUrl(filePath);
+          data: { publicUrl: url },
+        } = supabase.storage.from("signed-documents").getPublicUrl(filePath);
 
-        fileUrl = publicUrl;
+        publicUrl = url;
       }
 
+      // Create document record with content from textarea
       const { error: insertError } = await supabase.from("documents").insert({
         title,
-        content,
-        user_id: userId,
-        file_url: fileUrl,
+        content: content.trim(),
+        user_id: userProfile.id,
+        file_url: publicUrl,
         status: "pending",
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        throw insertError;
+      }
 
-      const selectedUser = listOfUsers.find((u) => u.id === userId);
-      await createAuditEntry(
-        userProfile.id,
-        "CREATE_DOCUMENT",
-        `Membuat dokumen "${title}" untuk ${selectedUser?.name}`,
-      );
+      await createAuditEntry(userProfile.id, "CREATE_DOCUMENT", `Mengupload dokumen "${title}"`);
 
       toast({
         title: "Berhasil",
@@ -116,7 +118,7 @@ export default function DocumentManagement() {
 
       setIsCreateDialogOpen(false);
       resetForm();
-      fetchDocuments();
+      refetchDocuments();
     } catch (error) {
       toast({
         title: "Error",
@@ -140,7 +142,7 @@ export default function DocumentManagement() {
         description: "Dokumen berhasil dihapus",
       });
 
-      fetchDocuments();
+      refetchDocuments();
     } catch (error) {
       toast({
         title: "Error",
