@@ -10,7 +10,7 @@ import AuditTrail from "./pages/admin/AuditTrail";
 import DocumentManagement from "./pages/admin/DocumentManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import PublicDocumentVerification from "./pages/PublicDocumentVerification";
+// import PublicDocumentVerification from "./pages/PublicDocumentVerification";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
 import VerificationPortal from "./pages/VerificationPortal";
@@ -42,10 +42,10 @@ const App = () => (
                 path="/verification-portal"
                 element={<VerificationPortal />}
               />
-              <Route
+              {/* <Route
                 path="/document-verification"
                 element={<PublicDocumentVerification />}
-              />
+              /> */}
 
               {/* Admin Routes */}
               <Route

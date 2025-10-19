@@ -139,7 +139,9 @@ export default function DocumentManagement() {
   const deleteDocument = async (documentId: string, title: string) => {
     try {
       const { error } = await supabase.from("documents").delete().eq("id", documentId);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       await createAuditEntry(userProfile.id, "DELETE_DOCUMENT", `Menghapus dokumen "${title}"`);
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -33,7 +33,7 @@ export default function DocumentSigning() {
     data: documents,
     isLoading: isLoadingDocuments,
     refetch: refetchDocuments,
-  } = useFetchDocumentsByUserId(userProfile?.id ?? "", "pending");
+  } = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
 
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
@@ -228,9 +228,12 @@ export default function DocumentSigning() {
                                   Lihat
                                 </Button>
                               )}
-                              <Button onClick={() => openSignDialog(doc)} size="sm">
+                              <Button
+                                onClick={() => openSignDialog(doc)}
+                                size="sm"
+                              >
                                 <PenTool className="mr-2 h-4 w-4" />
-                                Tanda Tangan
+                                {doc.status === "pending" ? "Tanda Tangan" : "Tanda Tangan Ulang"}
                               </Button>
                             </div>
                           </TableCell>
@@ -259,8 +262,7 @@ export default function DocumentSigning() {
                               {doc.title}
                             </CardTitle>
                             <p className="text-sm text-slate-600">
-                              Dibuat:{" "}
-                              {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                              Dibuat: {new Date(doc.created_at).toLocaleDateString("id-ID")}
                             </p>
                           </div>
                         </div>
@@ -280,7 +282,10 @@ export default function DocumentSigning() {
                               Lihat
                             </Button>
                           )}
-                          <Button size="sm" onClick={() => openSignDialog(doc)}>
+                          <Button
+                            size="sm"
+                            onClick={() => openSignDialog(doc)}
+                          >
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
                           </Button>

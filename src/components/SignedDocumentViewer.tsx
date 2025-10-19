@@ -50,7 +50,9 @@ export default function SignedDocumentViewer({
     } else {
       // Fallback to HTML print
       const printWindow = window.open("", "_blank");
-      if (!printWindow) return;
+      if (!printWindow) {
+        return;
+      }
 
       const templateHtml = `
         <!DOCTYPE html>

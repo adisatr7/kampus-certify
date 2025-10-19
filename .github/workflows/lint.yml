@@ -1,9 +1,9 @@
 name: Check for code quality with Biome linter
 
 on:
-  push:
+  pull_request:
     branches:
-      - "*"
+      - main
 
 jobs:
   lint:

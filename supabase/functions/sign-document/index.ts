@@ -1,20 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { base64Decode, corsHeaders } from "../_shared/index.ts";
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SERVICE_ROLE_KEY")!);
-
-/**
- * Small local base64 decoder returning a Uint8Array. Avoids compatibility issues
- * with std library exports across Deno versions and the Edge runtime.
- */
-function base64Decode(b64: string): Uint8Array {
-  if (typeof atob !== "function") throw new Error("base64 decoding not available");
-  const binary = atob(b64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
 
 Deno.serve(async (req) => {
   const headers: Headers = new Headers(corsHeaders);
@@ -36,7 +23,7 @@ Deno.serve(async (req) => {
 
     // Handle missing document error
     if (error || !doc) {
-      return new Response(JSON.stringify({ error: "Document not found" }), {
+      return new Response(JSON.stringify({ error: "Dokumen tidak ditemukan" }), {
         status: 404,
         headers,
       });

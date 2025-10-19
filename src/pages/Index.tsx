@@ -5,7 +5,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { supabase } from "@/integrations/supabase/client";
 import Dashboard from "./Dashboard";
-import PublicVerify from "./PublicVerify";
+import PublicVerify from "./PublicVerify"; // ! Unused
+import VerificationPortal from "./VerificationPortal";
 
 const Index = () => {
   const [session, setSession] = useState(null);
@@ -142,7 +143,7 @@ const Index = () => {
 
   // Handle public verification route
   if (window.location.pathname === "/verify") {
-    return <PublicVerify />;
+    return <VerificationPortal />;
   }
 
   // Not authenticated
