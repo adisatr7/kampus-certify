@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { UserRole } from "@/types/UserRole";
-import { DocumentStatus, UserDocument } from "../types";
+import { DocumentStatus, UserDocument } from "@/types";
 
 export default function VerificationPortal() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
