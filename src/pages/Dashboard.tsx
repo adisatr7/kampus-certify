@@ -11,6 +11,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/dashboard";
@@ -32,6 +33,27 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
 
   // Only fetch recent documents for non-admin users
   const { data: recentDocuments, isLoading: documentsLoading } = useRecentDocuments(userRole);
+
+  const navigate = useNavigate();
+
+  const handleNewDocument = () => {
+    if (userRole === "admin") {
+      navigate("admin/documents");
+    } else {
+      navigate("/documents");
+    }
+  };
+
+  const handleSignDocument = () => {
+    if (userRole === "admin") {
+      return;
+    }
+    navigate("/sign");
+  };
+
+  const handleVerifyDocument = () => {
+    navigate("/verify");
+  };
 
   // Dashboard configuration based on role
   const getDashboardConfig = () => {
@@ -328,7 +350,10 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
             </Card>
 
             {/* Admin Quick Actions */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card
+              className="border-0 shadow-lg bg-white/80 backdrop-blur-sm"
+              onClick={handleNewDocument}
+            >
               <CardHeader className="border-b border-slate-200/60">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600">
@@ -379,7 +404,10 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                 </div>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
-                <button className="w-full group relative overflow-hidden text-left p-5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <button
+                  onClick={handleNewDocument}
+                  className="w-full group relative overflow-hidden text-left p-5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                >
                   <div className="relative z-10">
                     <div className="flex items-center justify-between">
                       <div className="font-semibold text-lg">Upload Dokumen</div>
@@ -389,14 +417,22 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
                 </button>
-                <button className="w-full group text-left p-5 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 border border-blue-200">
+
+                <button
+                  onClick={handleSignDocument}
+                  className="w-full group text-left p-5 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 border border-blue-200"
+                >
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-lg text-blue-700">Tanda Tangani</div>
                     <Award className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="text-sm text-blue-600 mt-2">Tanda tangani dokumen digital</div>
                 </button>
-                <button className="w-full group text-left p-5 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 transition-all duration-300 border border-emerald-200">
+
+                <button
+                  onClick={handleVerifyDocument}
+                  className="w-full group text-left p-5 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 transition-all duration-300 border border-emerald-200"
+                >
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-lg text-emerald-700">Verifikasi</div>
                     <Activity className="h-6 w-6 text-emerald-600" />
