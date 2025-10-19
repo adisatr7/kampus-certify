@@ -1,20 +1,8 @@
-import {
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Download,
-  FileText,
-  QrCode,
-  Search,
-  Shield,
-  University,
-  XCircle,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Menu, QrCode, Search, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import campusBackground from "@/assets/campus-bg.jpg";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -22,6 +10,8 @@ import { Label } from "@/components/ui/Label";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { UserRole } from "@/types/UserRole";
 
 interface VerificationResult {
   id: string;
@@ -42,6 +32,9 @@ interface VerificationResult {
 }
 
 export default function VerificationPortal() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const { userProfile } = useAuth();
+  const isLoggedIn = Boolean(userProfile);
   const [documentId, setDocumentId] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
@@ -103,7 +96,7 @@ export default function VerificationPortal() {
         return;
       }
 
-      setVerificationResult(data);
+      setVerificationResult(data as unknown as VerificationResult);
 
       // Log verification attempt (optional - for audit purposes)
       try {
@@ -179,18 +172,46 @@ export default function VerificationPortal() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <AppHeader />
 
+      {/* Mobile Overlay */}
+      {!sidebarCollapsed && isLoggedIn && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+
+      {isLoggedIn && (
+        <AppSidebar
+          userRole={(userProfile?.role as UserRole) ?? "dosen"}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
+        />
+      )}
+
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-yellow-400/20 dark:from-yellow-500/10 dark:to-yellow-700/5 rounded-full blur-3xl animate-pulse-soft"></div>
         <div
           className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-indigo-400/20 dark:from-blue-500/10 dark:to-indigo-700/5 rounded-full blur-3xl animate-pulse-soft"
           style={{ animationDelay: "1s" }}
-        ></div>
+        />
       </div>
 
       <div className="flex-1 relative z-10">
         {/* Main Content */}
-        <main className="relative z-10 container mx-auto px-6 py-12 animate-fade-in-up">
+        <main className="relative z-10 container mx-auto px-6 py-4 lg:py-12 animate-fade-in-up">
+          {/* Mobile Menu Button */}
+          {isLoggedIn && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSidebarCollapsed(false)}
+              className="lg:hidden mb-4"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Menu
+            </Button>
+          )}
           <div className="max-w-2xl mx-auto space-y-8">
             {/* Verification Form */}
             <Card className="border-0 shadow-2xl bg-card/95 backdrop-blur-xl hover:shadow-3xl transition-all duration-300">
@@ -338,7 +359,7 @@ export default function VerificationPortal() {
                           getOverallStatus(
                             verificationResult.status,
                             verificationResult.certificate?.status,
-                          ) as any
+                          ) as VerificationResult["status"]
                         }
                         className="text-lg px-6 py-2"
                       />

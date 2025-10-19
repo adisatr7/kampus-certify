@@ -114,7 +114,7 @@ export default function DocumentManagement() {
       await createAuditEntry(
         userProfile.id,
         "CREATE_DOCUMENT",
-        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`
+        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`,
       );
 
       toast({
