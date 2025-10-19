@@ -109,7 +109,13 @@ export default function DocumentManagement() {
         throw insertError;
       }
 
-      await createAuditEntry(userProfile.id, "CREATE_DOCUMENT", `Mengupload dokumen "${title}"`);
+      const targetUser = listOfUsers?.find((u) => u.id === userId);
+      const targetUserName = targetUser ? targetUser.name : userId;
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_DOCUMENT",
+        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`
+      );
 
       toast({
         title: "Berhasil",
