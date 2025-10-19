@@ -1,17 +1,5 @@
-import {
-  Activity,
-  Award,
-  ChevronLeft,
-  FileText,
-  Home,
-  LogOut,
-  Menu,
-  Search,
-  Settings,
-  Users,
-} from "lucide-react";
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Activity, Award, ChevronLeft, FileText, Home, LogOut, Menu, Search } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
 import { useAuth } from "@/lib/auth";
@@ -67,6 +55,14 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
     );
 
   const items = menuItems[userRole] || menuItems.dosen;
+
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Redirect to home
+    navigate("/");
+  };
 
   return (
     <div
@@ -137,7 +133,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
         <Button
           variant="ghost"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="ml-3">Keluar</span>}
