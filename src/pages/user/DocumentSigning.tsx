@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
-import { useState } from "react";
+import {
+  Calendar,
+  FileText,
+  PenTool,
+  QrCode,
+  BarChart3,
+  Activity,
+  AlertCircle,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -37,12 +46,24 @@ export default function DocumentSigning() {
 
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
-
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => setIsMobile(window.innerWidth < 768);
+    checkScreen();
+    window.addEventListener("resize", checkScreen);
+    return () => window.removeEventListener("resize", checkScreen);
+  }, []);
 
   const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
     setIsSignDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsSignDialogOpen(false);
+    setSelectedDocument(null);
   };
 
   const signDocument = async () => {
@@ -57,17 +78,13 @@ export default function DocumentSigning() {
 
     setIsSigning(true);
     try {
-      // current auth session
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
-
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
 
       const response = await axios.post(
         url,
-        {
-          documentId: selectedDocument.id,
-        },
+        { documentId: selectedDocument.id },
         {
           headers: {
             "Content-Type": "application/json",
@@ -79,8 +96,6 @@ export default function DocumentSigning() {
       const result = response.data;
       console.log("Signature result:", result);
 
-      let signedDocumentUrl = "";
-
       const signedPdfBlob = await generateSignedPDF(selectedDocument.file_url, {
         documentId: selectedDocument.id,
         documentTitle: selectedDocument.title,
@@ -90,17 +105,14 @@ export default function DocumentSigning() {
         signedAt: new Date().toISOString(),
       });
 
-      // Upload signed PDF to storage
-      signedDocumentUrl = await uploadSignedPDF(
+      const signedDocumentUrl = await uploadSignedPDF(
         signedPdfBlob,
         userProfile.id,
         selectedDocument.id,
         supabase,
       );
 
-      if (!signedDocumentUrl) {
-        throw new Error("Gagal mengunggah dokumen yang telah ditandatangani");
-      }
+      if (!signedDocumentUrl) throw new Error("Gagal mengunggah dokumen yang telah ditandatangani");
 
       await createAuditEntry(
         userProfile.id,
@@ -116,7 +128,6 @@ export default function DocumentSigning() {
       setSelectedDocument(null);
       closeDialog();
     } catch (err) {
-      // Improve axios error logging
       const serverMessage =
         (err as any)?.response?.data?.message ??
         (err as any)?.response?.data ??
@@ -128,23 +139,11 @@ export default function DocumentSigning() {
         description: String(serverMessage),
         variant: "destructive",
       });
-
       console.error("Gagal menandatangani dokumen:", err);
-
-      toast({
-        title: "Error",
-        description: "Gagal menandatangani dokumen",
-        variant: "destructive",
-      });
     } finally {
       setIsSigning(false);
       refetchDocuments();
     }
-  };
-
-  const closeDialog = () => {
-    setIsSignDialogOpen(false);
-    setSelectedDocument(null);
   };
 
   if (isLoadingDocuments) {
@@ -161,14 +160,15 @@ export default function DocumentSigning() {
   return (
     <DashboardLayout userRole={userProfile?.role as any}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Tanda Tangan Dokumen</h1>
-          <p className="text-muted-foreground">
-            Tandatangani dokumen Anda dengan sertifikat digital
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Tanda Tangan Dokumen</h1>
+            <p className="text-muted-foreground">
+              Tandatangani dokumen Anda dengan sertifikat digital
+            </p>
+          </div>
         </div>
 
-        {/* Documents to Sign */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -185,7 +185,56 @@ export default function DocumentSigning() {
                   Semua dokumen Anda sudah ditandatangani atau belum ada dokumen yang diupload
                 </p>
               </div>
+            ) : isMobile ? (
+              // === Tampilan Mobile → Card Layout ===
+              <div className="space-y-4 max-h-[450px] overflow-y-auto">
+                {documents.map((doc) => (
+                  <Card
+                    key={doc.id}
+                    className="border-0 shadow-md bg-white/80 backdrop-blur-sm"
+                  >
+                    <CardHeader className="border-b border-slate-200/60">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                          <FileText className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-semibold text-slate-900">
+                            {doc.title}
+                          </CardTitle>
+                          <p className="text-sm text-slate-600">
+                            Dibuat:{" "}
+                            {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700">Status:</span>
+                        <StatusBadge status={doc.status as any} />
+                      </div>
+                      <div className="flex items-center gap-2 justify-end">
+                        {doc.file_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(doc.file_url!, "_blank")}
+                          >
+                            Lihat
+                          </Button>
+                        )}
+                        <Button size="sm" onClick={() => openSignDialog(doc)}>
+                          <PenTool className="mr-2 h-4 w-4" />
+                          Tanda Tangan
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
+              // === Tampilan Desktop → Table ===
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -226,10 +275,7 @@ export default function DocumentSigning() {
                               Lihat
                             </Button>
                           )}
-                          <Button
-                            onClick={() => openSignDialog(doc)}
-                            size="sm"
-                          >
+                          <Button onClick={() => openSignDialog(doc)} size="sm">
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
                           </Button>
@@ -243,11 +289,8 @@ export default function DocumentSigning() {
           </CardContent>
         </Card>
 
-        {/* Sign Dialog */}
-        <Dialog
-          open={isSignDialogOpen}
-          onOpenChange={closeDialog}
-        >
+        {/* Dialog Tanda Tangan */}
+        <Dialog open={isSignDialogOpen} onOpenChange={closeDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Tanda Tangan Dokumen</DialogTitle>
@@ -265,7 +308,6 @@ export default function DocumentSigning() {
                   </div>
                 </>
               )}
-
               <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <QrCode className="h-5 w-5 text-blue-600 mt-0.5" />
@@ -277,18 +319,11 @@ export default function DocumentSigning() {
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={closeDialog}
-                >
+                <Button variant="outline" onClick={closeDialog}>
                   Batal
                 </Button>
-                <Button
-                  onClick={signDocument}
-                  disabled={isSigning}
-                >
+                <Button onClick={signDocument} disabled={isSigning}>
                   {isSigning ? (
                     <>
                       <PenTool className="mr-2 h-4 w-4 animate-pulse" />
