@@ -1,5 +1,6 @@
 import {
   Calendar,
+  Check,
   Clock,
   Download,
   Eye,
@@ -10,6 +11,7 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -573,9 +575,14 @@ export default function MyDocuments() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {doc.status === "signed" && doc.updated_at ? (
+                              {doc.status !== "pending" && doc.updated_at ? (
                                 <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-emerald-500" />
+                                  {doc.status === "signed" && (
+                                    <Check className="h-4 w-4 text-emerald-500" />
+                                  )}
+                                  {doc.status === "revoked" && (
+                                    <X className="h-4 w-4 text-red-500" />
+                                  )}
                                   <span className="text-sm text-slate-600">
                                     {new Date(doc.updated_at).toLocaleDateString("id-ID")}
                                   </span>
