@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -186,37 +186,91 @@ export default function DocumentSigning() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Judul Dokumen</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Judul Dokumen</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Dibuat</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {documents.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{doc.title}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={doc.status as any} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {doc.file_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(doc.file_url!, "_blank")}
+                                >
+                                  Lihat
+                                </Button>
+                              )}
+                              <Button onClick={() => openSignDialog(doc)} size="sm">
+                                <PenTool className="mr-2 h-4 w-4" />
+                                Tanda Tangan
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="block md:hidden space-y-4 max-h-[450px] overflow-y-auto pr-1">
+                  <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">
+                    Daftar Dokumen
+                  </h2>
                   {documents.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{doc.title}</span>
+                    <Card
+                      key={doc.id}
+                      className="border border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm"
+                    >
+                      <CardHeader className="border-b border-slate-200/60 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                            <FileText className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-semibold text-slate-900">
+                              {doc.title}
+                            </CardTitle>
+                            <p className="text-sm text-slate-600">
+                              Dibuat:{" "}
+                              {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                            </p>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={doc.status as any} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {new Date(doc.created_at).toLocaleDateString("id-ID")}
-                          </span>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700">Status:</span>
+                          <StatusBadge status={doc.status as any} />
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-end">
                           {doc.file_url && (
                             <Button
                               variant="outline"
@@ -226,19 +280,16 @@ export default function DocumentSigning() {
                               Lihat
                             </Button>
                           )}
-                          <Button
-                            onClick={() => openSignDialog(doc)}
-                            size="sm"
-                          >
+                          <Button size="sm" onClick={() => openSignDialog(doc)}>
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
                           </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
