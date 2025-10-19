@@ -42,10 +42,10 @@ const App = () => (
                 path="/verification-portal"
                 element={<VerificationPortal />}
               />
-              <Route
+              {/* <Route
                 path="/document-verification"
                 element={<PublicDocumentVerification />}
-              />
+              /> */}
 
               {/* Admin Routes */}
               <Route
