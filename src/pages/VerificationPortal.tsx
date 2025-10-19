@@ -12,24 +12,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { UserRole } from "@/types/UserRole";
-
-interface VerificationResult {
-  id: string;
-  title: string;
-  status: "signed" | "revoked" | "pending";
-  signed_at: string | null;
-  file_url: string | null;
-  qr_code_url: string | null;
-  content?: string | null;
-  certificate?: {
-    serial_number: string;
-    status: string;
-  };
-  users?: {
-    name: string;
-    role: string;
-  };
-}
+import { DocumentStatus, UserDocument } from "../types";
 
 export default function VerificationPortal() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -37,7 +20,7 @@ export default function VerificationPortal() {
   const isLoggedIn = Boolean(userProfile);
   const [documentId, setDocumentId] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [verificationResult, setVerificationResult] = useState<UserDocument | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
 
@@ -72,11 +55,7 @@ export default function VerificationPortal() {
         .from("documents")
         .select(`
           *,
-          certificates (
-            serial_number,
-            status
-          ),
-          users (
+          user:users (
             name,
             role
           )
@@ -84,7 +63,9 @@ export default function VerificationPortal() {
         .eq("id", docId.trim())
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (!data) {
         toast({
@@ -96,7 +77,7 @@ export default function VerificationPortal() {
         return;
       }
 
-      setVerificationResult(data as unknown as VerificationResult);
+      setVerificationResult(data as UserDocument);
 
       // Log verification attempt (optional - for audit purposes)
       try {
@@ -112,7 +93,7 @@ export default function VerificationPortal() {
 
       toast({
         title: "Verifikasi Berhasil",
-        description: `Status dokumen: ${getStatusMessage(data.status, data.certificates?.status)}`,
+        description: `Status dokumen: ${getStatusMessage(data.status)}`,
       });
     } catch (error) {
       toast({
@@ -126,40 +107,27 @@ export default function VerificationPortal() {
     }
   };
 
-  const getStatusIcon = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === "signed" && certificateStatus === "active") {
+  const getStatusIcon = (documentStatus: DocumentStatus) => {
+    if (documentStatus === "signed") {
       return <CheckCircle className="h-8 w-8 text-status-valid" />;
     }
-    if (documentStatus === "revoked" || certificateStatus === "revoked") {
+    if (documentStatus === "revoked") {
       return <XCircle className="h-8 w-8 text-status-invalid" />;
     }
     return <AlertTriangle className="h-8 w-8 text-orange-500" />;
   };
 
-  const getStatusMessage = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === "signed" && certificateStatus === "active") {
-      return "VALID - Dokumen sah dan sertifikat aktif";
+  const getStatusMessage = (documentStatus: DocumentStatus) => {
+    if (documentStatus === "signed") {
+      return "VALID - Dokumen sah";
     }
     if (documentStatus === "revoked") {
-      return "REVOKED - Dokumen telah dicabut";
-    }
-    if (certificateStatus === "revoked") {
-      return "INVALID - Sertifikat telah dicabut";
+      return "REVOKED - Sertifikat dokumen telah dicabut";
     }
     if (documentStatus === "pending") {
       return "PENDING - Dokumen belum ditandatangani";
     }
     return "INVALID - Status tidak valid";
-  };
-
-  const getOverallStatus = (documentStatus: string, certificateStatus?: string) => {
-    if (documentStatus === "signed" && certificateStatus === "active") {
-      return "valid";
-    }
-    if (documentStatus === "revoked" || certificateStatus === "revoked") {
-      return "revoked";
-    }
-    return "invalid";
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -309,33 +277,34 @@ export default function VerificationPortal() {
                       <span className="font-medium">{verificationResult.title}</span>
                     </div>
 
-                    {verificationResult.users && (
+                    {verificationResult.user && (
                       <>
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Nama Penandatangan:</span>
-                          <span className="font-medium">{verificationResult.users.name}</span>
+                          <span className="font-medium">{verificationResult.user.name}</span>
                         </div>
 
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Jabatan:</span>
                           <span className="font-medium">
-                            {verificationResult.users.role === "rektor"
+                            {verificationResult.user.role === "rektor"
                               ? "Rektor"
-                              : verificationResult.users.role === "dekan"
+                              : verificationResult.user.role === "dekan"
                                 ? "Dekan"
-                                : verificationResult.users.role === "dosen"
+                                : verificationResult.user.role === "dosen"
                                   ? "Dosen"
-                                  : verificationResult.users.role}
+                                  : verificationResult.user.role}
                           </span>
                         </div>
                       </>
                     )}
 
-                    {verificationResult.certificate && (
+                    {verificationResult.status === "signed" && (
                       <div className="flex justify-between border-b pb-2">
                         <span className="text-muted-foreground">Serial Sertifikat:</span>
                         <span className="font-mono text-sm">
-                          {verificationResult.certificate.serial_number}
+                          {/* TODO: Fetch the public key ID used by the document */}
+                          {/* {verificationResult.certificate.serial_number} */}
                         </span>
                       </div>
                     )}
@@ -350,25 +319,17 @@ export default function VerificationPortal() {
                     </p>
 
                     <div className="flex items-center justify-center gap-2 mt-4">
-                      {getStatusIcon(
-                        verificationResult.status,
-                        verificationResult.certificate?.status,
-                      )}
+                      {getStatusIcon(verificationResult.status)}
                       <StatusBadge
-                        status={
-                          getOverallStatus(
-                            verificationResult.status,
-                            verificationResult.certificate?.status,
-                          ) as VerificationResult["status"]
-                        }
+                        status={verificationResult.status}
                         className="text-lg px-6 py-2"
                       />
                     </div>
 
-                    {verificationResult.signed_at && (
+                    {verificationResult.status === "signed" && verificationResult.updated_at && (
                       <p className="text-sm text-center text-muted-foreground mt-2">
                         Ditandatangani pada:{" "}
-                        {new Date(verificationResult.signed_at).toLocaleDateString("id-ID", {
+                        {new Date(verificationResult.updated_at).toLocaleDateString("id-ID", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",

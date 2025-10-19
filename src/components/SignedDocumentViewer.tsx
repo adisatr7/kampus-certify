@@ -29,19 +29,19 @@ export default function SignedDocumentViewer({
   document,
 }: SignedDocumentViewerProps) {
   const handlePrint = () => {
-    if (document.signed_document_url) {
+    if (document.file_url) {
       // Open PDF in new window for printing
-      window.open(document.signed_document_url, "_blank");
+      window.open(document.file_url, "_blank");
     } else {
       window.print();
     }
   };
 
   const handleDownload = () => {
-    if (document.signed_document_url) {
+    if (document.file_url) {
       // Download the actual signed PDF file
       const link = window.document.createElement("a");
-      link.href = document.signed_document_url;
+      link.href = document.file_url;
       link.download = `${document.title}-signed.pdf`;
       link.target = "_blank";
       window.document.body.appendChild(link);
@@ -59,10 +59,10 @@ export default function SignedDocumentViewer({
             <title>${document.title}</title>
             <meta charset="utf-8">
             <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                margin: 0; 
-                padding: 20px; 
+              body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
                 background: white;
               }
               .container {
@@ -128,19 +128,44 @@ export default function SignedDocumentViewer({
         </DialogHeader>
 
         <div className="mt-4">
-          {document.signed_document_url ? (
+          {document.file_url ? (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
               <iframe
-                src={document.signed_document_url}
+                src={document.file_url}
                 className="w-full h-full"
                 title="Signed Document PDF"
               />
             </div>
           ) : (
-            <SignedDocumentTemplate
-              document={document}
-              qrCodeUrl={document.qr_code_url || undefined}
-            />
+            // Map UserDocument to the shape expected by SignedDocumentTemplate
+            (() => {
+              const signedAt =
+                ((document as unknown as Record<string, unknown>).signed_at as
+                  | string
+                  | null
+                  | undefined) ??
+                document.updated_at ??
+                document.created_at ??
+                null;
+
+              const templateDoc = {
+                id: document.id,
+                title: document.title,
+                signed_at: signedAt,
+                content: document.content ?? null,
+                file_url: document.file_url ?? null,
+                users: document.user
+                  ? { name: document.user.name, role: document.user.role }
+                  : undefined,
+              };
+
+              return (
+                <SignedDocumentTemplate
+                  document={templateDoc}
+                  qrCodeUrl={document.qr_code_url || undefined}
+                />
+              );
+            })()
           )}
         </div>
       </DialogContent>
