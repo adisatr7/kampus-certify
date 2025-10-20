@@ -197,13 +197,11 @@ export async function generateSignedPDF(doc: UserDocument): Promise<Blob> {
     year: "numeric",
   });
 
-  const documentSignature = (doc.document_signatures ?? []).sort(
-    (a, b) => {
-      const aTime = a.signed_at ? Date.parse(a.signed_at) : -Infinity;
-      const bTime = b.signed_at ? Date.parse(b.signed_at) : -Infinity;
-      return bTime - aTime;
-    },
-  )[0];
+  const documentSignature = (doc.document_signatures ?? []).sort((a, b) => {
+    const aTime = a.signed_at ? Date.parse(a.signed_at) : -Infinity;
+    const bTime = b.signed_at ? Date.parse(b.signed_at) : -Infinity;
+    return bTime - aTime;
+  })[0];
 
   // Calculate positions (from bottom)
   let yPosition = 180; // Start from bottom
