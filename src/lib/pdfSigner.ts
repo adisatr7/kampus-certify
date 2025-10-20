@@ -198,7 +198,11 @@ export async function generateSignedPDF(doc: UserDocument): Promise<Blob> {
   });
 
   const documentSignature = (doc.document_signatures ?? []).sort(
-    (a, b) => new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime(),
+    (a, b) => {
+      const aTime = a.signed_at ? Date.parse(a.signed_at) : -Infinity;
+      const bTime = b.signed_at ? Date.parse(b.signed_at) : -Infinity;
+      return bTime - aTime;
+    },
   )[0];
 
   // Calculate positions (from bottom)
