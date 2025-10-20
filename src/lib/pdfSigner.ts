@@ -290,7 +290,7 @@ export async function generateSignedPDF(doc: UserDocument): Promise<Blob> {
   yPosition += 30;
 
   // Get role title in Indonesian
-  const roleTitle = getRoleTitle(documentSignature.signer?.role ?? doc.user?.role);
+  const roleTitle = getRoleTitle(documentSignature?.signer?.role ?? doc.user?.role);
 
   // Authority title (right-aligned)
   const authorityText = `${roleTitle}`;
