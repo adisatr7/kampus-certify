@@ -126,7 +126,6 @@ export default function SignedDocumentViewer({
               />
             </div>
           ) : (
-            // Map UserDocument to the shape expected by SignedDocumentTemplate
             (() => {
               return (
                 <SignedDocumentTemplate
