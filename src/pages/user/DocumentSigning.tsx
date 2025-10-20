@@ -67,6 +67,7 @@ export default function DocumentSigning() {
         url,
         {
           documentId: selectedDocument.id,
+          signerUserId: userProfile.id,
         },
         {
           headers: {

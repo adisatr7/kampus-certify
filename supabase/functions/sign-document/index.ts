@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { documentId } = await req.json();
+    const { documentId, signerUserId } = await req.json();
 
     // Fetch document
     const { data: doc, error } = await supabase
@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
       key_id: keyId,
       payload_hash: hash,
       signature,
+      signer_user_id: signerUserId,
     });
     if (insertError) {
       throw insertError;

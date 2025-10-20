@@ -30,8 +30,24 @@ export default function useFetchDocumentsByUserId(
         .select(`
           *,
           user:users (
+            id,
+            email,
             name,
-            role
+            role,
+            created_at
+          ),
+          document_signatures (
+            key_id,
+            signature,
+            signed_at,
+            signer_user_id,
+            signer:users (
+              id,
+              email,
+              name,
+              role,
+              created_at
+            )
           )
         `)
         .eq("user_id", userId)
@@ -51,7 +67,7 @@ export default function useFetchDocumentsByUserId(
       if (error) {
         throw error;
       }
-      setData((data as UserDocument[]) || []);
+      setData((data as unknown as UserDocument[]) || []);
     } catch (error) {
       toast({
         title: "Error",
