@@ -1,4 +1,4 @@
-import { DocumentSignature } from "./DocumentSignature"
+import { DocumentSignature } from "./DocumentSignature";
 import { DocumentStatus } from "./DocumentStatus";
 import { User } from "./User";
 

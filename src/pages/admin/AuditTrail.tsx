@@ -428,10 +428,10 @@ export default function AuditTrail() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm text-slate-800">
-                        {entry.users.name.toLowerCase()}
+                        {entry.users?.name.toLowerCase()}
                       </p>
                       <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0.5">
-                        {entry.users.email}
+                        {entry.users?.email}
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-700 mt-1">

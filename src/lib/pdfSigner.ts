@@ -1,24 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import QRCode from "qrcode";
-
-interface SignatureData {
-  documentId: string;
-  documentTitle: string;
-  documentContent?: string;
-  signerName: string;
-  signerRole: string;
-  signedAt: string;
-}
+import { UserDocument } from "@/types";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
  * Based on Indonesian official document format
  */
-export async function generateSignedPDF(
-  originalPdfUrl: string | null,
-  signatureData: SignatureData,
-): Promise<Blob> {
+export async function generateSignedPDF(document: UserDocument): Promise<Blob> {
+  const { file_url: originalPdfUrl } = document;
   let pdfDoc: PDFDocument;
 
   // Load existing PDF or create new one
@@ -31,22 +21,17 @@ export async function generateSignedPDF(
       console.error("Error loading existing PDF, creating new one:", error);
       pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-      await addDocumentContent(pdfDoc, page, signatureData.documentTitle);
+      await addDocumentContent(pdfDoc, page, document.title);
     }
   } else {
     // Create new PDF with document content
     pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    await addDocumentContent(
-      pdfDoc,
-      page,
-      signatureData.documentTitle,
-      signatureData.documentContent,
-    );
+    await addDocumentContent(pdfDoc, page, document.title, document.content);
   }
 
   // Generate QR code
-  const qrContent = `${window.location.origin}/document-verification?id=${signatureData.documentId}`;
+  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}/verify?id=${document.id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,
@@ -69,16 +54,23 @@ export async function generateSignedPDF(
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   // Format dates
-  const signedDate = new Date(signatureData.signedAt).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const signedDate = new Date(document.updated_at ?? document.created_at).toLocaleDateString(
+    "id-ID",
+    {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  );
   const printDate = new Date().toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
+  const documentSignature = (document.document_signatures ?? []).sort(
+    (a, b) => new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime(),
+  )[0];
 
   // Calculate positions (from bottom)
   let yPosition = 180; // Start from bottom
@@ -165,7 +157,7 @@ export async function generateSignedPDF(
   yPosition += 30;
 
   // Get role title in Indonesian
-  const roleTitle = getRoleTitle(signatureData.signerRole);
+  const roleTitle = getRoleTitle(documentSignature.signer?.role ?? document.user?.role);
 
   // Authority title (right-aligned)
   const authorityText = `${roleTitle}`;
@@ -209,9 +201,12 @@ export async function generateSignedPDF(
   });
 
   // Signer name (underlined, centered below)
-  const signerNameWidth = helvetica.widthOfTextAtSize(signatureData.signerName, 10);
+  const signerNameWidth = helvetica.widthOfTextAtSize(
+    documentSignature.signer?.name ?? document.user?.name,
+    10,
+  );
   const nameX = width - 50 - qrSize - 10 + (qrSize - signerNameWidth) / 2;
-  lastPage.drawText(signatureData.signerName, {
+  lastPage.drawText(documentSignature.signer?.name ?? document.user?.name, {
     x: nameX,
     y: yPosition - 15,
     size: 10,

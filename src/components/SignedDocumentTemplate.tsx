@@ -1,20 +1,10 @@
 import { QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { UserDocument } from "../types";
 
 interface SignedDocumentTemplateProps {
-  document: {
-    id: string;
-    title: string;
-    signed_at: string | null;
-    content?: string | null;
-    file_url?: string | null;
-    users?: {
-      name: string;
-      role: string;
-    };
-  };
+  document: UserDocument;
   qrCodeUrl?: string;
 }
 
@@ -31,19 +21,29 @@ export default function SignedDocumentTemplate({
     year: "numeric",
   });
 
-  const signedDate = document.signed_at
-    ? new Date(document.signed_at).toLocaleDateString("id-ID", {
+  const signedDate = document.updated_at
+    ? new Date(document.updated_at).toLocaleDateString("id-ID", {
         day: "numeric",
         month: "long",
         year: "numeric",
       })
     : currentDate;
 
+  const documentSignature = (document.document_signatures ?? []).sort(
+    (a, b) => (Date.parse(b.signed_at ?? "") || 0) - (Date.parse(a.signed_at ?? "") || 0),
+  )[0];
+
   // Generate QR Code for verification
   useEffect(() => {
+    // If an external qrCodeUrl is provided (from viewer), prefer it. Otherwise generate one.
+    if (qrCodeUrl) {
+      setQrCodeDataUrl(qrCodeUrl);
+      return;
+    }
+
     const generateQRCode = async () => {
       try {
-        const verificationUrl = `${window.location.origin}/verification-portal?documentId=${document.id}`;
+        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}/verify?id=${document.id}`;
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
           width: 200,
           margin: 2,
@@ -61,7 +61,7 @@ export default function SignedDocumentTemplate({
     if (document.id) {
       generateQRCode();
     }
-  }, [document.id]);
+  }, [document.id, qrCodeUrl]);
 
   // Set document content - use original content from database
   useEffect(() => {
@@ -74,9 +74,9 @@ export default function SignedDocumentTemplate({
 
 Konten dokumen tidak tersedia dalam sistem.
 
-Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name || "Pejabat Berwenang"} dari Universitas Muhammadiyah Cirebon.`);
+Dokumen ini telah ditandatangani secara elektronik oleh ${documentSignature.signer?.name || document.user?.name || "Pejabat Berwenang"} dari Universitas Muhammadiyah Cirebon.`);
     }
-  }, [document.content, document.title, document.users?.name]);
+  }, [document.content, document.title, documentSignature.signer?.name || document.user?.name]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none">
@@ -114,7 +114,7 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
       </div>
 
       {/* Electronic Signature Section */}
-      {document.signed_at && (
+      {document.updated_at && (
         <div className="px-4 sm:px-10 pb-4 sm:pb-8">
           {/* Issue Date */}
           <div className="mb-6 sm:mb-12">
@@ -129,11 +129,12 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
               {/* Authority Title */}
               <div className="mb-3 sm:mb-4 space-y-1">
                 <p className="text-xs sm:text-sm font-bold text-gray-900 uppercase">
-                  {document.users?.role === "rektor"
+                  {documentSignature.signer?.role === "rektor" || document.user?.role === "rektor"
                     ? "Rektor"
-                    : document.users?.role === "dekan"
+                    : documentSignature.signer?.role === "dekan" || document.user?.role === "dekan"
                       ? "Dekan"
-                      : document.users?.role === "dosen"
+                      : documentSignature.signer?.role === "dosen" ||
+                          document.user?.role === "dosen"
                         ? "Dosen"
                         : "Pejabat Berwenang"}
                 </p>
@@ -165,9 +166,9 @@ Dokumen ini telah ditandatangani secara elektronik oleh ${document.users?.name |
               </div>
 
               {/* Signer Name */}
-              {document.users?.name && (
+              {(documentSignature.signer?.name || document.user?.name) && (
                 <p className="text-xs sm:text-sm text-gray-900 font-bold border-b-2 border-gray-900 pb-1 inline-block">
-                  {document.users.name}
+                  {documentSignature.signer?.name || document.user?.name}
                 </p>
               )}
             </div>

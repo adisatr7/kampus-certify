@@ -82,14 +82,8 @@ export default function DocumentSigning() {
 
       let signedDocumentUrl = "";
 
-      const signedPdfBlob = await generateSignedPDF(selectedDocument.file_url, {
-        documentId: selectedDocument.id,
-        documentTitle: selectedDocument.title,
-        documentContent: selectedDocument.content || undefined,
-        signerName: userProfile.name,
-        signerRole: userProfile.role,
-        signedAt: new Date().toISOString(),
-      });
+      // Use canonical programmatic generator which will create a PDF if the document has no file_url
+      const signedPdfBlob = await generateSignedPDF(selectedDocument);
 
       // Upload signed PDF to storage
       signedDocumentUrl = await uploadSignedPDF(
@@ -101,6 +95,27 @@ export default function DocumentSigning() {
 
       if (!signedDocumentUrl) {
         throw new Error("Gagal mengunggah dokumen yang telah ditandatangani");
+      }
+
+      // Persist the signed file URL back to the document record
+      try {
+        const { error: updateError } = await supabase
+          .from("documents")
+          .update({ file_url: signedDocumentUrl })
+          .eq("id", selectedDocument.id);
+
+        if (updateError) {
+          console.error("Failed to update document file_url:", updateError);
+          // Not fatal for the signing flow, but surface to user
+          toast({
+            title: "Peringatan",
+            description:
+              "Dokumen telah ditandatangani tetapi URL file gagal disimpan. Silakan hubungi admin.",
+            variant: "destructive",
+          });
+        }
+      } catch (updateErr) {
+        console.error("Error updating document with file_url:", updateErr);
       }
 
       await createAuditEntry(
