@@ -76,7 +76,7 @@ Konten dokumen tidak tersedia dalam sistem.
 
 Dokumen ini telah ditandatangani secara elektronik oleh ${documentSignature.signer?.name || document.user?.name || "Pejabat Berwenang"} dari Universitas Muhammadiyah Cirebon.`);
     }
-  }, [document.content, document.title, documentSignature.signer?.name || document.user?.name]);
+  }, [document.content, document.title, document.document_signatures, document.user]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:w-[794px] print:h-[1123px] print:mx-0 print:my-0 print:relative print:bg-white print:pb-0 print:m-0 print:p-0">
