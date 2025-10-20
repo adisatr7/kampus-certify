@@ -1,52 +1,24 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import html2canvas from "html2canvas";
 import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import QRCode from "qrcode";
-
-interface SignatureData {
-  documentId: string;
-  documentTitle: string;
-  documentContent?: string;
-  signerName: string;
-  signerRole: string;
-  signedAt: string;
-}
+import React from "react";
+import { createRoot } from "react-dom/client";
+import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
+import { UserDocument } from "@/types";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
  * Based on Indonesian official document format
  */
-export async function generateSignedPDF(
-  originalPdfUrl: string | null,
-  signatureData: SignatureData,
-): Promise<Blob> {
+export async function generateSignedPDF(doc: UserDocument): Promise<Blob> {
+  const { file_url: originalPdfUrl } = doc;
   let pdfDoc: PDFDocument;
 
-  // Load existing PDF or create new one
-  if (originalPdfUrl) {
-    try {
-      const response = await fetch(originalPdfUrl);
-      const existingPdfBytes = await response.arrayBuffer();
-      pdfDoc = await PDFDocument.load(existingPdfBytes);
-    } catch (error) {
-      console.error("Error loading existing PDF, creating new one:", error);
-      pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-      await addDocumentContent(pdfDoc, page, signatureData.documentTitle);
-    }
-  } else {
-    // Create new PDF with document content
-    pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    await addDocumentContent(
-      pdfDoc,
-      page,
-      signatureData.documentTitle,
-      signatureData.documentContent,
-    );
-  }
+  const shouldUseHtmlSnapshot = !originalPdfUrl;
 
-  // Generate QR code
-  const qrContent = `${window.location.origin}/document-verification?id=${signatureData.documentId}`;
+  // Pre-generate QR code (used both for programmatic and html snapshot flows)
+  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}/verify?id=${doc.id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,
@@ -56,7 +28,152 @@ export async function generateSignedPDF(
     },
   });
 
-  // Convert QR code to PDF-compatible format
+  // Load existing PDF or create new one. If there is no original PDF, prefer
+  // the html2canvas snapshot path to produce a pixel-perfect PDF from the
+  // HTML template (identical to the dev preview). If that fails, fall back
+  // to the programmatic pdf-lib renderer.
+  if (originalPdfUrl) {
+    try {
+      const response = await fetch(originalPdfUrl);
+      const existingPdfBytes = await response.arrayBuffer();
+      pdfDoc = await PDFDocument.load(existingPdfBytes);
+    } catch (error) {
+      console.error("Error loading existing PDF, creating new one:", error);
+      pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+      await addDocumentContent(pdfDoc, page, doc.title);
+    }
+  } else {
+    if (shouldUseHtmlSnapshot) {
+      try {
+        // Robust A4 rendering while preserving responsive layout: render the
+        // template at the same CSS viewport used by preview (A4 @ 96 DPI) and
+        // ask html2canvas to scale up the raster to the desired DPI. This
+        // prevents Tailwind responsive classes from changing and keeps text
+        // vertical alignment identical to the preview.
+        const DPI = 300; // desired output DPI (changeable)
+
+        // A4 in mm and helper
+        const A4_WIDTH_MM = 210;
+        const A4_HEIGHT_MM = 297;
+        const mmToInch = (mm: number) => mm / 25.4;
+
+        // CSS pixels viewport based on 96 DPI (so Tailwind breakpoints match)
+        const CSS_DPI = 96;
+        const widthCssPx = Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI); // ~794
+        const heightCssPx = Math.round(mmToInch(A4_HEIGHT_MM) * CSS_DPI); // ~1123
+
+        // Compute scale for html2canvas to reach desired DPI
+        const scale = DPI / CSS_DPI; // e.g. 300/96 ~= 3.125
+
+        const container = document.createElement("div");
+        container.style.position = "fixed";
+        container.style.left = "-9999px";
+        container.style.top = "0";
+        container.style.width = `${widthCssPx}px`;
+        // Do NOT set a fixed height or overflow: hidden here — allow the
+        // rendered content to size the container so we capture everything.
+        container.style.background = "white";
+
+        // Insert a style override to make the template fill the container (disable max-width)
+        const overrideStyle = document.createElement("style");
+        overrideStyle.innerText = `
+          .max-w-4xl { max-width: none !important; width: 100% !important; }
+          html, body { margin: 0; padding: 0; }
+          img { max-width: 100%; }
+        `;
+        container.appendChild(overrideStyle);
+
+        document.body.appendChild(container);
+
+        const root = createRoot(container);
+
+        // Pass qr_code_url so the template renders the same QR we expect
+        const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+        // Use React.createElement instead of JSX since this is a .ts file
+        root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
+
+        // Wait for webfonts to be ready (ensures text metrics match preview)
+        if (document.fonts && document.fonts.ready) {
+          try {
+            await document.fonts.ready;
+          } catch (e) {
+            // ignore font loading errors and proceed
+          }
+        }
+
+        // Wait for any images inside the offscreen container to load (e.g., QR)
+        const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
+        await Promise.all(
+          imgs.map(
+            (img) =>
+              new Promise<void>((res) => {
+                if (img.complete) return res();
+                img.onload = img.onerror = () => res();
+              }),
+          ),
+        );
+
+        // Small extra settle time for layout
+        await new Promise((res) => setTimeout(res, 120));
+
+        // Measure the actual rendered height of the template (in CSS px)
+        const renderedHeightCss = Math.max(container.scrollHeight, heightCssPx);
+
+        // Capture the container using html2canvas at higher scale so the final
+        // canvas has DPI*inch pixels while keeping the same CSS layout.
+        // Use the container's rendered height to avoid clipping.
+        const canvas = await html2canvas(container as HTMLElement, {
+          scale,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          width: widthCssPx,
+          height: renderedHeightCss,
+          windowWidth: widthCssPx,
+          windowHeight: renderedHeightCss,
+        });
+
+        const dataUrl = canvas.toDataURL("image/png");
+
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([595.28, 841.89]);
+        const pngImage = await pdfDoc.embedPng(dataUrl);
+        const { width, height } = page.getSize();
+
+        // Scale the embedded PNG to fit within the A4 page while preserving
+        // aspect ratio to avoid cropping. If the captured content is taller
+        // than the page, this will scale it down so nothing is cut off.
+        const imgW = pngImage.width;
+        const imgH = pngImage.height;
+        const fitScale = Math.min(width / imgW, height / imgH);
+        const drawWidth = imgW * fitScale;
+        const drawHeight = imgH * fitScale;
+        const x = (width - drawWidth) / 2;
+        const y = (height - drawHeight) / 2;
+
+        page.drawImage(pngImage, { x, y, width: drawWidth, height: drawHeight });
+
+        const pdfBytes = await pdfDoc.save();
+
+        root.unmount();
+        document.body.removeChild(container);
+
+        return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      } catch (err) {
+        console.error("html2canvas snapshot failed, falling back to pdf-lib generator:", err);
+        // Fall through and use the programmatic generator
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+        await addDocumentContent(pdfDoc, page, doc.title, doc.content);
+      }
+    } else {
+      pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+      await addDocumentContent(pdfDoc, page, doc.title, doc.content);
+    }
+  }
+
+  // Convert QR code to PDF-compatible format for the programmatic path
   const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
 
   // Get the last page to add signature elements
@@ -69,7 +186,7 @@ export async function generateSignedPDF(
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   // Format dates
-  const signedDate = new Date(signatureData.signedAt).toLocaleDateString("id-ID", {
+  const signedDate = new Date(doc.updated_at ?? doc.created_at).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -79,6 +196,12 @@ export async function generateSignedPDF(
     month: "long",
     year: "numeric",
   });
+
+  const documentSignature = (doc.document_signatures ?? []).sort((a, b) => {
+    const aTime = a.signed_at ? Date.parse(a.signed_at) : -Infinity;
+    const bTime = b.signed_at ? Date.parse(b.signed_at) : -Infinity;
+    return bTime - aTime;
+  })[0];
 
   // Calculate positions (from bottom)
   let yPosition = 180; // Start from bottom
@@ -165,7 +288,7 @@ export async function generateSignedPDF(
   yPosition += 30;
 
   // Get role title in Indonesian
-  const roleTitle = getRoleTitle(signatureData.signerRole);
+  const roleTitle = getRoleTitle(documentSignature?.signer?.role ?? doc.user?.role);
 
   // Authority title (right-aligned)
   const authorityText = `${roleTitle}`;
@@ -209,9 +332,12 @@ export async function generateSignedPDF(
   });
 
   // Signer name (underlined, centered below)
-  const signerNameWidth = helvetica.widthOfTextAtSize(signatureData.signerName, 10);
+  const signerNameWidth = helvetica.widthOfTextAtSize(
+    documentSignature.signer?.name ?? doc.user?.name,
+    10,
+  );
   const nameX = width - 50 - qrSize - 10 + (qrSize - signerNameWidth) / 2;
-  lastPage.drawText(signatureData.signerName, {
+  lastPage.drawText(documentSignature.signer?.name ?? doc.user?.name, {
     x: nameX,
     y: yPosition - 15,
     size: 10,

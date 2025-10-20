@@ -8,20 +8,7 @@ interface SignedDocumentViewerProps {
   isOpen: boolean;
   onClose: () => void;
   document: UserDocument;
-  // document: {
-  //   id: string;
-  //   title: string;
-  //   signed_at: string | null;
-  //   qr_code_url?: string | null;
-  //   content?: string | null;
-  //   signed_document_url?: string | null;
-  //   users?: {
-  //     name: string;
-  //     role: string;
-  //   };
-  // };
 }
-// TODO: redesign viewer to match new template design
 
 export default function SignedDocumentViewer({
   isOpen,
@@ -139,31 +126,10 @@ export default function SignedDocumentViewer({
               />
             </div>
           ) : (
-            // Map UserDocument to the shape expected by SignedDocumentTemplate
             (() => {
-              const signedAt =
-                ((document as unknown as Record<string, unknown>).signed_at as
-                  | string
-                  | null
-                  | undefined) ??
-                document.updated_at ??
-                document.created_at ??
-                null;
-
-              const templateDoc = {
-                id: document.id,
-                title: document.title,
-                signed_at: signedAt,
-                content: document.content ?? null,
-                file_url: document.file_url ?? null,
-                users: document.user
-                  ? { name: document.user.name, role: document.user.role }
-                  : undefined,
-              };
-
               return (
                 <SignedDocumentTemplate
-                  document={templateDoc}
+                  document={document}
                   qrCodeUrl={document.qr_code_url || undefined}
                 />
               );
