@@ -213,7 +213,7 @@ export default function PublicDocumentVerification() {
                 ID dokumen tidak valid atau dokumen tidak ada dalam sistem
               </p>
               <Button
-                onClick={() => navigate("/verify")}
+                onClick={() => navigate(`${import.meta.env.BASE_URL}/verify`)}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 Kembali ke Portal Verifikasi

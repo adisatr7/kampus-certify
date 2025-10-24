@@ -18,7 +18,7 @@ export async function generateSignedPDF(doc: UserDocument): Promise<Blob> {
   const shouldUseHtmlSnapshot = !originalPdfUrl;
 
   // Pre-generate QR code (used both for programmatic and html snapshot flows)
-  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}/verify?id=${doc.id}`;
+  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${doc.id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,

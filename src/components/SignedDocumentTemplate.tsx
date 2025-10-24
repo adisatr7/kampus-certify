@@ -43,7 +43,7 @@ export default function SignedDocumentTemplate({
 
     const generateQRCode = async () => {
       try {
-        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}/verify?id=${document.id}`;
+        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${document.id}`;
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
           width: 200,
           margin: 2,
