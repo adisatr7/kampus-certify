@@ -3,6 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardStats } from "../../types/DashboardStats";
 
+function getRecentData(createdAt: string): boolean {
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+
+  return (
+    createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear()
+  );
+}
+
 // Hook for fetching dashboard statistics
 export const useDashboardStats = (userRole: string) => {
   return useQuery({
@@ -17,59 +26,62 @@ export const useDashboardStats = (userRole: string) => {
       }
 
       const stats: DashboardStats = {
-        totalDocuments: 0,
-        signedDocuments: 0,
-        pendingDocuments: 0,
+        activeSigningKeys: 0,
+        recentlyAddedKeys: 0,
         totalUsers: 0,
-        adminUsers: 0,
-        staffUsers: 0,
-        todayVerifications: 0,
-        validVerifications: 0,
-        invalidVerifications: 0,
+        recentlyAddedAdmins: 0,
+        recentlyAddedStaff: 0,
+        totalDocuments: 0,
+        recentlyAddedDocuments: 0,
+        signedDocuments: 0,
+        unsignedDocuments: 0,
+        pendingDocuments: 0,
       };
 
       try {
         // Fetch documents data
-        const documentsQuery =
-          userRole === "admin"
-            ? supabase.from("documents").select("status, user_id")
-            : supabase.from("documents").select("status, user_id").eq("user_id", user.id);
+        const documentsQuery = supabase.from("documents").select("status, user_id, created_at");
+        if (userRole !== "admin") {
+          documentsQuery.eq("user_id", user.id);
+        }
 
         const { data: documents } = await documentsQuery;
 
         if (documents) {
           stats.totalDocuments = documents.length;
+          stats.recentlyAddedDocuments = documents.filter((doc) =>
+            getRecentData(doc.created_at),
+          ).length;
           stats.signedDocuments = documents.filter((doc) => doc.status === "signed").length;
+          stats.unsignedDocuments = documents.filter((doc) => doc.status !== "signed").length;
           stats.pendingDocuments = documents.filter((doc) => doc.status === "pending").length;
+        }
+
+        // Fetch total active signing keys
+        const { data: activeSigningKeys } = await supabase
+          .from("signing_keys")
+          .select("kid, created_at")
+          .eq("active", true);
+
+        if (Array.isArray(activeSigningKeys)) {
+          stats.activeSigningKeys = activeSigningKeys.length;
+          stats.recentlyAddedKeys = activeSigningKeys.filter((key) =>
+            getRecentData(key.created_at),
+          ).length;
         }
 
         // Fetch users data (only for admin)
         if (userRole === "admin") {
-          const { data: users } = await supabase.from("users").select("role");
+          const { data: users } = await supabase.from("users").select("role, created_at");
 
           if (users) {
             stats.totalUsers = users.length;
-            stats.adminUsers = users.filter((u) => u.role === "admin").length;
-            stats.staffUsers = users.filter((u) => u.role !== "admin").length;
-          }
-
-          // Fetch today's audit trail for verifications
-          const today = new Date().toISOString().split("T")[0];
-          const { data: auditData } = await supabase
-            .from("audit_trail")
-            .select("action, description")
-            .gte("created_at", `${today}T00:00:00.000Z`)
-            .lt("created_at", `${today}T23:59:59.999Z`)
-            .ilike("action", "%verification%");
-
-          if (auditData) {
-            stats.todayVerifications = auditData.length;
-            stats.validVerifications = auditData.filter(
-              (a) =>
-                a.description?.toLowerCase().includes("valid") ||
-                a.description?.toLowerCase().includes("berhasil"),
+            stats.recentlyAddedAdmins = users.filter(
+              (u) => u.role === "admin" && getRecentData(u.created_at),
             ).length;
-            stats.invalidVerifications = stats.todayVerifications - stats.validVerifications;
+            stats.recentlyAddedStaff = users.filter(
+              (u) => u.role !== "admin" && getRecentData(u.created_at),
+            ).length;
           }
         }
       } catch (error) {
