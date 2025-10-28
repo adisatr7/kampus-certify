@@ -7,6 +7,7 @@ import {
   Clock,
   FileText,
   Loader2,
+  PenTool,
   TrendingUp,
   Users,
   Zap,
@@ -15,7 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useDashboardStats, useRecentActivities, useRecentDocuments } from "@/hooks/dashboard";
-import { DocumentStatus } from "../types";
+import { cn } from "@/lib/utils";
+import { DashboardStats, DocumentStatus } from "../types";
 
 interface DashboardProps {
   userRole: "admin" | "dosen" | "rektor" | "dekan";
@@ -61,39 +63,52 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
       return {
         title: "Dashboard Administrator",
         description: "Kelola seluruh sistem Certificate Authority UMC",
-        getStatsCards: (stats) => [
+        getStatsCards: (stats: DashboardStats) => [
           {
-            title: "Dokumen Ditandatangani",
-            value: stats?.signedDocuments?.toString() || "0",
-            description: `Total: ${stats?.totalDocuments || 0} dokumen`,
-            icon: FileText,
-            trend: `+${Math.round((stats?.signedDocuments / Math.max(stats?.totalDocuments, 1)) * 100) || 0}%`,
-            trendColor: "text-emerald-600",
-            bgColor: "bg-gradient-to-br from-blue-50 to-blue-100",
-            iconColor: "text-blue-600",
+            title: "Sertifikat Aktif",
+            value: stats?.activeSigningKeys || 0,
+            description: null,
+            icon: Award,
+            trend: `+${stats?.recentlyAddedKeys || 0} sertifikat baru bulan ini`,
+            trendColor: stats?.recentlyAddedKeys > 0 ? "text-fuchsia-600" : "text-slate-400",
+            bgColor: "bg-gradient-to-br from-fuchsia-50 to-fuchsia-100",
+            iconColor: "text-fuchsia-700",
           },
           {
             title: "Pengguna Terdaftar",
-            value: stats?.totalUsers?.toString() || "0",
-            description: `Admin: ${stats?.adminUsers || 0}, Staff: ${stats?.staffUsers || 0}`,
+            value: stats?.totalUsers || 0,
+            description: null,
             icon: Users,
-            trend: `+${stats?.staffUsers || 0}`,
-            trendColor: "text-blue-600",
-            bgColor: "bg-gradient-to-br from-indigo-50 to-indigo-100",
-            iconColor: "text-indigo-600",
+            trend: `+${stats?.recentlyAddedAdmins || 0} admin dan +${stats?.recentlyAddedStaff || 0} staf baru`,
+            trendColor:
+              stats?.recentlyAddedAdmins > 0 || stats?.recentlyAddedStaff > 0
+                ? "text-sky-600"
+                : "text-slate-400",
+            bgColor: "bg-gradient-to-br from-sky-50 to-sky-100",
+            iconColor: "text-sky-600",
           },
           {
-            title: "Verifikasi Hari Ini",
-            value: stats?.todayVerifications?.toString() || "0",
-            description: `Valid: ${stats?.validVerifications || 0}, Invalid: ${stats?.invalidVerifications || 0}`,
-            icon: Activity,
-            trend: `${Math.round((stats?.validVerifications / Math.max(stats?.todayVerifications, 1)) * 100) || 0}%`,
-            trendColor:
-              stats?.validVerifications > stats?.invalidVerifications
-                ? "text-emerald-600"
-                : "text-amber-600",
+            title: "Total Dokumen",
+            value: stats?.totalDocuments || 0,
+            description: null,
+            icon: FileText,
+            trend: `+${stats?.recentlyAddedDocuments || 0} dokumen baru bulan ini`,
+            trendColor: stats?.recentlyAddedDocuments > 0 ? "text-emerald-600" : "text-slate-400",
             bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100",
             iconColor: "text-emerald-600",
+          },
+          {
+            title: "Dokumen Ditandatangani",
+            value: stats?.signedDocuments || 0,
+            description: null,
+            icon: PenTool,
+            trend: `${Math.round((stats?.signedDocuments / Math.max(stats?.totalDocuments, 1)) * 100) || 0}% dokumen ditandatangani`,
+            trendColor:
+              stats?.signedDocuments > stats?.unsignedDocuments
+                ? "text-rose-600"
+                : "text-slate-400",
+            bgColor: "bg-gradient-to-br from-rose-50 to-rose-100",
+            iconColor: "text-rose-600",
           },
         ],
       };
@@ -101,36 +116,29 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
       return {
         title: `Dashboard ${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`,
         description: "Kelola dokumen dan sertifikat digital Anda",
-        getStatsCards: (stats) => [
+        getStatsCards: (stats: DashboardStats) => [
           {
             title: "Sertifikat Aktif",
-            value: stats?.activeCertificates?.toString() || "0",
-            description: "Berlaku hingga 2025",
+            value: stats?.activeSigningKeys || 0,
+            description: null,
             icon: Award,
-            trend: stats?.activeCertificates > 0 ? "Aktif" : "Tidak Ada",
-            trendColor: stats?.activeCertificates > 0 ? "text-emerald-600" : "text-gray-500",
+            trend: stats?.activeSigningKeys > 0 ? "Aktif" : "Tidak Ada",
+            trendColor: stats?.activeSigningKeys > 0 ? "text-emerald-600" : "text-gray-500",
             bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
             iconColor: "text-purple-600",
           },
           {
             title: "Dokumen Saya",
-            value: stats?.totalDocuments?.toString() || "0",
-            description: `Ditandatangani: ${stats?.signedDocuments || 0}`,
+            value: stats?.totalDocuments || 0,
+            description: null,
             icon: FileText,
-            trend: `+${stats?.pendingDocuments || 0} pending`,
-            trendColor: "text-blue-600",
+            trend:
+              stats?.pendingDocuments > 0
+                ? `${stats?.pendingDocuments} menunggu tanda tangan`
+                : "Semua dokumen ditandatangani",
+            trendColor: stats?.pendingDocuments > 0 ? "text-amber-600" : "text-blue-600",
             bgColor: "bg-gradient-to-br from-blue-50 to-blue-100",
             iconColor: "text-blue-600",
-          },
-          {
-            title: "Verifikasi Bulan Ini",
-            value: stats?.todayVerifications?.toString() || "0",
-            description: "Berhasil diverifikasi",
-            icon: Activity,
-            trend: "100%",
-            trendColor: "text-emerald-600",
-            bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-            iconColor: "text-emerald-600",
           },
         ],
       };
@@ -227,7 +235,12 @@ export default function Dashboard({ userRole = "admin" }: DashboardProps) {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className={cn(
+            "grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2",
+            statsCards.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-2",
+          )}
+        >
           {statsCards.map((stat, index) => (
             <Card
               key={index}
