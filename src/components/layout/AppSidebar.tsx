@@ -69,7 +69,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       className={cn(
         "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300 pt-28",
         "fixed inset-y-0 left-0 z-40 overflow-hidden",
-        collapsed ? "w-16 -translate-x-full lg:translate-x-0" : "w-64",
+        collapsed ? "w-14 -translate-x-full lg:translate-x-0 justify-center items-center" : "w-64",
       )}
     >
       {/* Header */}
@@ -136,7 +136,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="ml-3">Keluar</span>}
+          {!collapsed && <span>Keluar</span>}
         </Button>
       </div>
     </div>
