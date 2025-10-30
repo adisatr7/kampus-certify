@@ -50,7 +50,7 @@ All colors MUST be HSL.
     /* Status Badge Colors */
     --status-valid: 120 60% 50%;
     --status-invalid: 0 70% 50%;
-    --status-revoked: 0 0% 60%;
+    --status-revoked: 28 85% 50%;
 
     /* Glassmorphism Effect */
     --glass-bg: 0 0% 100% / 0.9;

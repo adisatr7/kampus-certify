@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { UserRole } from "@/types";
 
 interface AuditEntry {
   id: string;
@@ -51,6 +52,7 @@ interface DiagnosticInfo {
   totalUsers: number;
   currentUserRole: string;
   hasRLSAccess: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sampleEntry?: any;
 }
 
@@ -117,7 +119,7 @@ export default function AuditTrail() {
 
       runDiagnostics();
       fetchAuditEntries();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
         description: `Failed: ${error.message}`,
@@ -152,7 +154,7 @@ export default function AuditTrail() {
       }));
 
       setAuditEntries(combinedData);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
         description: `Gagal memuat audit trail: ${error.message}`,
@@ -205,7 +207,7 @@ export default function AuditTrail() {
   const uniqueActions = [...new Set(auditEntries.map((e) => e.action))];
 
   return (
-    <DashboardLayout userRole={userProfile?.role as any}>
+    <DashboardLayout userRole={userProfile?.role as UserRole}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -244,14 +246,16 @@ export default function AuditTrail() {
 
         {/* System Diagnostics */}
         {showDiagnostics && diagnostic && (
-          <Card className="border-yellow-200 bg-yellow-50">
+          <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/50 dark:border-yellow-700">
             <CardHeader>
-              <CardTitle className="text-yellow-800">System Diagnostics</CardTitle>
+              <CardTitle className="text-yellow-800 dark:text-yellow-50">
+                System Diagnostics
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm font-medium">Audit Entries</p>
+                  <p className="text-sm font-medium">Log Audit</p>
                   <p className="text-2xl font-bold">{diagnostic.totalAuditEntries}</p>
                 </div>
                 <div>
@@ -259,17 +263,19 @@ export default function AuditTrail() {
                   <p className="text-2xl font-bold">{diagnostic.totalUsers}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Your Role</p>
+                  <p className="text-sm font-medium">Role Anda</p>
                   <p className="text-lg font-bold">{diagnostic.currentUserRole}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">RLS Access</p>
                   <p
                     className={`text-lg font-bold ${
-                      diagnostic.hasRLSAccess ? "text-green-600" : "text-red-600"
+                      diagnostic.hasRLSAccess
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-500"
                     }`}
                   >
-                    {diagnostic.hasRLSAccess ? "Yes" : "No"}
+                    {diagnostic.hasRLSAccess ? "Ya" : "Tidak"}
                   </p>
                 </div>
               </div>
@@ -315,15 +321,15 @@ export default function AuditTrail() {
           </CardContent>
         </Card>
 
-        {/* Tabel (desktop) */}
-        <Card className="overflow-hidden hidden md:block">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
               Riwayat Aktivitas ({filteredEntries.length} dari {auditEntries.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="max-h-[400px] overflow-y-auto">
+          {/* Table View (desktop) */}
+          <CardContent className="max-h-[400px] overflow-y-auto hidden lg:block">
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -400,18 +406,9 @@ export default function AuditTrail() {
               </div>
             )}
           </CardContent>
-        </Card>
 
-        {/* Card view (mobile) */}
-        <Card className="md:hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <Activity className="h-5 w-5 text-blue-500" />
-              Riwayat Aktivitas ({filteredEntries.length} dari {auditEntries.length})
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+          {/* Card View (mobile) */}
+          <CardContent className="space-y-3 max-h-[500px] overflow-y-auto block lg:hidden">
             {filteredEntries.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-6">
                 Tidak ada aktivitas ditemukan.
@@ -420,27 +417,30 @@ export default function AuditTrail() {
               filteredEntries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-start gap-3 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-3 shadow-sm"
+                  className="flex items-start gap-3 bg-white/80 dark:bg-zinc-800/70 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-sm"
                 >
-                  <div className="flex-shrink-0 bg-green-50 p-2 rounded-full">
+                  <div className="flex-shrink-0 bg-green-50 dark:bg-green-900/20 p-2 rounded-full">
                     {getActionIcon(entry.action)}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm text-slate-800">
-                        {entry.users?.name.toLowerCase()}
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">
+                        {entry.users?.name?.toLowerCase()}
                       </p>
-                      <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0.5">
+                      <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 dark:bg-green-600">
                         {entry.users?.email}
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-700 mt-1">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
                       {entry.description || "Tidak ada deskripsi"}
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Action <span className="font-medium text-slate-700">{entry.action}</span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Action{" "}
+                      <span className="font-medium text-slate-700 dark:text-slate-200">
+                        {entry.action}
+                      </span>
                     </p>
-                    <p className="text-xs text-blue-500 mt-0.5 flex items-center gap-1">
+                    <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5 flex items-center gap-1">
                       <Calendar className="h-3 w-3" />{" "}
                       {new Date(entry.created_at).toLocaleTimeString("id-ID", {
                         hour: "2-digit",

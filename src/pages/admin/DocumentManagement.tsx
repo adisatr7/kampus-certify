@@ -308,15 +308,15 @@ export default function DocumentManagement() {
           </Dialog>
         </div>
 
-        {/* Desktop Table */}
-        <Card className="hidden md:block">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Daftar Dokumen
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          {/* Desktop Table */}
+          <CardContent className="hidden lg:block">
             {documents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 Belum ada dokumen yang diupload
@@ -386,36 +386,32 @@ export default function DocumentManagement() {
               </Table>
             )}
           </CardContent>
-        </Card>
 
-        {/* Mobile View - Scrollable Cards */}
-        <Card className="md:hidden border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-200/60">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Daftar Dokumen
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="max-h-[70vh] overflow-y-auto space-y-4 p-4">
+          {/* Mobile View - Scrollable Cards */}
+          <CardContent className="visible lg:hidden max-h-[70vh] overflow-y-auto space-y-4 p-4">
             {documents.length === 0 ? (
               <div className="text-center py-6 text-slate-500">Belum ada dokumen yang diupload</div>
             ) : (
               documents.map((doc) => (
-                <div
+                <Card
                   key={doc.id}
-                  className="p-4 bg-white rounded-xl shadow-sm border border-slate-100 flex items-start gap-3"
+                  className="p-4 rounded-xl shadow-sm flex items-start gap-3"
                 >
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <FileText className="h-5 w-5 text-blue-600" />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-semibold text-slate-800">{doc.title}</h3>
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-200">
+                        {doc.title}
+                      </h3>
                       <StatusBadge status={doc.status as DocumentStatus} />
                     </div>
-                    <p className="text-sm text-slate-600 mt-1">oleh {doc.user.name}</p>
-                    <p className="text-sm text-slate-600">{doc.user.email}</p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-sm text-slate-600 dark:text-slate-200 mt-1">
+                      {doc.user.name}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-200">{doc.user.email}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-300 mt-2">
                       {new Date(doc.created_at).toLocaleDateString("id-ID")}
                     </p>
                     <div className="flex justify-end gap-2 mt-3">
@@ -453,7 +449,7 @@ export default function DocumentManagement() {
                       </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))
             )}
           </CardContent>
