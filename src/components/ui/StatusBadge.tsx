@@ -10,8 +10,10 @@ const badgeVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        valid: "border-transparent bg-status-valid text-white hover:bg-status-valid/80",
-        signed: "border-transparent bg-status-valid text-white hover:bg-status-valid/80",
+        valid:
+          "border-transparent bg-status-valid dark:bg-green-600 text-white hover:bg-status-valid/80",
+        signed:
+          "border-transparent bg-status-valid dark:bg-green-600 text-white hover:bg-status-valid/80",
         invalid: "border-transparent bg-status-invalid text-white hover:bg-status-invalid/80",
         revoked: "border-transparent bg-status-revoked text-white hover:bg-status-revoked/80",
         pending: "border-transparent bg-muted text-muted-foreground hover:bg-muted/80",

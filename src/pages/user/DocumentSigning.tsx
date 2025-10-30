@@ -266,28 +266,27 @@ export default function DocumentSigning() {
                   {documents.map((doc) => (
                     <Card
                       key={doc.id}
-                      className="border border-slate-200 shadow-sm bg-white/80 backdrop-blur-sm"
+                      className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white/80 dark:bg-zinc-800 backdrop-blur-sm"
                     >
-                      <CardHeader className="border-b border-slate-200/60 pb-3">
+                      <CardHeader className="border-b border-slate-200/60 dark:border-slate-700/50 pb-3">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500">
                             <FileText className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <CardTitle className="text-base font-semibold text-slate-900">
+                            <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
                               {doc.title}
                             </CardTitle>
-                            <p className="text-sm text-slate-600">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
                               Dibuat: {new Date(doc.created_at).toLocaleDateString("id-ID")}
                             </p>
+                          </div>
+                          <div className="ml-auto">
+                            <StatusBadge status={doc.status} />
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-slate-700">Status:</span>
-                          <StatusBadge status={doc.status as any} />
-                        </div>
                         <div className="flex items-center gap-2 justify-end">
                           {doc.file_url && (
                             <Button

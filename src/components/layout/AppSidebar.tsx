@@ -67,7 +67,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   return (
     <div
       className={cn(
-        "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300 pt-28",
+        "relative flex h-screen flex-col bg-umc-light-gray dark:bg-neutral-900 border-r border-border transition-all duration-300 pt-28",
         "fixed inset-y-0 left-0 z-40 overflow-hidden",
         collapsed ? "w-14 -translate-x-full lg:translate-x-0 justify-center items-center" : "w-64",
       )}
@@ -83,8 +83,12 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
               className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
             />
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-primary">CA UMC</h2>
-              <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{userRole}</p>
+              <h2 className="text-base sm:text-lg font-semibold text-primary dark:text-red-600">
+                CA UMC
+              </h2>
+              <p className="text-[10px] sm:text-xs text-muted-foreground dark:text-gray-300 capitalize">
+                {userRole}
+              </p>
             </div>
           </div>
         )}
