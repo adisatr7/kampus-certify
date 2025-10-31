@@ -10,6 +10,7 @@ import AuditTrail from "./pages/admin/AuditTrail";
 import DocumentManagement from "./pages/admin/DocumentManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import QrScanner from "./pages/QrScanner";
 // import PublicDocumentVerification from "./pages/PublicDocumentVerification";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
@@ -30,6 +31,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
+              {/* Public Routes */}
               <Route
                 path="/"
                 element={<Index />}
@@ -41,6 +43,10 @@ const App = () => (
               <Route
                 path="/verification-portal"
                 element={<VerificationPortal />}
+              />
+              <Route
+                path="/qr-scanner"
+                element={<QrScanner />}
               />
               {/* <Route
                 path="/document-verification"
