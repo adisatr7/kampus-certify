@@ -82,7 +82,13 @@ export default function QrScanner() {
         <Scanner
           allowMultiple={false}
           onScan={handleScan}
-          onError={(error) => alert(`Terjadi kesalahan saat memindai: ${error}`)}
+          onError={(error) =>
+            toast({
+              title: "Terjadi kesalahan saat memindai QR code.",
+              description: String(error),
+              variant: "destructive",
+            })
+          }
         />
       </section>
     </main>
