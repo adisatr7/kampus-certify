@@ -15,6 +15,14 @@ export default function QrScanner() {
     console.log("Isi QR code:", detectedBarcodes);
     const decodedText = detectedBarcodes[0]?.rawValue;
 
+    if (!decodedText || typeof decodedText !== "string" || decodedText.length === 0) {
+      toast({
+        title: "QR code tidak valid.",
+        description: "QR code tidak dapat dibaca atau tidak berisi data yang valid.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (decodedText.startsWith("http://localhost") && import.meta.env.PROD) {
       toast({
         title: "QR code ini mengarah ke localhost.",
