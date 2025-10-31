@@ -71,6 +71,7 @@ export default function QrScanner() {
         <button
           className="p-2 absolute left-2"
           onClick={handleBack}
+          aria-label="Kembali"
         >
           <ChevronLeft />
         </button>
