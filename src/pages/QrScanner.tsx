@@ -23,7 +23,9 @@ export default function QrScanner() {
       });
       return;
     }
-    if (decodedText.startsWith("http://localhost") && import.meta.env.PROD) {
+
+    // Allow localhost if it contains /verify?id=, otherwise reject in production
+    if (decodedText.startsWith("http://localhost") && !decodedText.includes("/verify?id=")) {
       toast({
         title: "QR code ini mengarah ke localhost.",
         description: "Harap hubungi admin untuk memperbaiki dokumen ini.",
