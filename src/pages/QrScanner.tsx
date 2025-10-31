@@ -25,13 +25,25 @@ export default function QrScanner() {
     }
 
     // Allow localhost if it contains /verify?id=, otherwise reject in production
-    if (decodedText.startsWith("http://localhost") && !decodedText.includes("/verify?id=")) {
-      toast({
-        title: "QR code ini mengarah ke localhost.",
-        description: "Harap hubungi admin untuk memperbaiki dokumen ini.",
-        variant: "destructive",
-      });
-      return;
+    if (decodedText.startsWith("http://localhost")) {
+      try {
+        const url = new URL(decodedText);
+        if (url.pathname !== "/verify" || !url.searchParams.has("id")) {
+          toast({
+            title: "QR code ini mengarah ke localhost.",
+            description: "Harap hubungi admin untuk memperbaiki dokumen ini.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch {
+        toast({
+          title: "QR code tidak valid.",
+          description: "URL tidak dapat diproses.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!decodedText.startsWith(`${window.location.origin}${import.meta.env.BASE_URL}`)) {
