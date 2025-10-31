@@ -1,6 +1,7 @@
 import axios from "axios";
 import { AlertTriangle, CheckCircle, FileText, Menu, QrCode, Search, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
@@ -24,6 +25,7 @@ export default function VerificationPortal() {
   const [verificationResult, setVerificationResult] = useState<UserDocument | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Auto-fill document ID from URL parameter (QR code scan)
   useEffect(() => {
@@ -220,7 +222,7 @@ export default function VerificationPortal() {
                   >
                     ID Dokumen
                   </Label>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col md:flex-row gap-3">
                     <Input
                       id="documentId"
                       placeholder="Masukkan ID dokumen atau hasil scan QR code"
@@ -246,6 +248,13 @@ export default function VerificationPortal() {
                         </>
                       )}
                     </Button>
+                    <Button
+                      onClick={() => navigate("/qr-scanner")}
+                      className="flex md:hidden justify-center h-12 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    >
+                      <QrCode className="mr-2 h-5 w-5" />
+                      Scan QR
+                    </Button>
                   </div>
                 </div>
 
@@ -257,9 +266,11 @@ export default function VerificationPortal() {
                     Cara Verifikasi:
                   </h4>
                   <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
-                    <li className="pl-2">Scan QR code pada dokumen dengan kamera ponsel</li>
-                    <li className="pl-2">Salin dan tempel ID dokumen ke kolom di atas</li>
-                    <li className="pl-2">Klik tombol "Verifikasi" untuk mengecek status dokumen</li>
+                    <li className="pl-2">Scan QR code pada dokumen dengan kamera ponsel.</li>
+                    <li className="pl-2">
+                      Atau salin dan tempel ID dokumen ke kolom di atas dan klik tombol "Verifikasi"
+                      untuk mengecek status dokumen.
+                    </li>
                   </ol>
                 </div>
               </CardContent>
