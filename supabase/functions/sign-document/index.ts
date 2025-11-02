@@ -3,8 +3,14 @@ import { base64Decode, corsHeaders } from "../_shared/index.ts";
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SERVICE_ROLE_KEY")!);
 
+// Helper for base64 → string
+function base64ToStr(bytes: Uint8Array) {
+  return String.fromCharCode(...bytes);
+}
+
 Deno.serve(async (req) => {
   const headers: Headers = new Headers(corsHeaders);
+  headers.set("Content-Type", "application/json");
 
   // Preflight
   if (req.method === "OPTIONS") {
@@ -12,22 +18,93 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { documentId, signerUserId } = await req.json();
+    const { documentId, signerUserId, passphrase } = await req.json();
+
+    if (!documentId || !signerUserId || !passphrase) {
+      return new Response(
+        JSON.stringify({
+          error: "Data tidak lengkap (documentId, signerUserId, passphrase)",
+        }),
+        { status: 400, headers },
+      );
+    }
 
     // Fetch document
-    const { data: doc, error } = await supabase
+    const { data: doc, error: docErr } = await supabase
       .from("documents")
       .select("*")
       .eq("id", documentId)
       .single();
-
-    // Handle missing document error
-    if (error || !doc) {
+    if (docErr || !doc) {
       return new Response(JSON.stringify({ error: "Dokumen tidak ditemukan" }), {
         status: 404,
         headers,
       });
     }
+
+    // Fetch signer’s active key
+    const { data: keyRow, error: keyErr } = await supabase
+      .from("signing_keys")
+      .select(
+        "kid, assigned_to, passphrase_hash, x, enc_private_key, enc_private_key_iv, enc_algo, revoked_at, expires_at",
+      )
+      .eq("assigned_to", signerUserId)
+      .is("revoked_at", null)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (keyErr || !keyRow) {
+      return new Response(
+        JSON.stringify({ error: "Sertifikat tidak ditemukan atau sudah dicabut" }),
+        { status: 404, headers },
+      );
+    }
+
+    // Check expiry
+    if (keyRow.expires_at && new Date(keyRow.expires_at) < new Date()) {
+      return new Response(JSON.stringify({ error: "Sertifikat sudah kadaluarsa" }), {
+        status: 400,
+        headers,
+      });
+    }
+
+    // Verify passphrase
+    const { compare } = await import("https://deno.land/x/bcrypt@v0.4.1/mod.ts");
+    const passOK = await compare(passphrase, keyRow.passphrase_hash);
+    if (!passOK) {
+      return new Response(JSON.stringify({ error: "Passphrase salah" }), { status: 403, headers });
+    }
+
+    // Import master key
+    const MASTER_KEY_B64 = Deno.env.get("MASTER_KEY_B64");
+    if (!MASTER_KEY_B64) {
+      return new Response(JSON.stringify({ error: "Master key tidak tersimpan di sistem" }), {
+        status: 500,
+        headers,
+      });
+    }
+    const masterKeyBytes = base64Decode(MASTER_KEY_B64);
+    const masterKey = await crypto.subtle.importKey("raw", masterKeyBytes, "AES-GCM", false, [
+      "decrypt",
+    ]);
+
+    // Decrypt private key
+    const iv = base64Decode(keyRow.enc_private_key_iv);
+    const ciphertext = base64Decode(keyRow.enc_private_key);
+    const decryptedPkcs8 = new Uint8Array(
+      await crypto.subtle.decrypt({ name: "AES-GCM", iv }, masterKey, ciphertext),
+    );
+
+    // Import decrypted private key
+    const cryptoKey = await crypto.subtle.importKey(
+      "pkcs8",
+      decryptedPkcs8.buffer,
+      { name: "Ed25519" },
+      false,
+      ["sign"],
+    );
 
     // Create payload hash
     const payload = JSON.stringify({
@@ -36,45 +113,21 @@ Deno.serve(async (req) => {
       user_id: doc.user_id,
       created_at: doc.created_at,
     });
-
-    // Use Web Crypto to compute SHA-256 and convert to hex string
-    const encoder = new TextEncoder();
-    const payloadBytes = encoder.encode(payload);
+    const payloadBytes = new TextEncoder().encode(payload);
     const digestBuffer = await crypto.subtle.digest("SHA-256", payloadBytes);
     const hash = Array.from(new Uint8Array(digestBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Sign the hash using Ed25519 private key from env vars
-    const privateKeyB64 = Deno.env.get("SIGNING_PRIVATE_KEY_PKCS8_B64")!;
-    const keyId = Deno.env.get("SIGNING_KEY_ID")!;
-
-    const privateKeyBuffer = base64Decode(privateKeyB64);
-    // crypto.subtle.importKey expects an ArrayBuffer / ArrayBufferView with
-    // a concrete ArrayBuffer; create a slice to ensure compatibility across
-    // runtimes and to satisfy typed signatures.
-    // Copy into a fresh Uint8Array so we have a concrete ArrayBuffer (not
-    // a SharedArrayBuffer view) — this avoids typing/runtime mismatches.
-    const keyCopy = new Uint8Array(privateKeyBuffer);
-    const keyArrayBuffer = keyCopy.buffer;
-
-    const cryptoKey = await crypto.subtle.importKey(
-      "pkcs8",
-      keyArrayBuffer,
-      { name: "Ed25519" },
-      false,
-      ["sign"],
-    );
-
     // Sign the hash
     const dataToSign = new TextEncoder().encode(hash);
     const sigBuffer = await crypto.subtle.sign("Ed25519", cryptoKey, dataToSign);
-    const signature = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)));
+    const signature = btoa(base64ToStr(new Uint8Array(sigBuffer)));
 
     // Store signature in database
     const { error: insertError } = await supabase.from("document_signatures").insert({
       document_id: documentId,
-      key_id: keyId,
+      key_id: keyRow.kid,
       payload_hash: hash,
       signature,
       signer_user_id: signerUserId,
@@ -86,28 +139,27 @@ Deno.serve(async (req) => {
     // Update document status
     const { error: updateError } = await supabase
       .from("documents")
-      .update({ status: "signed" })
+      .update({
+        status: "signed",
+        signing_key_id: keyRow.kid,
+      })
       .eq("id", documentId);
     if (updateError) {
       throw updateError;
     }
 
-    headers.set("Content-Type", "application/json");
-
-    return new Response(JSON.stringify({ ok: true, keyId, hash, signature }), {
-      headers,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: unknown) {
-    console.error("Sign function error:", err);
-    headers.set("Content-Type", "application/json");
-    let errorMessage: string;
-    if (err instanceof Error) {
-      errorMessage = err.message;
-    } else {
-      errorMessage = String(err);
-    }
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        keyId: keyRow.kid,
+        hash,
+        signature,
+      }),
+      { status: 200, headers },
+    );
+  } catch (err) {
+    console.error("sign-document error:", err);
+    return new Response(JSON.stringify({ error: String(err?.message ?? err) }), {
       status: 500,
       headers,
     });
