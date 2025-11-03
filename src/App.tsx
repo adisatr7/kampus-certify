@@ -15,6 +15,7 @@ import QrScanner from "./pages/QrScanner";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
 import VerificationPortal from "./pages/VerificationPortal";
+import CertificateManagement from "./pages/admin/CertificateManagement";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,15 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              {/* Admin Routes */}
+            <Route 
+              path="/admin/certificates" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CertificateManagement />
+                </ProtectedRoute>
+              } 
+            />
               <Route
                 path="/admin/audit"
                 element={
