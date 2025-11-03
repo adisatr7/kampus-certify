@@ -1,21 +1,40 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import axios from "axios";
+import { AlertCircle, Calendar, CheckCircle, Plus, Shield, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Plus, Shield, Calendar, AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { useToast } from "@/hooks/useToast";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import axios from "axios";
-import { SigningKey } from "@/types/SigningKey";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 import { CertificateStatus } from "@/types/CertificateStatus";
+import { SigningKey } from "@/types/SigningKey";
 
 export default function CertificateManagement() {
   const [certificates, setCertificates] = useState<SigningKey[]>([]);
@@ -28,7 +47,9 @@ export default function CertificateManagement() {
   const [expiresAt, setExpiresAt] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>(
+    [],
+  );
 
   useEffect(() => {
     fetchCertificates();
@@ -44,9 +65,13 @@ export default function CertificateManagement() {
   };
 
   const getStatus = (key: SigningKey): CertificateStatus => {
-    if (key.revoked_at) return "revoked";
-    if (key.expires_at && new Date(key.expires_at) < new Date()) return "expired";
-    return "active";
+    if (key.revoked_at) {
+      return "revoked";
+    } else if (key.expires_at && new Date(key.expires_at) < new Date()) {
+      return "expired";
+    } else {
+      return "active";
+    }
   };
 
   const fetchCertificates = async () => {
@@ -55,17 +80,11 @@ export default function CertificateManagement() {
         .from("signing_keys")
         .select(`
           kid,
-          kty,
-          crv,
-          x,
-          n,
-          e,
-          active,
           created_at,
           expires_at,
           revoked_at,
           assigned_to,
-          users:assigned_to (
+          assigned_to_user:assigned_to (
             name,
             email,
             role
@@ -73,7 +92,9 @@ export default function CertificateManagement() {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       const keysWithStatus: SigningKey[] = (data || []).map((key) => ({
         ...key,
@@ -138,7 +159,7 @@ export default function CertificateManagement() {
         await createAuditEntry(
           userProfile.id,
           "CREATE_CERTIFICATE",
-          `Membuat sertifikat untuk user ID ${userId}`
+          `Membuat sertifikat untuk user ID ${userId}`,
         );
 
         toast({
@@ -168,29 +189,44 @@ export default function CertificateManagement() {
 
   const revokeCertificate = async (kid: string, userName: string) => {
     try {
-      const { error } = await supabase
-        .from("signing_keys")
-        .update({ revoked_at: new Date().toISOString() } as any)
-        .eq("kid", kid);
+      // Call server-side function to perform revoke using service role (bypasses RLS)
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/revoke-signing-key`;
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
 
-      if (error) throw error;
-
-      await createAuditEntry(
-        userProfile.id,
-        "REVOKE_CERTIFICATE",
-        `Mencabut signing key milik ${userName}`
+      const response = await axios.post(
+        url,
+        { kid },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
 
-      toast({
-        title: "Berhasil",
-        description: "Signing key berhasil dicabut",
-      });
+      if (response.data?.success) {
+        await createAuditEntry(
+          userProfile.id,
+          "REVOKE_CERTIFICATE",
+          `Mencabut signing key milik ${userName}`,
+        );
 
-      fetchCertificates();
-    } catch (error) {
+        toast({
+          title: "Berhasil",
+          description: "Signing key berhasil dicabut",
+        });
+
+        fetchCertificates();
+        return;
+      }
+
+      // Function returned an error payload
+      throw new Error(response.data?.error || "Gagal mencabut signing key");
+    } catch (err) {
+      console.error("Failed to revoke certificate", err);
       toast({
         title: "Error",
-        description: "Gagal mencabut signing key",
+        description: err?.message || "Gagal mencabut signing key",
         variant: "destructive",
       });
     }
@@ -230,7 +266,7 @@ export default function CertificateManagement() {
 
   if (loading) {
     return (
-      <DashboardLayout userRole={userProfile?.role as any}>
+      <DashboardLayout userRole={userProfile?.role}>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/4"></div>
           <div className="h-64 bg-muted rounded"></div>
@@ -240,7 +276,7 @@ export default function CertificateManagement() {
   }
 
   return (
-    <DashboardLayout userRole={userProfile?.role as any}>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -250,7 +286,10 @@ export default function CertificateManagement() {
             </p>
           </div>
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" />
@@ -264,13 +303,19 @@ export default function CertificateManagement() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="user">Pilih User</Label>
-                  <Select value={userId} onValueChange={setUserId}>
+                  <Select
+                    value={userId}
+                    onValueChange={setUserId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
                       {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
+                        <SelectItem
+                          key={user.id}
+                          value={user.id}
+                        >
                           {user.name} ({user.email})
                         </SelectItem>
                       ))}
@@ -315,7 +360,13 @@ export default function CertificateManagement() {
                 </div>
 
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => { setIsCreateDialogOpen(false); resetForm(); }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreateDialogOpen(false);
+                      resetForm();
+                    }}
+                  >
                     Batal
                   </Button>
                   <Button onClick={generateCertificate}>Buat Sertifikat</Button>
@@ -355,9 +406,16 @@ export default function CertificateManagement() {
                     <TableRow key={cert.kid}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{cert.users?.name || "-"}</div>
-                          <div className="text-sm text-muted-foreground">{cert.users?.email || "-"}</div>
-                          <Badge variant="outline" className="text-xs mt-1">{cert.users?.role || "Unknown"}</Badge>
+                          <div className="font-medium">{cert.assigned_to_user?.name || "-"}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {cert.assigned_to_user?.email || "-"}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="text-xs mt-1"
+                          >
+                            {cert.assigned_to_user?.role || "Unknown"}
+                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-sm">{cert.kid}</TableCell>
@@ -373,7 +431,9 @@ export default function CertificateManagement() {
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             {new Date(cert.expires_at).toLocaleDateString("id-ID")}
                           </div>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -387,7 +447,9 @@ export default function CertificateManagement() {
                             type="button"
                             variant="destructive"
                             size="sm"
-                            onClick={() => revokeCertificate(cert.kid, cert.users?.name || "-")}
+                            onClick={() =>
+                              revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
+                            }
                           >
                             Cabut
                           </Button>
@@ -402,15 +464,29 @@ export default function CertificateManagement() {
 
           <CardContent className="block lg:hidden max-h-[70vh] overflow-y-auto space-y-4 p-4">
             {certificates.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">Belum ada sertifikat yang dibuat</div>
+              <div className="text-center py-6 text-muted-foreground">
+                Belum ada sertifikat yang dibuat
+              </div>
             ) : (
               certificates.map((cert) => (
-                <Card key={cert.kid} className="p-4 rounded-xl shadow-sm flex flex-col gap-3">
+                <Card
+                  key={cert.kid}
+                  className="p-4 rounded-xl shadow-sm flex flex-col gap-3"
+                >
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="font-medium text-slate-800 dark:text-white">{cert.users?.name || "-"}</div>
-                      <div className="text-sm text-muted-foreground">{cert.users?.email || "-"}</div>
-                      <Badge variant="outline" className="text-xs mt-1">{cert.users?.role || "Unknown"}</Badge>
+                      <div className="font-medium text-slate-800 dark:text-white">
+                        {cert.assigned_to_user?.name || "-"}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {cert.assigned_to_user?.email || "-"}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-xs mt-1"
+                      >
+                        {cert.assigned_to_user?.role || "Unknown"}
+                      </Badge>
                     </div>
                     <div>{getStatusBadge(cert.status!)}</div>
                   </div>
@@ -434,7 +510,9 @@ export default function CertificateManagement() {
                         type="button"
                         variant="destructive"
                         size="sm"
-                        onClick={() => revokeCertificate(cert.kid, cert.users?.name || "-")}
+                        onClick={() =>
+                          revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
+                        }
                       >
                         Cabut
                       </Button>

@@ -51,7 +51,10 @@ async function pbkdf2Hash(pass: string, iterations = 100_000) {
   return `pbkdf2:${iterations}:${base64Encode(salt)}:${base64Encode(hashBytes)}`;
 }
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
 
 Deno.serve(async (req) => {
   const headers: Headers = new Headers(corsHeaders);

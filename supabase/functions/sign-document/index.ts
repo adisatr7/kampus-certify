@@ -1,7 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64Decode, corsHeaders } from "../_shared/index.ts";
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
 
 // Helper for base64 → string
 function base64ToStr(bytes: Uint8Array) {
@@ -111,7 +114,8 @@ Deno.serve(async (req) => {
       title: doc.title,
       content: doc.content,
       user_id: doc.user_id,
-      created_at: doc.created_at,
+      recipient_name: doc.recipient_name,
+      recipient_student_number: doc.recipient_student_number,
     });
     const payloadBytes = new TextEncoder().encode(payload);
     const digestBuffer = await crypto.subtle.digest("SHA-256", payloadBytes);

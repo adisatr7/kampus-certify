@@ -32,3 +32,4 @@ jobs:
           supabase functions deploy create-certificate --project-ref "$SUPABASE_PROJECT_ID"
           supabase functions deploy sign-document --project-ref "$SUPABASE_PROJECT_ID"
           supabase functions deploy verify-document --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"
+          supabase functions deploy revoke-signing-key --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"
