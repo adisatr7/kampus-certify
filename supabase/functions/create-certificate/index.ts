@@ -1,4 +1,3 @@
-import { hash as bcryptHash } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64Decode, base64Encode, corsHeaders } from "../_shared/index.ts";
 
@@ -25,6 +24,31 @@ function validatePassphrase(passphrase: unknown): { valid: boolean; error: strin
     return { valid: false, error: "Passphrase harus mengandung setidaknya satu simbol" };
   }
   return { valid: true, error: null };
+}
+
+/**
+ * Hash passphrase using PBKDF2 (Edge-safe, no Worker dependency)
+ */
+async function pbkdf2Hash(pass: string, iterations = 100_000) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(pass),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    keyMaterial,
+    256,
+  );
+
+  const hashBytes = new Uint8Array(derivedBits);
+  // Store as: pbkdf2:<iterations>:<salt_b64>:<hash_b64>
+  return `pbkdf2:${iterations}:${base64Encode(salt)}:${base64Encode(hashBytes)}`;
 }
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -166,8 +190,7 @@ Deno.serve(async (req) => {
       await crypto.subtle.encrypt({ name: "AES-GCM", iv }, masterKey, pkcs8),
     );
 
-    // Hash passphrase
-    const passphrase_hash = await bcryptHash(passphrase);
+    const passphrase_hash = await pbkdf2Hash(passphrase);
 
     // Generate kid (date + short random suffix)
     const datePart = new Date().toISOString().slice(0, 10);
@@ -177,6 +200,8 @@ Deno.serve(async (req) => {
     // Insert row
     const { error: insertErr } = await supabase.from("signing_keys").insert({
       kid,
+      kty: "OKP",
+      crv: "Ed25519",
       created_by: createdBy,
       assigned_to: assignedTo,
       x: base64Encode(spki), // Public key (SPKI DER → b64)
