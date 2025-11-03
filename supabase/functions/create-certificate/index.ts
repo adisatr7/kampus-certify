@@ -27,7 +27,7 @@ function validatePassphrase(passphrase: unknown): { valid: boolean; error: strin
   return { valid: true, error: null };
 }
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SERVICE_ROLE_KEY")!);
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 Deno.serve(async (req) => {
   const headers: Headers = new Headers(corsHeaders);
