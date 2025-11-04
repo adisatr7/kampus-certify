@@ -71,22 +71,20 @@ Deno.serve(async (req) => {
     }
 
     // Validate expiry date
-    if (expiresAt) {
-      const expiryDate = new Date(expiresAt);
+    const expirityDate = new Date(expiresAt);
 
-      if (isNaN(expiryDate.getTime())) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Tanggal kadaluarsa tidak valid",
-            data: null,
-          }),
-          {
-            status: 400,
-            headers,
-          },
-        );
-      }
+    if (isNaN(expirityDate.getTime())) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Tanggal kadaluarsa tidak valid",
+          data: null,
+        }),
+        {
+          status: 400,
+          headers,
+        },
+      );
     }
 
     // Ensure target user exists
