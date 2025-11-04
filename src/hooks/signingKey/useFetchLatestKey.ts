@@ -10,13 +10,14 @@ export default function useFetchLatestKey(userId: string) {
 
   const fetchLatestKey = async (userId: string) => {
     try {
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("signing_keys")
         .select("kid")
         .eq("assigned_to", userId)
         .eq("revoked_at", null)
         .eq("deleted_at", null)
-        .eq("expires_at", null)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false })
         .limit(1);
 
