@@ -56,14 +56,16 @@ export default function DocumentManagement() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientStudentNumber, setRecipientStudentNumber] = useState("");
   const [userId, setUserId] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const uploadDocument = async () => {
-    if (!title || !userId) {
+    if (!title || !content.trim() || !recipientName || !recipientStudentNumber || !userId) {
       toast({
         title: "Error",
-        description: "Judul dan user harus diisi",
+        description: "Judul, isi, penandatangan, nama penerima, dan NIM wajib diisi",
         variant: "destructive",
       });
       return;
@@ -101,6 +103,8 @@ export default function DocumentManagement() {
         title,
         content: content.trim(),
         user_id: userId,
+        recipient_name: recipientName,
+        recipient_student_number: recipientStudentNumber,
         file_url: publicUrl,
         status: "pending",
       });
@@ -164,6 +168,8 @@ export default function DocumentManagement() {
     setTitle("");
     setContent("");
     setUserId("");
+    setRecipientName("");
+    setRecipientStudentNumber("");
     setFile(null);
   };
 
@@ -242,7 +248,7 @@ export default function DocumentManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="user">Pilih User</Label>
+                  <Label htmlFor="user">Pilih Penandatangan</Label>
                   <Select
                     value={userId}
                     onValueChange={setUserId}
@@ -261,6 +267,26 @@ export default function DocumentManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="recipientName">Nama Penerima</Label>
+                  <Input
+                    id="recipientName"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="Masukkan nama penerima"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="recipientStudentNumber">NIM</Label>
+                  <Input
+                    id="recipientStudentNumber"
+                    value={recipientStudentNumber}
+                    onChange={(e) => setRecipientStudentNumber(e.target.value)}
+                    placeholder="Masukkan NIM"
+                  />
                 </div>
 
                 <div>
