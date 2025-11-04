@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Calendar, FileText, PenTool, QrCode } from "lucide-react";
+import { Calendar, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   Table,
@@ -17,31 +25,42 @@ import {
 } from "@/components/ui/Table";
 import useFetchDocumentsByUserId from "@/hooks/document/useFetchDocumentsByUserId";
 import useFetchLatestKey from "@/hooks/signingKey/useFetchLatestKey";
+import useFetchSigningKeys from "@/hooks/signingKey/useFetchSigningKeys";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 import { UserDocument } from "@/types";
+import { Label } from "../../components/ui/Label";
 
 export default function DocumentSigning() {
   const { toast } = useToast();
   const { userProfile } = useAuth();
 
-  const { latestKey } = useFetchLatestKey();
+  const { data: signingKeys, isLoading: isLoadingKeys } = useFetchSigningKeys(
+    userProfile?.id ?? "",
+  );
+  const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
+
   const {
     data: documents,
     isLoading: isLoadingDocuments,
     refetch: refetchDocuments,
   } = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
 
+  const [passphraseInput, setPassphraseInput] = useState("");
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
   const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
+    // Default selected key: prefer latestKey, otherwise first available assigned key
+    setSelectedKeyId(latestKey || signingKeys?.[0]?.kid || null);
     setIsSignDialogOpen(true);
   };
 
@@ -68,6 +87,9 @@ export default function DocumentSigning() {
         {
           documentId: selectedDocument.id,
           signerUserId: userProfile.id,
+          passphrase: passphraseInput,
+          recipientName: selectedDocument.recipient_name || "",
+          recipientStudentNumber: selectedDocument.recipient_student_number || "",
         },
         {
           headers: {
@@ -149,7 +171,7 @@ export default function DocumentSigning() {
 
       toast({
         title: "Error",
-        description: "Gagal menandatangani dokumen",
+        description: err?.response?.data?.error || "Gagal menandatangani dokumen",
         variant: "destructive",
       });
     } finally {
@@ -326,23 +348,83 @@ export default function DocumentSigning() {
             <div className="space-y-4">
               {selectedDocument && (
                 <>
+                  {/* Document title */}
                   <div className="p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Anda akan menandatangani:</h4>
+                    <Label>Anda akan menandatangani:</Label>
                     <p className="text-sm">{selectedDocument.title}</p>
                   </div>
+
+                  {/* Certificate (internally: signing key) selection */}
                   <div className="p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Dengan key ID:</h4>
-                    <p className="text-sm">{latestKey}</p>
+                    <Label htmlFor="signing-key">Pilih sertifikat untuk menandatangani:</Label>
+                    {signingKeys && signingKeys.length > 0 ? (
+                      <Select
+                        id="signing-key"
+                        value={selectedKeyId ?? ""}
+                        onValueChange={(v) => setSelectedKeyId(v || null)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              isLoadingKeys ? "Memuat sertifikat..." : "Pilih sertifikat..."
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {signingKeys.map((k) => (
+                            <SelectItem
+                              key={k.kid}
+                              value={k.kid}
+                            >
+                              {k.kid}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        (Tidak ada sertifikat tersedia)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Passphrase */}
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label htmlFor="passphrase">Masukkan passphrase:</Label>
+                    <div className="relative">
+                      <Input
+                        id="passphrase"
+                        type={showPassphrase ? "text" : "password"}
+                        placeholder="Passphrase"
+                        value={passphraseInput}
+                        onChange={(e) => setPassphraseInput(e.target.value)}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassphrase(!showPassphrase)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+                        aria-label={showPassphrase ? "Hide passphrase" : "Show passphrase"}
+                      >
+                        {showPassphrase ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
 
-              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <QrCode className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <QrCode className="h-5 w-5 text-blue-600 dark:text-blue-300 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900">Setelah ditandatangani:</p>
-                    <p className="text-blue-700">
+                    <p className="font-medium text-blue-900 dark:text-blue-100">
+                      Setelah ditandatangani:
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-200">
                       Dokumen akan mendapatkan QR code untuk verifikasi dan tidak dapat diubah lagi.
                     </p>
                   </div>
@@ -362,7 +444,7 @@ export default function DocumentSigning() {
                 >
                   {isSigning ? (
                     <>
-                      <PenTool className="mr-2 h-4 w-4 animate-pulse" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Menandatangani...
                     </>
                   ) : (

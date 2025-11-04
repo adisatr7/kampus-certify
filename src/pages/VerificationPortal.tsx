@@ -334,8 +334,8 @@ export default function VerificationPortal() {
                   </div>
 
                   {/* Status Information */}
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700 mb-2">
+                  <Card className="p-4">
+                    <p className="text-sm mb-2 text-muted-foreground">
                       adalah benar, sah, dan tercatat dalam data kami serta diterbitkan oleh
                       Certificate Authority UMC melalui Sistem Certificate Authority Berbasis
                       Digital.
@@ -359,7 +359,7 @@ export default function VerificationPortal() {
                         })}
                       </p>
                     )}
-                  </div>
+                  </Card>
 
                   <p className="text-center text-sm text-muted-foreground">
                     Pastikan Anda mengakses data yang benar melalui{" "}

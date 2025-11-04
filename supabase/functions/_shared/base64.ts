@@ -17,3 +17,16 @@ export function base64Decode(b64: string): Uint8Array {
 
   return bytes;
 }
+
+/**
+ * Small local base64 encoder from Uint8Array. Avoids compatibility issues
+ * with std library exports across Deno versions and the Edge runtime.
+ */
+export function base64Encode(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) {
+    s += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(s);
+}
