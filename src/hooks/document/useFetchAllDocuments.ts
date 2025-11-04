@@ -3,16 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserDocument } from "@/types";
 import { useToast } from "../useToast";
 
-export default function useFetchAllDocuments() {
+export default function useFetchAllDocuments({ enabled = true }: { enabled?: boolean } = {}) {
   const { toast } = useToast();
   const [data, setData] = useState<UserDocument[]>([]);
-  const [isLoading, setLoading] = useState(true);
+  const [isLoading, setLoading] = useState<boolean>(enabled);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     fetchData();
-  }, []);
+  }, [enabled]);
 
   const fetchData = async () => {
+    if (!enabled) {
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase

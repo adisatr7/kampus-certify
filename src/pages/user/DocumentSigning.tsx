@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import useFetchAllDocuments from "@/hooks/document/useFetchAllDocuments";
 import useFetchDocumentsByUserId from "@/hooks/document/useFetchDocumentsByUserId";
 import useFetchLatestKey from "@/hooks/signingKey/useFetchLatestKey";
 import useFetchSigningKeys from "@/hooks/signingKey/useFetchSigningKeys";
@@ -43,11 +44,16 @@ export default function DocumentSigning() {
   );
   const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
 
-  const {
-    data: documents,
-    isLoading: isLoadingDocuments,
-    refetch: refetchDocuments,
-  } = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
+  // Hooks must be called unconditionally, so call both and pick the result
+  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
+  const allDocsHook = useFetchAllDocuments({ enabled: userProfile?.role === "admin" });
+
+  // For admins, show all documents. For lecturers (dosen) show only documents assigned to them.
+  const documents = (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) || [];
+  const isLoadingDocuments =
+    userProfile?.role === "admin" ? allDocsHook.isLoading : docsByUserHook.isLoading;
+  const refetchDocuments =
+    userProfile?.role === "admin" ? allDocsHook.refetch : docsByUserHook.refetch;
 
   const [passphraseInput, setPassphraseInput] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);

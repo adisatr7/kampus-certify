@@ -1,4 +1,14 @@
-import { Activity, Award, ChevronLeft, FileText, Home, LogOut, Menu, Search } from "lucide-react";
+import {
+  Activity,
+  Award,
+  ChevronLeft,
+  FileText,
+  Home,
+  LogOut,
+  Menu,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
@@ -20,8 +30,9 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   const menuItems = {
     admin: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },
+      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: ShieldCheck },
       { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
+      { title: "Tanda Tangan", url: "/admin/sign", icon: Award },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],

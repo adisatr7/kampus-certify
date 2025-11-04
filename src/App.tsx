@@ -73,6 +73,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/sign"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <DocumentSigning />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/audit"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
