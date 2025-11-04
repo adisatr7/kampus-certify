@@ -7,7 +7,9 @@ import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { AuthProvider } from "@/lib/auth";
 import AuditTrail from "./pages/admin/AuditTrail";
+import CertificateManagement from "./pages/admin/CertificateManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
+import SignedDocumentPreview from "./pages/dev/SignedDocumentPreview";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScanner from "./pages/QrScanner";
@@ -15,7 +17,6 @@ import QrScanner from "./pages/QrScanner";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
 import VerificationPortal from "./pages/VerificationPortal";
-import CertificateManagement from "./pages/admin/CertificateManagement";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,14 @@ const App = () => (
 
               {/* Admin Routes */}
               <Route
+                path="/admin/certificates"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <CertificateManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/documents"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
@@ -63,15 +72,6 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              {/* Admin Routes */}
-            <Route 
-              path="/admin/certificates" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CertificateManagement />
-                </ProtectedRoute>
-              } 
-            />
               <Route
                 path="/admin/audit"
                 element={

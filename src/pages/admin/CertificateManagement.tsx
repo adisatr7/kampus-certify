@@ -49,8 +49,6 @@ import { SigningKey } from "@/types/SigningKey";
 export default function CertificateManagement() {
   const [certificates, setCertificates] = useState<SigningKey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
@@ -60,11 +58,21 @@ export default function CertificateManagement() {
     defaultDate.setFullYear(defaultDate.getFullYear() + 1);
     return defaultDate.toISOString().slice(0, 10); // YYYY-MM-DD for <input type="date">
   });
+
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>(
     [],
   );
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [changeKid, setChangeKid] = useState<string | null>(null);
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [changeOldPass, setChangeOldPass] = useState("");
+  const [changeNewPass, setChangeNewPass] = useState("");
+  const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
+  const [isChangingPass, setIsChangingPass] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
@@ -243,6 +251,66 @@ export default function CertificateManagement() {
     }
   };
 
+  // Change passphrase handler extracted from inline JSX
+  const handleChangePassphrase = async () => {
+    if (isChangingPass) return;
+    if (!changeKid || !changeOldPass || !changeNewPass) {
+      toast({
+        title: "Error",
+        description: "Semua field harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsChangingPass(true);
+      const payload = {
+        kid: changeKid,
+        oldPassphrase: `CA${changeOldPass}`,
+        newPassphrase: `CA${changeNewPass}`,
+        changedBy: userProfile?.id,
+      };
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/change-passphrase`;
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const res = await axios.post(url, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (res.data?.success) {
+        await createAuditEntry(
+          userProfile.id,
+          "CHANGE_PASSPHRASE",
+          `Mengganti passphrase untuk KID ${changeKid}`,
+        );
+        toast({ title: "Berhasil", description: "Passphrase berhasil diubah" });
+        setIsChangeDialogOpen(false);
+        setChangeKid(null);
+        setChangeOldPass("");
+        setChangeNewPass("");
+        fetchCertificates();
+      } else {
+        throw new Error(res.data?.error || "Gagal mengubah passphrase");
+      }
+    } catch (err) {
+      console.error("change passphrase failed", err);
+      const e = err as unknown as {
+        response?: { data?: { error?: string } };
+        message?: string;
+      };
+      const serverMessage = e.response?.data?.error || e.message || String(err);
+      toast({
+        title: "Error",
+        description: serverMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
+
   const resetForm = () => {
     setUserId("");
     setExpiresAt("");
@@ -401,6 +469,97 @@ export default function CertificateManagement() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Change Passphrase Dialog */}
+          <Dialog
+            open={isChangeDialogOpen}
+            onOpenChange={setIsChangeDialogOpen}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Ganti Passphrase Sertifikat</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Passphrase Lama</Label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 font-mono text-muted-foreground">
+                      CA
+                    </span>
+                    <Input
+                      type={showChangePass ? "text" : "password"}
+                      value={changeOldPass}
+                      onChange={(e) => setChangeOldPass(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowChangePass(!showChangePass)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+                    >
+                      {showChangePass ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Passphrase Baru</Label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 font-mono text-muted-foreground">
+                      CA
+                    </span>
+                    <Input
+                      type={showChangePass ? "text" : "password"}
+                      value={changeNewPass}
+                      onChange={(e) => setChangeNewPass(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowChangePass(!showChangePass)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+                    >
+                      {showChangePass ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsChangeDialogOpen(false);
+                      setChangeKid(null);
+                      setChangeOldPass("");
+                      setChangeNewPass("");
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    onClick={handleChangePassphrase}
+                    disabled={isChangingPass}
+                  >
+                    {isChangingPass ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Mengganti...
+                      </span>
+                    ) : (
+                      "Ganti Passphrase"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -470,16 +629,30 @@ export default function CertificateManagement() {
                       </TableCell>
                       <TableCell>
                         {getStatus(cert) === "active" && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() =>
-                              revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
-                            }
-                          >
-                            Cabut
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() =>
+                                revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
+                              }
+                            >
+                              Cabut
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setChangeKid(cert.kid);
+                                setIsChangeDialogOpen(true);
+                              }}
+                            >
+                              Ganti Passphrase
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -533,16 +706,30 @@ export default function CertificateManagement() {
 
                   {getStatus(cert) === "active" && (
                     <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() =>
-                          revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
-                        }
-                      >
-                        Cabut
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() =>
+                            revokeCertificate(cert.kid, cert.assigned_to_user?.name || "-")
+                          }
+                        >
+                          Cabut
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setChangeKid(cert.kid);
+                            setIsChangeDialogOpen(true);
+                          }}
+                        >
+                          Ganti Passphrase
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </Card>

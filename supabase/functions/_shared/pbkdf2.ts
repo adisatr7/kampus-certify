@@ -1,4 +1,4 @@
-import { base64Decode } from "./base64.ts";
+import { base64Decode, base64Encode } from "./base64.ts";
 
 /**
  * Verify a PBKDF2 stored hash in the format:
@@ -33,12 +33,40 @@ export async function verifyPBKDF2(pass: string, stored: string): Promise<boolea
 
   const derivedBytes = new Uint8Array(derived);
 
-  if (derivedBytes.length !== expectedHash.byteLength) return false;
+  if (derivedBytes.length !== expectedHash.byteLength) {
+    return false;
+  }
 
-  // constant-time comparison
+  // Constant-time comparison
   let diff = 0;
   for (let i = 0; i < derivedBytes.length; i++) {
     diff |= derivedBytes[i] ^ expectedHash[i];
   }
   return diff === 0;
+}
+
+/**
+ * Hash passphrase using PBKDF2 and return the stored format:
+ *   pbkdf2:<iterations>:<salt_b64>:<hash_b64>
+ */
+export async function pbkdf2Hash(pass: string, iterations = 100_000): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(pass),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    keyMaterial,
+    256,
+  );
+  const hashBytes = new Uint8Array(derived);
+
+  // Store as: pbkdf2:<iterations>:<salt_b64>:<hash_b64>
+  return `pbkdf2:${iterations}:${base64Encode(salt)}:${base64Encode(hashBytes)}`;
 }

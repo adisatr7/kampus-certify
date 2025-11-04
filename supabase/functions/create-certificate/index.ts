@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { base64Decode, base64Encode, corsHeaders } from "../_shared/index.ts";
+import { base64Decode, base64Encode, corsHeaders, pbkdf2Hash } from "../_shared/index.ts";
 
 /**
  * Validate passphrase rules:
@@ -21,31 +21,6 @@ function validatePassphrase(passphrase: unknown): { valid: boolean; error: strin
     return { valid: false, error: "Passphrase harus mengandung setidaknya satu simbol" };
   }
   return { valid: true, error: null };
-}
-
-/**
- * Hash passphrase using PBKDF2 (Edge-safe, no Worker dependency)
- */
-async function pbkdf2Hash(pass: string, iterations = 100_000) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(pass),
-    { name: "PBKDF2" },
-    false,
-    ["deriveBits"],
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
-    keyMaterial,
-    256,
-  );
-
-  const hashBytes = new Uint8Array(derivedBits);
-  // Store as: pbkdf2:<iterations>:<salt_b64>:<hash_b64>
-  return `pbkdf2:${iterations}:${base64Encode(salt)}:${base64Encode(hashBytes)}`;
 }
 
 const supabase = createClient(

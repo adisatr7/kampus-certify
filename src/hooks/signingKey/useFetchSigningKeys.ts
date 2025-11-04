@@ -27,6 +27,7 @@ export default function useFetchSigningKeys(userId: string) {
 
     setIsLoading(true);
     try {
+      const now = new Date().toISOString();
       const { data: rows, error } = await supabase
         .from("signing_keys")
         .select(`
@@ -36,25 +37,22 @@ export default function useFetchSigningKeys(userId: string) {
           x,
           created_at,
           expires_at,
-          revoked_at,
           assigned_to
         `)
         .eq("assigned_to", userIdParam)
+        .is("deleted_at", null)
+        .is("revoked_at", null)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       const rowsArr = rows || [];
-      const keys: SigningKey[] = rowsArr.map((r) => ({
-        kid: r.kid,
-        kty: r.kty,
-        crv: r.crv,
-        x: r.x,
-        created_at: r.created_at,
-        expires_at: r.expires_at,
-        revoked_at: r.revoked_at,
-        assigned_to: r.assigned_to,
-        status: getStatus(r),
+      const keys: SigningKey[] = rowsArr.map((key) => ({
+        ...key,
+        status: getStatus(key),
       }));
 
       setData(keys);

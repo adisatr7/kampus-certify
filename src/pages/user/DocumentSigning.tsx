@@ -417,12 +417,14 @@ export default function DocumentSigning() {
                 </>
               )}
 
-              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <QrCode className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <QrCode className="h-5 w-5 text-blue-600 dark:text-blue-300 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900">Setelah ditandatangani:</p>
-                    <p className="text-blue-700">
+                    <p className="font-medium text-blue-900 dark:text-blue-100">
+                      Setelah ditandatangani:
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-200">
                       Dokumen akan mendapatkan QR code untuk verifikasi dan tidak dapat diubah lagi.
                     </p>
                   </div>
