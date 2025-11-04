@@ -188,7 +188,7 @@ export default function SignedDocumentTemplate({
         {/* Footer Disclaimer Box */}
         <footer className="border-2 sm:border-3 border-black px-3 pt-3 pb-7 relative">
           <p className="text-black text-center text-sm">
-            Dokumen ini telah ditandatangani secara elektronik enggunakan sertifikat digital yang
+            Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat digital yang
             diterbitkan oleh CA UMC.
             <br />
             Keaslian dokumen ini dapat diverifikasi melalui pemindaian QR Code atau portal
