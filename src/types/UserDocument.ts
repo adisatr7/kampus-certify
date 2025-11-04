@@ -14,4 +14,6 @@ export interface UserDocument {
   content?: string | null;
   user?: User;
   document_signatures?: DocumentSignature[];
+  recipient_name?: string | null;
+  recipient_student_number?: string | null;
 }

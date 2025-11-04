@@ -64,6 +64,8 @@ export default function MyDocuments() {
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientStudentNumber, setRecipientStudentNumber] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -89,10 +91,10 @@ export default function MyDocuments() {
   };
 
   const uploadDocument = async () => {
-    if (!title || !content.trim() || !userProfile) {
+    if (!title || !content.trim() || !recipientName || !recipientStudentNumber || !userProfile) {
       toast({
         title: "Error",
-        description: "Judul dan isi dokumen harus diisi",
+        description: "Judul, isi, nama penerima, dan NIM harus diisi",
         variant: "destructive",
       });
       return;
@@ -130,6 +132,8 @@ export default function MyDocuments() {
         title,
         content: content.trim(),
         user_id: userProfile.id,
+        recipient_name: recipientName,
+        recipient_student_number: recipientStudentNumber,
         file_url: publicUrl,
         status: "pending",
       });
@@ -166,7 +170,7 @@ export default function MyDocuments() {
 
     try {
       // Request the deleted row(s) back so we can confirm deletion succeeded.
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("documents")
         .delete()
         .eq("id", documentId)
@@ -200,6 +204,8 @@ export default function MyDocuments() {
   const resetForm = () => {
     setTitle("");
     setContent("");
+    setRecipientName("");
+    setRecipientStudentNumber("");
     setFile(null);
   };
 
@@ -323,6 +329,38 @@ export default function MyDocuments() {
                       <p className="text-xs text-slate-500 dark:text-zinc-300 mt-2 bg-slate-50 dark:bg-zinc-800 p-2 rounded">
                         Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
                       </p>
+                    </div>
+
+                    <div>
+                      <Label
+                        htmlFor="recipientName"
+                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                      >
+                        Nama Penerima *
+                      </Label>
+                      <Input
+                        id="recipientName"
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
+                        placeholder="Masukkan nama penerima"
+                        className="mt-1 border-slate-300"
+                      />
+                    </div>
+
+                    <div>
+                      <Label
+                        htmlFor="recipientStudentNumber"
+                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                      >
+                        NIM *
+                      </Label>
+                      <Input
+                        id="recipientStudentNumber"
+                        value={recipientStudentNumber}
+                        onChange={(e) => setRecipientStudentNumber(e.target.value)}
+                        placeholder="Masukkan NIM"
+                        className="mt-1 border-slate-300"
+                      />
                     </div>
 
                     <div>
@@ -582,7 +620,7 @@ export default function MyDocuments() {
                                     {doc.title}
                                   </span>
                                   <p className="text-sm text-slate-500 dark:text-zinc-300">
-                                    Dokumen digital
+                                    {doc.recipient_name} &bull; {doc.recipient_student_number}
                                   </p>
                                 </div>
                               </div>

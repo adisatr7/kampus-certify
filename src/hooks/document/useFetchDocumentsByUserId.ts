@@ -34,7 +34,8 @@ export default function useFetchDocumentsByUserId(
             email,
             name,
             role,
-            created_at
+            created_at,
+            nidn
           ),
           document_signatures (
             key_id,
@@ -46,7 +47,8 @@ export default function useFetchDocumentsByUserId(
               email,
               name,
               role,
-              created_at
+              created_at,
+              nidn
             )
           )
         `)

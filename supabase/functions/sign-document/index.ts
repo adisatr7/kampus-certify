@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { base64Decode, corsHeaders } from "../_shared/index.ts";
+import { base64Decode, corsHeaders, verifyPBKDF2 } from "../_shared/index.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -24,20 +24,19 @@ Deno.serve(async (req) => {
     const { documentId, signerUserId, passphrase } = await req.json();
 
     if (!documentId || !signerUserId || !passphrase) {
-      return new Response(
-        JSON.stringify({
-          error: "Data tidak lengkap (documentId, signerUserId, passphrase)",
-        }),
-        { status: 400, headers },
-      );
+      return new Response(JSON.stringify({ error: "Isi formulir tidak lengkap" }), {
+        status: 400,
+        headers,
+      });
     }
 
     // Fetch document
     const { data: doc, error: docErr } = await supabase
       .from("documents")
-      .select("*")
+      .select("id, title, content, user_id, created_at")
       .eq("id", documentId)
       .single();
+
     if (docErr || !doc) {
       return new Response(JSON.stringify({ error: "Dokumen tidak ditemukan" }), {
         status: 404,
@@ -45,11 +44,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch signer’s active key
+    // Fetch signer’s latest usable key
     const { data: keyRow, error: keyErr } = await supabase
       .from("signing_keys")
       .select(
-        "kid, assigned_to, passphrase_hash, x, enc_private_key, enc_private_key_iv, enc_algo, revoked_at, expires_at",
+        "kid, assigned_to, passphrase_hash, x, enc_private_key, enc_private_key_iv, enc_algo, revoked_at, deleted_at, expires_at",
       )
       .eq("assigned_to", signerUserId)
       .is("revoked_at", null)
@@ -74,13 +73,15 @@ Deno.serve(async (req) => {
     }
 
     // Verify passphrase
-    const { compare } = await import("https://deno.land/x/bcrypt@v0.4.1/mod.ts");
-    const passOK = await compare(passphrase, keyRow.passphrase_hash);
+    const passOK = await verifyPBKDF2(passphrase, keyRow.passphrase_hash);
     if (!passOK) {
-      return new Response(JSON.stringify({ error: "Passphrase salah" }), { status: 403, headers });
+      return new Response(JSON.stringify({ error: "Passphrase salah" }), {
+        status: 403,
+        headers,
+      });
     }
 
-    // Import master key
+    // Import master key and decrypt private key
     const MASTER_KEY_B64 = Deno.env.get("MASTER_KEY_B64");
     if (!MASTER_KEY_B64) {
       return new Response(JSON.stringify({ error: "Master key tidak tersimpan di sistem" }), {
@@ -93,14 +94,12 @@ Deno.serve(async (req) => {
       "decrypt",
     ]);
 
-    // Decrypt private key
     const iv = base64Decode(keyRow.enc_private_key_iv);
     const ciphertext = base64Decode(keyRow.enc_private_key);
     const decryptedPkcs8 = new Uint8Array(
       await crypto.subtle.decrypt({ name: "AES-GCM", iv }, masterKey, ciphertext),
     );
 
-    // Import decrypted private key
     const cryptoKey = await crypto.subtle.importKey(
       "pkcs8",
       decryptedPkcs8.buffer,
@@ -109,14 +108,14 @@ Deno.serve(async (req) => {
       ["sign"],
     );
 
-    // Create payload hash
+    // Canonical payload MUST MATCH verify endpoint (title, content, user_id, created_at)
     const payload = JSON.stringify({
       title: doc.title,
       content: doc.content,
       user_id: doc.user_id,
-      recipient_name: doc.recipient_name,
-      recipient_student_number: doc.recipient_student_number,
+      created_at: doc.created_at, // use DB timestamp to avoid drift
     });
+
     const payloadBytes = new TextEncoder().encode(payload);
     const digestBuffer = await crypto.subtle.digest("SHA-256", payloadBytes);
     const hash = Array.from(new Uint8Array(digestBuffer))
@@ -140,27 +139,19 @@ Deno.serve(async (req) => {
       throw insertError;
     }
 
-    // Update document status
+    // Update document status + link the key used
     const { error: updateError } = await supabase
       .from("documents")
-      .update({
-        status: "signed",
-        signing_key_id: keyRow.kid,
-      })
+      .update({ status: "signed", signing_key_id: keyRow.kid })
       .eq("id", documentId);
     if (updateError) {
       throw updateError;
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        keyId: keyRow.kid,
-        hash,
-        signature,
-      }),
-      { status: 200, headers },
-    );
+    return new Response(JSON.stringify({ ok: true, keyId: keyRow.kid, hash, signature }), {
+      status: 200,
+      headers,
+    });
   } catch (err) {
     console.error("sign-document error:", err);
     return new Response(JSON.stringify({ error: String(err?.message ?? err) }), {

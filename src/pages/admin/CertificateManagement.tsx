@@ -1,5 +1,15 @@
 import axios from "axios";
-import { AlertCircle, Calendar, CheckCircle, Plus, Shield, XCircle } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Plus,
+  Shield,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -40,11 +50,16 @@ export default function CertificateManagement() {
   const [certificates, setCertificates] = useState<SigningKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
   const [userId, setUserId] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState<string>(() => {
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+    return defaultDate.toISOString().slice(0, 10); // YYYY-MM-DD for <input type="date">
+  });
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>(
@@ -55,14 +70,6 @@ export default function CertificateManagement() {
     fetchCertificates();
     fetchUsers();
   }, []);
-
-  const handlePassphraseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
-    if (!value.startsWith("CA")) {
-      value = "CA" + value.replace(/^CA/, "");
-    }
-    setPassphrase(value);
-  };
 
   const getStatus = (key: SigningKey): CertificateStatus => {
     if (key.revoked_at) {
@@ -128,6 +135,7 @@ export default function CertificateManagement() {
   };
 
   const generateCertificate = async () => {
+    if (isCreating) return; // prevent duplicate submissions
     if (!userId || !expiresAt || !passphrase) {
       toast({
         title: "Error",
@@ -137,12 +145,13 @@ export default function CertificateManagement() {
       return;
     }
 
+    setIsCreating(true);
     try {
       const payload = {
         createdBy: userProfile?.id,
         assignedTo: userId,
         expiresAt,
-        passphrase,
+        passphrase: `CA${passphrase}`,
       };
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-certificate`;
@@ -181,9 +190,11 @@ export default function CertificateManagement() {
       console.error(error);
       toast({
         title: "Error",
-        description: "Gagal membuat sertifikat",
+        description: error?.response?.data?.error || "Gagal membuat sertifikat",
         variant: "destructive",
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -324,14 +335,14 @@ export default function CertificateManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="expiresAt">Tanggal Expired</Label>
+                  <Label htmlFor="expiresAt">Tanggal Kadaluarsa</Label>
                   <Input
                     id="expiresAt"
                     type="date"
                     value={expiresAt}
                     onChange={(e) => setExpiresAt(e.target.value)}
                     required
-                    className="w-36"
+                    className="w-full pr-10"
                   />
                 </div>
 
@@ -345,7 +356,7 @@ export default function CertificateManagement() {
                       id="passphrase"
                       type={showPassphrase ? "text" : "password"}
                       value={passphrase}
-                      onChange={handlePassphraseChange}
+                      onChange={(e) => setPassphrase(e.target.value)}
                       placeholder="******"
                       className="pl-10 pr-10"
                     />
@@ -354,7 +365,11 @@ export default function CertificateManagement() {
                       onClick={() => setShowPassphrase(!showPassphrase)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
                     >
-                      {showPassphrase ? "🙈" : "👁️"}
+                      {showPassphrase ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -369,7 +384,19 @@ export default function CertificateManagement() {
                   >
                     Batal
                   </Button>
-                  <Button onClick={generateCertificate}>Buat Sertifikat</Button>
+                  <Button
+                    onClick={generateCertificate}
+                    disabled={isCreating}
+                  >
+                    {isCreating ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Membuat...
+                      </span>
+                    ) : (
+                      "Buat Sertifikat"
+                    )}
+                  </Button>
                 </div>
               </div>
             </DialogContent>

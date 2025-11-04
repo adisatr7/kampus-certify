@@ -14,11 +14,8 @@ function validatePassphrase(passphrase: unknown): { valid: boolean; error: strin
   if (!passphrase || typeof passphrase !== "string") {
     return { valid: false, error: "Passphrase wajib diisi" };
   }
-  if (!passphrase.startsWith("CA")) {
-    return { valid: false, error: "Passphrase harus diawali dengan 'CA'" };
-  }
   if (passphrase.length < 8) {
-    return { valid: false, error: "Passphrase minimal 8 karakter termasuk 'CA'" };
+    return { valid: false, error: "Passphrase minimal 6 karakter" };
   }
   if (!/[^A-Za-z0-9]/.test(passphrase)) {
     return { valid: false, error: "Passphrase harus mengandung setidaknya satu simbol" };
