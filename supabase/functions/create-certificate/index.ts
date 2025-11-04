@@ -70,11 +70,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate expirity date
+    // Validate expiry date
     if (expiresAt) {
-      const expirityDate = new Date(expiresAt);
+      const expiryDate = new Date(expiresAt);
 
-      if (isNaN(expirityDate.getTime())) {
+      if (isNaN(expiryDate.getTime())) {
         return new Response(
           JSON.stringify({
             success: false,
