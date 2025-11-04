@@ -7,7 +7,6 @@ export interface UserDocument {
   user_id: string;
   title: string;
   file_url?: string | null;
-  qr_code_url?: string | null;
   status: DocumentStatus;
   created_at: string;
   updated_at: string;
