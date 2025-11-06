@@ -44,11 +44,14 @@ export default function DocumentSigning() {
   );
   const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
 
-  // Hooks must be called unconditionally, so call both and pick the result
-  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
-  const allDocsHook = useFetchAllDocuments({ enabled: userProfile?.role === "admin" });
+  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"], {
+    enabled: userProfile?.role !== "admin",
+  });
+  const allDocsHook = useFetchAllDocuments({
+    enabled: userProfile?.role === "admin",
+    status: ["pending", "revoked"],
+  });
 
-  // For admins, show all documents. For lecturers (dosen) show only documents assigned to them.
   const documents = (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) || [];
   const isLoadingDocuments =
     userProfile?.role === "admin" ? allDocsHook.isLoading : docsByUserHook.isLoading;
@@ -351,7 +354,6 @@ export default function DocumentSigning() {
                     <Label htmlFor="signing-key">Pilih sertifikat untuk menandatangani:</Label>
                     {signingKeys && signingKeys.length > 0 ? (
                       <Select
-                        id="signing-key"
                         value={selectedKeyId ?? ""}
                         onValueChange={(v) => setSelectedKeyId(v || null)}
                       >
