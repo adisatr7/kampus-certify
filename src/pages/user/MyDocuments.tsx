@@ -672,19 +672,12 @@ export default function MyDocuments() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => {
-                                        if (doc.status === "signed") {
-                                          // For signed documents, trigger the formatted download
-                                          setSelectedDocument(doc);
-                                          setIsViewerOpen(true);
-                                        } else {
-                                          // For unsigned documents, direct download
-                                          const link = document.createElement("a");
-                                          link.href = doc.file_url!;
-                                          link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
-                                          document.body.appendChild(link);
-                                          link.click();
-                                          document.body.removeChild(link);
-                                        }
+                                        const link = document.createElement("a");
+                                        link.href = doc.file_url!;
+                                        link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
                                       }}
                                       title="Download dokumen"
                                       className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
@@ -783,17 +776,12 @@ export default function MyDocuments() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      if (doc.status === "signed") {
-                                        setSelectedDocument(doc);
-                                        setIsViewerOpen(true);
-                                      } else {
-                                        const link = document.createElement("a");
-                                        link.href = doc.file_url!;
-                                        link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                      }
+                                      const link = document.createElement("a");
+                                      link.href = doc.file_url!;
+                                      link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
                                     }}
                                     className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
                                   >
