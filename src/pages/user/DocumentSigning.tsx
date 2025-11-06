@@ -129,7 +129,7 @@ export default function DocumentSigning() {
         throw new Error("Failed to upload signed PDF");
       }
 
-      // If upload succeed, persist the signed file URL back to the document record
+      // If upload succeeds, persist the signed file URL back to the document record
       const { error: updateError } = await supabase
         .from("documents")
         .update({ file_url: signedDocumentUrl })
