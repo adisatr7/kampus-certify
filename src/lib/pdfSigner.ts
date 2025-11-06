@@ -35,7 +35,7 @@ export async function generateSignedPDF(
     try {
       const fetchOpts: RequestInit = {};
       if (options?.accessToken) {
-        fetchOpts.headers = { Authorization: `Bearer ${options.accessToken}` } as HeadersInit;
+        fetchOpts.headers = { Authorization: `Bearer ${options.accessToken}` };
       }
       const response = await fetch(originalPdfUrl, fetchOpts);
       if (!response.ok) throw new Error(`Failed to fetch original PDF: ${response.status}`);
