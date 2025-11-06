@@ -15,8 +15,8 @@ export default function useFetchLatestKey(userId: string) {
         .from("signing_keys")
         .select("kid")
         .eq("assigned_to", userId)
-        .eq("revoked_at", null)
-        .eq("deleted_at", null)
+        .is("revoked_at", null)
+        .is("deleted_at", null)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false })
         .limit(1);

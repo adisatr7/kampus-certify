@@ -44,11 +44,14 @@ export default function DocumentSigning() {
   );
   const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
 
-  // Hooks must be called unconditionally, so call both and pick the result
-  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"]);
-  const allDocsHook = useFetchAllDocuments({ enabled: userProfile?.role === "admin" });
+  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"], {
+    enabled: userProfile?.role !== "admin",
+  });
+  const allDocsHook = useFetchAllDocuments({
+    enabled: userProfile?.role === "admin",
+    status: ["pending", "revoked"],
+  });
 
-  // For admins, show all documents. For lecturers (dosen) show only documents assigned to them.
   const documents = (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) || [];
   const isLoadingDocuments =
     userProfile?.role === "admin" ? allDocsHook.isLoading : docsByUserHook.isLoading;
@@ -65,7 +68,6 @@ export default function DocumentSigning() {
 
   const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
-    // Default selected key: prefer latestKey, otherwise first available assigned key
     setSelectedKeyId(latestKey || signingKeys?.[0]?.kid || null);
     setIsSignDialogOpen(true);
   };
@@ -82,12 +84,15 @@ export default function DocumentSigning() {
 
     setIsSigning(true);
     try {
-      // current auth session
+      // Sign the document
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
+      // Generate signed PDF. This is done first before crypto signing because this part is more prone to errors
+      const signedPdfBlob = await generateSignedPDF(selectedDocument, { accessToken });
 
+      // Now sign the document object using the selected key and passphrase
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
       const response = await axios.post(
         url,
         {
@@ -105,47 +110,37 @@ export default function DocumentSigning() {
         },
       );
 
-      const result = response.data;
-      console.log("Signature result:", result);
-
-      let signedDocumentUrl = "";
-
-      // Use canonical programmatic generator which will create a PDF if the document has no file_url
-      const signedPdfBlob = await generateSignedPDF(selectedDocument);
-
-      // Upload signed PDF to storage
-      signedDocumentUrl = await uploadSignedPDF(
+      // If signing succeeds, upload the generated signed PDF to storage
+      const signedDocumentUrl = await uploadSignedPDF(
         signedPdfBlob,
         userProfile.id,
         selectedDocument.id,
         supabase,
       );
 
+      // If upload fail, revert document status in the db to pending
       if (!signedDocumentUrl) {
-        throw new Error("Gagal mengunggah dokumen yang telah ditandatangani");
-      }
-
-      // Persist the signed file URL back to the document record
-      try {
-        const { error: updateError } = await supabase
+        await supabase
           .from("documents")
-          .update({ file_url: signedDocumentUrl })
+          .update({ status: "pending" })
           .eq("id", selectedDocument.id);
 
-        if (updateError) {
-          console.error("Failed to update document file_url:", updateError);
-          // Not fatal for the signing flow, but surface to user
-          toast({
-            title: "Peringatan",
-            description:
-              "Dokumen telah ditandatangani tetapi URL file gagal disimpan. Silakan hubungi admin.",
-            variant: "destructive",
-          });
-        }
-      } catch (updateErr) {
-        console.error("Error updating document with file_url:", updateErr);
+        console.error("uploadSignedPDF returned null for document", selectedDocument.id);
+        throw new Error("Failed to upload signed PDF");
       }
 
+      // If upload succeeds, persist the signed file URL back to the document record
+      const { error: updateError } = await supabase
+        .from("documents")
+        .update({ file_url: signedDocumentUrl })
+        .eq("id", selectedDocument.id);
+
+      if (updateError) {
+        console.error("Failed to update document file_url:", updateError);
+        throw updateError;
+      }
+
+      // Audit and success toast only after full success
       await createAuditEntry(
         userProfile.id,
         "SIGN_DOCUMENT",
@@ -154,7 +149,7 @@ export default function DocumentSigning() {
 
       toast({
         title: "Berhasil",
-        description: "Dokumen berhasil ditandatangani dan disimpan",
+        description: "Dokumen berhasil ditandatangani",
       });
 
       setSelectedDocument(null);
@@ -166,12 +161,6 @@ export default function DocumentSigning() {
         (err as any)?.response?.data ??
         (err as Error)?.message ??
         String(err);
-
-      toast({
-        title: "Gagal menandatangani dokumen",
-        description: String(serverMessage),
-        variant: "destructive",
-      });
 
       console.error("Gagal menandatangani dokumen:", err);
 
@@ -277,7 +266,7 @@ export default function DocumentSigning() {
                                 size="sm"
                               >
                                 <PenTool className="mr-2 h-4 w-4" />
-                                {doc.status === "pending" ? "Tanda Tangan" : "Tanda Tangan Ulang"}
+                                Tanda Tangan
                               </Button>
                             </div>
                           </TableCell>
@@ -365,7 +354,6 @@ export default function DocumentSigning() {
                     <Label htmlFor="signing-key">Pilih sertifikat untuk menandatangani:</Label>
                     {signingKeys && signingKeys.length > 0 ? (
                       <Select
-                        id="signing-key"
                         value={selectedKeyId ?? ""}
                         onValueChange={(v) => setSelectedKeyId(v || null)}
                       >

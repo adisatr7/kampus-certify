@@ -102,7 +102,7 @@ export default function SignedDocumentTemplate({
 
   return (
     <main
-      className="max-w-4xl bg-white shadow-none print:w-[794px] print:h-[1123px] mx-0 my-0 relative pb-0 m-0 p-0 flex flex-col"
+      className="max-w-4xl shadow-none print:w-[794px] print:h-[1123px] mx-0 my-0 relative pb-0 m-0 p-0 flex flex-col"
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       {/* Spacer to force content to bottom */}
@@ -111,7 +111,10 @@ export default function SignedDocumentTemplate({
         className="h-[720px] print:h-[720px]"
       />
 
-      <article className="flex flex-col flex-1 px-10 pb-8 print:relative print:px-0 print:pb-0 print:py-0">
+      <article
+        data-signed-footer-area
+        className="flex flex-col flex-1 px-10 pb-8 print:relative print:px-0 print:pb-0 print:py-0"
+      >
         <section>
           <div className="grid grid-cols-[1fr_240px] print:grid-cols-[1fr_224px] gap-4 sm:gap-6 items-start h-full">
             {/* Spacer */}

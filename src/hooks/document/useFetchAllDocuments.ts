@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserDocument } from "@/types";
+import type { DocumentStatus } from "@/types/DocumentStatus";
 import { useToast } from "../useToast";
 
-export default function useFetchAllDocuments({ enabled = true }: { enabled?: boolean } = {}) {
+export default function useFetchAllDocuments({
+  enabled = true,
+  status,
+}: {
+  enabled?: boolean;
+  status?: DocumentStatus | DocumentStatus[];
+} = {}) {
   const { toast } = useToast();
   const [data, setData] = useState<UserDocument[]>([]);
   const [isLoading, setLoading] = useState<boolean>(enabled);
@@ -12,16 +19,19 @@ export default function useFetchAllDocuments({ enabled = true }: { enabled?: boo
     if (!enabled) {
       return;
     }
-    fetchData();
+    fetchData(status);
   }, [enabled]);
 
-  const fetchData = async () => {
+  const fetchData = async (statusParam?: DocumentStatus | DocumentStatus[]) => {
     if (!enabled) {
       return;
     }
+
+    const statuses = Array.isArray(statusParam) ? statusParam : statusParam ? [statusParam] : [];
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("documents")
         .select(`
           *,
@@ -33,10 +43,20 @@ export default function useFetchAllDocuments({ enabled = true }: { enabled?: boo
         `)
         .order("created_at", { ascending: false });
 
+      if (statuses && statuses.length > 0) {
+        if (statuses.length === 1) {
+          query = query.eq("status", statuses[0]);
+        } else {
+          query = query.in("status", statuses as DocumentStatus[]);
+        }
+      }
+
+      const { data, error } = await query;
+
       if (error) {
         throw error;
       }
-      setData((data as UserDocument[]) || []);
+      setData((data as unknown as UserDocument[]) || []);
     } catch (error) {
       toast({
         title: "Error",
@@ -48,5 +68,5 @@ export default function useFetchAllDocuments({ enabled = true }: { enabled?: boo
     }
   };
 
-  return { data, isLoading, refetch: fetchData };
+  return { data, isLoading, refetch: () => fetchData(status) };
 }

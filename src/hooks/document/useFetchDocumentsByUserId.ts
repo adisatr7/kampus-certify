@@ -7,17 +7,22 @@ import { useToast } from "../useToast";
 export default function useFetchDocumentsByUserId(
   userId: string,
   status?: DocumentStatus | DocumentStatus[],
+  options?: { enabled?: boolean },
 ) {
   const { toast } = useToast();
   const [data, setData] = useState<UserDocument[]>([]);
-  const [isLoading, setLoading] = useState(true);
+  const enabled = options?.enabled !== undefined ? options.enabled : true;
+  const [isLoading, setLoading] = useState(enabled);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     fetchData(userId, status);
-  }, [userId]);
+  }, [userId, enabled]);
 
   const fetchData = async (userId: string, statusParam?: DocumentStatus | DocumentStatus[]) => {
-    if (!userId) {
+    if (!userId || !enabled) {
       return;
     }
 
