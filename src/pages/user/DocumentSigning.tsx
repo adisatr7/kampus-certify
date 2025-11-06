@@ -110,7 +110,7 @@ export default function DocumentSigning() {
         },
       );
 
-      // If signing succeed, upload the generated signed PDF to storage
+      // If signing succeeds, upload the generated signed PDF to storage
       const signedDocumentUrl = await uploadSignedPDF(
         signedPdfBlob,
         userProfile.id,
