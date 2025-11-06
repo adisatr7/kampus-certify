@@ -388,7 +388,7 @@ export async function generateSignedPDF(
     // Draw footer image on the last page with left/right margins matching programmatic layout
     const marginX = 50;
     // Determine the page size from the target page so width/height are defined
-    const { width, height } = targetPage.getSize();
+    const { width } = targetPage.getSize();
     const drawWidth = width - marginX * 2;
     const fitScale = drawWidth / footerImg.width;
     const drawHeight = footerImg.height * fitScale;
