@@ -1,4 +1,14 @@
-import { Calendar, Download, Eye, FileText, Plus, Trash2, Upload, User } from "lucide-react";
+import {
+  Calendar,
+  Calendar1,
+  Download,
+  Eye,
+  FileText,
+  Plus,
+  Trash2,
+  Upload,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SignedDocumentViewer from "@/components/SignedDocumentViewer";
@@ -341,6 +351,7 @@ export default function DocumentManagement() {
               Daftar Dokumen
             </CardTitle>
           </CardHeader>
+
           {/* Desktop Table */}
           <CardContent className="hidden lg:block">
             {documents.length === 0 ? (
@@ -352,7 +363,7 @@ export default function DocumentManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Judul Dokumen</TableHead>
-                    <TableHead>User</TableHead>
+                    <TableHead>Penandatangan</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Dibuat</TableHead>
                     <TableHead>Aksi</TableHead>
@@ -361,15 +372,24 @@ export default function DocumentManagement() {
                 <TableBody>
                   {documents.map((doc) => (
                     <TableRow key={doc.id}>
+                      {/* Judul Dokumen */}
                       <TableCell className="font-medium">{doc.title}</TableCell>
+
+                      {/* Penandatangan */}
                       <TableCell>
                         <div className="font-semibold">{doc.user.name}</div>
                         <div className="text-sm text-muted-foreground">{doc.user.email}</div>
                       </TableCell>
+
+                      {/* Status */}
                       <TableCell>
                         <StatusBadge status={doc.status as DocumentStatus} />
                       </TableCell>
+
+                      {/* Dibuat */}
                       <TableCell>{new Date(doc.created_at).toLocaleDateString("id-ID")}</TableCell>
+
+                      {/* Aksi */}
                       <TableCell>
                         <div className="flex gap-2">
                           {doc.file_url && (
@@ -438,6 +458,7 @@ export default function DocumentManagement() {
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-200">{doc.user.email}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-300 mt-2">
+                      <Calendar1 className="h-3 w-3 inline-block mr-1 text-muted-foreground" />
                       {new Date(doc.created_at).toLocaleDateString("id-ID")}
                     </p>
                     <div className="flex justify-end gap-2 mt-3">
