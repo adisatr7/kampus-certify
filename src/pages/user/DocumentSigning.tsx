@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Calendar, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
+import { Calendar, Calendar1, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
@@ -220,11 +220,13 @@ export default function DocumentSigning() {
               </div>
             ) : (
               <>
+                {/* Desktop Table */}
                 <div className="hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Judul Dokumen</TableHead>
+                        {userProfile?.role === "admin" && <TableHead>Penandatangan</TableHead>}
                         <TableHead>Status</TableHead>
                         <TableHead>Dibuat</TableHead>
                         <TableHead>Aksi</TableHead>
@@ -233,15 +235,28 @@ export default function DocumentSigning() {
                     <TableBody>
                       {documents.map((doc) => (
                         <TableRow key={doc.id}>
+                          {/* Judul dokumen */}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">{doc.title}</span>
                             </div>
                           </TableCell>
+
+                          {/* (Admin only) Penandatangan */}
+                          {userProfile?.role === "admin" && (
+                            <TableCell>
+                              <div className="font-semibold">{doc.user.name}</div>
+                              <div className="text-sm text-muted-foreground">{doc.user.email}</div>
+                            </TableCell>
+                          )}
+
+                          {/* Status */}
                           <TableCell>
                             <StatusBadge status={doc.status as any} />
                           </TableCell>
+
+                          {/* Dibuat */}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -250,6 +265,8 @@ export default function DocumentSigning() {
                               </span>
                             </div>
                           </TableCell>
+
+                          {/* Aksi */}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {doc.file_url && (
@@ -276,10 +293,8 @@ export default function DocumentSigning() {
                   </Table>
                 </div>
 
+                {/* Mobile Cards */}
                 <div className="block md:hidden space-y-4 max-h-[450px] overflow-y-auto pr-1">
-                  <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">
-                    Daftar Dokumen
-                  </h2>
                   {documents.map((doc) => (
                     <Card
                       key={doc.id}
@@ -290,21 +305,31 @@ export default function DocumentSigning() {
                           <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500">
                             <FileText className="h-5 w-5 text-white" />
                           </div>
-                          <div>
-                            <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {doc.title}
-                            </CardTitle>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Dibuat: {new Date(doc.created_at).toLocaleDateString("id-ID")}
-                            </p>
-                          </div>
+                          <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                            {doc.title}
+                          </CardTitle>
                           <div className="ml-auto">
                             <StatusBadge status={doc.status} />
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center gap-2 justify-end">
+                      <CardContent className="px-4 gap-1">
+                        <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                          Penandatangan:
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-200">
+                          {doc.user.name}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-200">
+                          {doc.user.email}
+                        </p>
+
+                        <p className="text-xs text-slate-500 dark:text-slate-300 mt-2 flex flex-row items-center">
+                          <Calendar1 className="h-3 w-3 inline-block mr-1 text-muted-foreground" />
+                          {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                        </p>
+
+                        <div className="flex items-center gap-2 justify-end mt-4">
                           {doc.file_url && (
                             <Button
                               variant="outline"
