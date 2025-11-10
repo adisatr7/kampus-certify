@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
+import { generateDocumentSerial } from "@/lib/utils";
 import { DocumentStatus, UserDocument, UserRole } from "@/types";
 
 export default function DocumentManagement() {
@@ -109,18 +110,36 @@ export default function DocumentManagement() {
       }
 
       // Create document record with content from textarea
-      const { error: insertError } = await supabase.from("documents").insert({
-        title,
-        content: content.trim(),
-        user_id: userId,
-        recipient_name: recipientName,
-        recipient_student_number: recipientStudentNumber,
-        file_url: publicUrl,
-        status: "pending",
-      });
+      const { data: insertedRows, error: insertError } = await supabase
+        .from("documents")
+        .insert({
+          title,
+          content: content.trim(),
+          user_id: userId,
+          recipient_name: recipientName,
+          recipient_student_number: recipientStudentNumber,
+          file_url: publicUrl,
+          status: "pending",
+        })
+        .select("id, created_at");
 
       if (insertError) {
         throw insertError;
+      }
+
+      const inserted = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
+      if (!inserted || !inserted.id) {
+        throw new Error("Failed to retrieve inserted document id");
+      }
+
+      // Compute and persist serial
+      const serial = generateDocumentSerial(inserted.id, inserted.created_at);
+      const { error: updateErr } = await supabase
+        .from("documents")
+        .update({ serial } as Partial<UserDocument>)
+        .eq("id", inserted.id);
+      if (updateErr) {
+        throw updateErr;
       }
 
       const targetUser = listOfUsers?.find((u) => u.id === userId);

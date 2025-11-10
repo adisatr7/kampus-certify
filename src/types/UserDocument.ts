@@ -4,6 +4,7 @@ import { User } from "./User";
 
 export interface UserDocument {
   id: string;
+  serial?: string | null;
   user_id: string;
   title: string;
   file_url?: string | null;
