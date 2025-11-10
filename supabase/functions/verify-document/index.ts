@@ -31,13 +31,34 @@ Deno.serve(async (req) => {
     }
 
     // Fetch document
-    const { data: doc, error: docErr } = await supabase
-      .from("documents")
-      .select("*")
-      .eq("id", documentId)
-      .single();
+    let doc = null;
+    try {
+      // Try fetching by ID first
+      const { data: byId, error: byIdErr } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("id", documentId)
+        .maybeSingle();
 
-    if (docErr || !doc) {
+      if (byId && !byIdErr) {
+        doc = byId;
+      } else {
+        // Fallback: try fetching by serial
+        const { data: bySerial, error: bySerialErr } = await supabase
+          .from("documents")
+          .select("*")
+          .eq("serial", documentId)
+          .maybeSingle();
+
+        if (bySerial && !bySerialErr) {
+          doc = bySerial;
+        }
+      }
+    } catch (e) {
+      // ignore and handle below
+    }
+
+    if (!doc) {
       return new Response(JSON.stringify({ valid: false, error: "Dokumen tidak ditemukan" }), {
         status: 404,
         headers,

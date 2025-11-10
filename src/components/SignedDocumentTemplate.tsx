@@ -24,7 +24,7 @@ export default function SignedDocumentTemplate({
 
     const generateQRCode = async () => {
       try {
-        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${document.id}`;
+        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${document.serial ?? document.id}`;
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
           width: 200,
           margin: 2,
@@ -57,48 +57,6 @@ export default function SignedDocumentTemplate({
         year: "numeric",
       })
     : currentDate;
-
-  /**
-   * Format a user-facing document serial.
-   * Formula: 0001-UMC-X-2025
-   * - 0001: derived numeric id (UUID mapped deterministically to 0..9999)
-   * - UMC: branding
-   * - X: month in roman numerals
-   * - 2025: year
-   *
-   * Note: because the real ID is a UUID we derive a stable 4-digit number
-   * by taking the last 8 hex characters of the id (if available) and
-   * mapping them to an integer mod 10000. This keeps the serial stable
-   * while fitting the required format.
-   */
-  function getDocumentSerial(id: string, dateStr?: string | null) {
-    // Derive a 0..9999 number from id
-    let num = 0;
-    try {
-      // Try to extract last 8 hex chars
-      const hex = (id || "").replace(/[^a-fA-F0-9]/g, "").slice(-8);
-      if (hex.length > 0) {
-        num = parseInt(hex, 16) % 10000;
-      } else {
-        // Fallback: simple checksum
-        num = Array.from(id || "").reduce((s, ch) => s + ch.charCodeAt(0), 0) % 10000;
-      }
-    } catch (e) {
-      num = Array.from(id || "").reduce((s, ch) => s + ch.charCodeAt(0), 0) % 10000;
-    }
-
-    const idPart = String(num).padStart(4, "0");
-
-    const dt = dateStr ? new Date(dateStr) : new Date();
-    const year = dt.getFullYear();
-    const month = dt.getMonth() + 1;
-
-    const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
-
-    const monthRoman = romans[Math.max(0, Math.min(11, month - 1))] || "X";
-
-    return `${idPart}-UMC-${monthRoman}-${year}`;
-  }
 
   return (
     <main
@@ -183,9 +141,7 @@ export default function SignedDocumentTemplate({
 
         {/* Print Date */}
         <section className="mb-4">
-          <p className="text-sm text-black">
-            ID Dokumen: {getDocumentSerial(document.id, signedDate)}
-          </p>
+          <p className="text-sm text-black">ID Dokumen: {document.serial}</p>
         </section>
 
         {/* Footer Disclaimer Box */}
