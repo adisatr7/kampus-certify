@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { supabase } from "@/integrations/supabase/client";
 import Dashboard from "./Dashboard";
-import PublicVerify from "./PublicVerify";
-import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import PublicVerify from "./PublicVerify"; // ! Unused
+import VerificationPortal from "./VerificationPortal";
 
 const Index = () => {
   const [session, setSession] = useState(null);
@@ -18,17 +19,20 @@ const Index = () => {
     const initializeAuth = async () => {
       try {
         // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
         if (sessionError) {
-          console.error('Session error:', sessionError);
-          setError('Failed to get session');
+          console.error("Session error:", sessionError);
+          setError("Failed to get session");
         } else {
           setSession(session);
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
-        setError('Failed to initialize authentication');
+        console.error("Auth initialization error:", err);
+        setError("Failed to initialize authentication");
       } finally {
         setLoading(false);
       }
@@ -37,17 +41,17 @@ const Index = () => {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        
-        // Clear user role when session changes
-        if (!session) {
-          setUserRole(null);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+      setSession(session);
+
+      // Clear user role when session changes
+      if (!session) {
+        setUserRole(null);
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -62,7 +66,7 @@ const Index = () => {
 
       try {
         setError(null);
-        
+
         // Check if user exists in the users table
         const { data: userData, error: userError } = await supabase
           .from("users")
@@ -81,7 +85,9 @@ const Index = () => {
         if (!userData) {
           // User not registered in system
           console.log("User not found in database - access denied");
-          setError("Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.");
+          setError(
+            "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.",
+          );
           // Sign out user
           await supabase.auth.signOut();
           return;
@@ -89,12 +95,12 @@ const Index = () => {
 
         // User found, set role and log login
         setUserRole(userData.role);
-        
+
         // Update last login in audit trail
-        await supabase.rpc('create_audit_entry', {
+        await supabase.rpc("create_audit_entry", {
           p_user_id: session.user.id,
-          p_action: 'user_login',
-          p_description: `User logged in: ${userData.name}`
+          p_action: "USER_LOGIN",
+          p_description: `User logged in: ${userData.name}`,
         });
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -122,7 +128,10 @@ const Index = () => {
   if (error && !session) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Alert variant="destructive" className="max-w-md">
+        <Alert
+          variant="destructive"
+          className="max-w-md"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {error}. Silakan refresh halaman atau hubungi administrator.
@@ -134,7 +143,7 @@ const Index = () => {
 
   // Handle public verification route
   if (window.location.pathname === "/verify") {
-    return <PublicVerify />;
+    return <VerificationPortal />;
   }
 
   // Not authenticated
@@ -147,7 +156,10 @@ const Index = () => {
     if (error) {
       return (
         <div className="flex items-center justify-center min-h-screen p-4">
-          <Alert variant="destructive" className="max-w-md">
+          <Alert
+            variant="destructive"
+            className="max-w-md"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}. Silakan refresh halaman atau hubungi administrator.
@@ -156,7 +168,7 @@ const Index = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">

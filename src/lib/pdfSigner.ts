@@ -1,369 +1,421 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import QRCode from 'qrcode';
-
-interface SignatureData {
-  documentId: string;
-  documentTitle: string;
-  documentContent?: string;
-  signerName: string;
-  signerRole: string;
-  signedAt: string;
-  certificateSerial: string;
-  verificationUrl: string;
-}
+import { SupabaseClient } from "@supabase/supabase-js";
+import html2canvas from "html2canvas";
+import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
+import QRCode from "qrcode";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
+import { UserDocument } from "@/types";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
  * Based on Indonesian official document format
  */
 export async function generateSignedPDF(
-  originalPdfUrl: string | null,
-  signatureData: SignatureData
+  doc: UserDocument,
+  options?: { accessToken?: string },
 ): Promise<Blob> {
+  const { file_url: originalPdfUrl } = doc;
   let pdfDoc: PDFDocument;
 
-  // Load existing PDF or create new one
-  if (originalPdfUrl) {
-    try {
-      const response = await fetch(originalPdfUrl);
-      const existingPdfBytes = await response.arrayBuffer();
-      pdfDoc = await PDFDocument.load(existingPdfBytes);
-    } catch (error) {
-      console.error('Error loading existing PDF, creating new one:', error);
-      pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-      await addDocumentContent(pdfDoc, page, signatureData.documentTitle);
-    }
-  } else {
-    // Create new PDF with document content
-    pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    await addDocumentContent(pdfDoc, page, signatureData.documentTitle, signatureData.documentContent);
-  }
+  const shouldUseHtmlSnapshot = !originalPdfUrl;
 
-  // Generate QR code
-  const qrCodeDataUrl = await QRCode.toDataURL(signatureData.verificationUrl, {
+  // Pre-generate QR code (used both for programmatic and html snapshot flows)
+  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${doc.serial ?? doc.id}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,
     color: {
-      dark: '#000000',
-      light: '#FFFFFF'
+      dark: "#000000",
+      light: "#FFFFFF",
+    },
+  });
+
+  if (originalPdfUrl) {
+    try {
+      const fetchOpts: RequestInit = {};
+      if (options?.accessToken) {
+        fetchOpts.headers = { Authorization: `Bearer ${options.accessToken}` };
+      }
+      const response = await fetch(originalPdfUrl, fetchOpts);
+      if (!response.ok) throw new Error(`Failed to fetch original PDF: ${response.status}`);
+      const existingPdfBytes = await response.arrayBuffer();
+      pdfDoc = await PDFDocument.load(existingPdfBytes);
+    } catch (error) {
+      console.error("Error fetching original PDF:", error);
+      // We enforce using the SignedDocumentTemplate for all signed PDFs.
+      // If fetching the original PDF fails, abort rather than falling back
+      // to the programmatic generator to avoid visual mismatches.
+      throw new Error(
+        `Failed to fetch original PDF for document ${doc.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
-  });
+  } else {
+    if (shouldUseHtmlSnapshot) {
+      try {
+        const DPI = 300; // Desired output DPI (changeable)
 
-  // Convert QR code to PDF-compatible format
-  const qrCodeImage = await pdfDoc.embedPng(qrCodeDataUrl);
+        // A4 in mm and helper
+        const A4_WIDTH_MM = 210;
+        const A4_HEIGHT_MM = 297;
+        const mmToInch = (mm: number) => mm / 25.4;
 
-  // Get the last page to add signature elements
+        // CSS pixels viewport based on 96 DPI (so Tailwind breakpoints match)
+        const CSS_DPI = 96;
+        const widthCssPx = Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI); // ~794
+        const heightCssPx = Math.round(mmToInch(A4_HEIGHT_MM) * CSS_DPI); // ~1123
+
+        // Compute scale for html2canvas to reach desired DPI
+        const scale = DPI / CSS_DPI; // e.g. 300/96 ~= 3.125
+
+        const container = document.createElement("div");
+        container.style.position = "fixed";
+        container.style.left = "-9999px";
+        container.style.top = "0";
+        container.style.width = `${widthCssPx}px`;
+        container.style.background = "white";
+
+        // Insert a style override to make the template fill the container (disable max-width)
+        const overrideStyle = document.createElement("style");
+        overrideStyle.innerText = `
+          .max-w-4xl { max-width: none !important; width: 100% !important; }
+          html, body { margin: 0; padding: 0; }
+          img { max-width: 100%; }
+        `;
+        container.appendChild(overrideStyle);
+
+        document.body.appendChild(container);
+
+        const root = createRoot(container);
+
+        // Pass qr_code_url so the template renders the same QR we expect
+        const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+        // Use React.createElement instead of JSX since this is a .ts file
+        root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
+
+        // Wait for webfonts to be ready (ensures text metrics match preview)
+        if (document.fonts && document.fonts.ready) {
+          try {
+            await document.fonts.ready;
+          } catch (e) {
+            // ignore font loading errors and proceed
+          }
+        }
+
+        // Wait for any images inside the offscreen container to load (e.g., QR)
+        const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
+        await Promise.all(
+          imgs.map(
+            (img) =>
+              new Promise<void>((res) => {
+                if (img.complete) return res();
+                img.onload = img.onerror = () => res();
+              }),
+          ),
+        );
+
+        // Small extra settle time for layout
+        await new Promise((res) => setTimeout(res, 120));
+
+        // Measure the actual rendered height of the template (in CSS px)
+        const renderedHeightCss = Math.max(container.scrollHeight, heightCssPx);
+
+        // Capture the container using html2canvas at higher scale so the final
+        // canvas has DPI*inch pixels while keeping the same CSS layout.
+        // Use the container's rendered height to avoid clipping.
+        const canvas = await html2canvas(container as HTMLElement, {
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          width: widthCssPx,
+          height: renderedHeightCss,
+          windowWidth: widthCssPx,
+          windowHeight: renderedHeightCss,
+          logging: true,
+        });
+
+        console.debug("Full-page canvas dimensions:", canvas.width, "x", canvas.height);
+
+        // Prefer using canvas.toBlob() and reading the ArrayBuffer — this avoids
+        // data URL encoding issues and is generally more reliable for binary data.
+        // If toBlob fails (CORS/taint), fall back to toDataURL.
+        let pngBytes: Uint8Array;
+        try {
+          const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
+          if (!blob) {
+            console.warn("Full-page toBlob returned null, falling back to toDataURL");
+            throw new Error("toBlob failed");
+          }
+          const ab = await blob.arrayBuffer();
+          pngBytes = new Uint8Array(ab);
+        } catch (blobErr) {
+          console.warn("Full-page toBlob failed, using toDataURL fallback:", blobErr);
+          const dataUrl = canvas.toDataURL("image/png");
+          const base64 = dataUrl.split(",")[1];
+          const binaryString = atob(base64);
+          pngBytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            pngBytes[i] = binaryString.charCodeAt(i);
+          }
+        }
+
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([595.28, 841.89]);
+
+        // Debug: log PNG signature
+        const sig = pngBytes.slice(0, 8);
+        console.debug(
+          "Full-page PNG signature:",
+          Array.from(sig)
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(" "),
+        );
+        console.debug("Full-page PNG size:", pngBytes.length, "bytes");
+
+        // Validate PNG signature
+        const expectedSig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        const isValidPng = expectedSig.every((byte, i) => pngBytes[i] === byte);
+        if (!isValidPng) {
+          console.error(
+            "Invalid PNG signature! Expected 89 50 4E 47 0D 0A 1A 0A, got:",
+            Array.from(sig)
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join(" "),
+          );
+          throw new Error("Full-page canvas produced invalid PNG data");
+        }
+
+        const pngImage = await pdfDoc.embedPng(pngBytes);
+        const { width, height } = page.getSize();
+
+        // Scale the embedded PNG to fit within the A4 page while preserving
+        // aspect ratio to avoid cropping. If the captured content is taller
+        // than the page, this will scale it down so nothing is cut off.
+        const imgW = pngImage.width;
+        const imgH = pngImage.height;
+        const fitScale = Math.min(width / imgW, height / imgH);
+        const drawWidth = imgW * fitScale;
+        const drawHeight = imgH * fitScale;
+        const x = (width - drawWidth) / 2;
+        const y = (height - drawHeight) / 2;
+
+        page.drawImage(pngImage, { x, y, width: drawWidth, height: drawHeight });
+
+        const pdfBytes = await pdfDoc.save();
+
+        root.unmount();
+        document.body.removeChild(container);
+
+        return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      } catch (err) {
+        console.error("html2canvas snapshot failed — aborting (template required):", err);
+        throw new Error(
+          `Signed document snapshot failed for document ${doc.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    } else {
+      // This branch would perform programmatic PDF generation. We intentionally
+      // remove that path so all PDFs are produced from the SignedDocumentTemplate.
+      throw new Error("Programmatic PDF generation is disabled — use SignedDocumentTemplate");
+    }
+  }
+
   const pages = pdfDoc.getPages();
-  const lastPage = pages[pages.length - 1];
-  const { width, height } = lastPage.getSize();
+  const targetPage = pages[pages.length - 1];
 
-  // Load fonts
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  try {
+    const DPI = 300;
+    const CSS_DPI = 96;
+    const A4_WIDTH_MM = 210;
+    const mmToInch = (mm: number) => mm / 25.4;
+    const widthCssPx = Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI);
 
-  // Format dates
-  const signedDate = new Date(signatureData.signedAt).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const printDate = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "0";
+    container.style.width = `${widthCssPx}px`;
+    container.style.minHeight = "400px";
+    container.style.background = "transparent";
 
-  // Calculate positions (from bottom)
-  let yPosition = 180; // Start from bottom
+    const overrideStyle = document.createElement("style");
+    overrideStyle.innerText = `
+      .max-w-4xl { max-width: none !important; width: 100% !important; }
+      html, body { margin: 0; padding: 0; }
+      img { max-width: 100%; }
+    `;
+    container.appendChild(overrideStyle);
 
-  // 1. Add footer disclaimer box (bottom)
-  const boxHeight = 80;
-  const boxY = 40;
-  
-  // Draw box
-  lastPage.drawRectangle({
-    x: 50,
-    y: boxY,
-    width: width - 100,
-    height: boxHeight,
-    borderColor: rgb(0, 0, 0),
-    borderWidth: 2,
-  });
+    document.body.appendChild(container);
+    const root = createRoot(container);
 
-  // Add disclaimer text
-  const disclaimers = [
-    '1.  Dokumen ini diterbitkan sistem CA UMC berdasarkan data dari pengguna, tersimpan dalam sistem CA UMC, yang menjadi tanggung jawab pengguna.',
-    '2.  Dalam hal terjadi kekeliruan isi dokumen ini akan dilakukan perbaikan sebagaimana mestinya.',
-    '3.  Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh BSrE-BSSN.',
-    '4.  Data lengkap dapat diperoleh melalui sistem CA UMC menggunakan hak akses.'
-  ];
+    const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+    root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
 
-  let disclaimerY = boxY + boxHeight - 15;
-  disclaimers.forEach((text) => {
-    lastPage.drawText(text, {
-      x: 60,
-      y: disclaimerY,
-      size: 7,
-      font: helvetica,
-      color: rgb(0, 0, 0),
-      maxWidth: width - 180,
+    // Wait for React to complete the render by checking for content
+    let attempts = 0;
+    while (container.scrollHeight === 0 && attempts < 50) {
+      await new Promise((res) => setTimeout(res, 50));
+      attempts++;
+    }
+
+    if (container.scrollHeight === 0) {
+      console.error(
+        "Container still has zero height after waiting. HTML:",
+        container.innerHTML.substring(0, 200),
+      );
+      throw new Error("React render produced no content in footer container");
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      try {
+        await document.fonts.ready;
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise<void>((res) => {
+            if (img.complete) return res();
+            img.onload = img.onerror = () => res();
+          }),
+      ),
+    );
+
+    // Capture the footer area (marked in the template) or the article as a whole
+    // Note: For now, just capture the entire container to ensure we get valid content
+    const captureEl = container;
+
+    console.debug(
+      "Footer capture element:",
+      captureEl.tagName,
+      "clientWidth:",
+      captureEl.clientWidth,
+      "clientHeight:",
+      captureEl.clientHeight,
+      "scrollHeight:",
+      captureEl.scrollHeight,
+    );
+
+    // Ensure the element has dimensions before capturing
+    if (captureEl.clientWidth === 0 || captureEl.scrollHeight === 0) {
+      console.error("Container HTML preview:", container.innerHTML.substring(0, 500));
+      throw new Error(
+        `Footer capture element has zero dimensions: ${captureEl.clientWidth}x${captureEl.scrollHeight}. This means React hasn't rendered content yet or the template is empty.`,
+      );
+    }
+
+    // Add a small delay to ensure layout is complete
+    await new Promise((res) => setTimeout(res, 100));
+
+    const scale = DPI / CSS_DPI;
+    // Use scrollHeight for height since clientHeight may be 0 for offscreen elements
+    const captureHeight = Math.max(captureEl.clientHeight, captureEl.scrollHeight, 100);
+    const canvas = await html2canvas(captureEl as HTMLElement, {
+      scale,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: null,
+      width: captureEl.clientWidth,
+      height: captureHeight,
     });
-    disclaimerY -= 12;
-  });
 
-  // Add BSrE logo text (right side of box)
-  lastPage.drawRectangle({
-    x: width - 110,
-    y: boxY + 20,
-    width: 35,
-    height: 35,
-    color: rgb(0.2, 0.4, 0.8),
-  });
-  
-  lastPage.drawText('BSrE', {
-    x: width - 105,
-    y: boxY + 30,
-    size: 10,
-    font: helveticaBold,
-    color: rgb(1, 1, 1),
-  });
+    console.debug("Footer canvas dimensions:", canvas.width, "x", canvas.height);
 
-  lastPage.drawText('Balai Sertifikasi', {
-    x: width - 70,
-    y: boxY + 35,
-    size: 7,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
-  });
-  
-  lastPage.drawText('Elektronik', {
-    x: width - 70,
-    y: boxY + 25,
-    size: 7,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
-  });
+    // Check if canvas is empty
+    if (canvas.width === 0 || canvas.height === 0) {
+      throw new Error(
+        `Footer canvas has zero dimensions: ${canvas.width}x${canvas.height}. Element to capture: ${captureEl.tagName} ${captureEl.clientWidth}x${captureEl.clientHeight}`,
+      );
+    }
 
-  // 2. Add print date (above box)
-  yPosition = boxY + boxHeight + 20;
-  lastPage.drawText(`Dicetak tanggal: ${printDate}`, {
-    x: 50,
-    y: yPosition,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
+    // Try toBlob first, fall back to toDataURL if it fails (CORS/taint issues)
+    let footerBytes: Uint8Array;
+    try {
+      const footerBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
+      if (!footerBlob) {
+        console.warn("toBlob returned null, falling back to toDataURL");
+        throw new Error("toBlob failed");
+      }
+      const footerAb = await footerBlob.arrayBuffer();
+      footerBytes = new Uint8Array(footerAb);
+    } catch (blobErr) {
+      console.warn("toBlob failed, using toDataURL fallback:", blobErr);
+      // Fallback: use toDataURL and decode
+      const dataUrl = canvas.toDataURL("image/png");
+      const base64 = dataUrl.split(",")[1];
+      const binaryString = atob(base64);
+      footerBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        footerBytes[i] = binaryString.charCodeAt(i);
+      }
+    }
 
-  // 3. Add signature section (authority, QR code, and name)
-  yPosition += 30;
-  
-  // Get role title in Indonesian
-  const roleTitle = getRoleTitle(signatureData.signerRole);
-  
-  // Authority title (right-aligned)
-  const authorityText = `${roleTitle}`;
-  const authorityWidth = helvetica.widthOfTextAtSize(authorityText, 10);
-  lastPage.drawText(authorityText, {
-    x: width - 50 - authorityWidth,
-    y: yPosition + 80,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
+    // Debug: log PNG signature to diagnose "not a PNG" errors
+    const sig = footerBytes.slice(0, 8);
+    console.debug(
+      "Footer PNG signature:",
+      Array.from(sig)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(" "),
+    );
+    console.debug("Footer PNG size:", footerBytes.length, "bytes");
 
-  const universityText = 'Universitas Muhammadiyah Cirebon';
-  const universityWidth = helvetica.widthOfTextAtSize(universityText, 10);
-  lastPage.drawText(universityText, {
-    x: width - 50 - universityWidth,
-    y: yPosition + 65,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
+    // Validate PNG signature: should be 89 50 4E 47 0D 0A 1A 0A
+    const expectedSig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const isValidPng = expectedSig.every((byte, i) => footerBytes[i] === byte);
+    if (!isValidPng) {
+      console.error(
+        "Invalid PNG signature! Expected 89 50 4E 47 0D 0A 1A 0A, got:",
+        Array.from(sig)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(" "),
+      );
+      throw new Error("Footer canvas produced invalid PNG data");
+    }
 
-  // QR Code (centered on right side)
-  const qrSize = 80;
-  lastPage.drawImage(qrCodeImage, {
-    x: width - 50 - qrSize - 10,
-    y: yPosition + 20,
-    width: qrSize,
-    height: qrSize,
-  });
+    const footerImg = await pdfDoc.embedPng(footerBytes);
 
-  // "Ditandatangani secara elektronik" text (centered below QR)
-  const signedElectronicallyText = 'Ditandatangani secara elektronik';
-  const signedTextWidth = helveticaBold.widthOfTextAtSize(signedElectronicallyText, 9);
-  lastPage.drawText(signedElectronicallyText, {
-    x: width - 50 - qrSize - 10 + (qrSize - signedTextWidth) / 2,
-    y: yPosition + 5,
-    size: 9,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
-  });
+    // Draw footer image on the last page with left/right margins matching programmatic layout
+    const marginX = 50;
+    // Determine the page size from the target page so width/height are defined
+    const { width } = targetPage.getSize();
+    const drawWidth = width - marginX * 2;
+    const fitScale = drawWidth / footerImg.width;
+    const drawHeight = footerImg.height * fitScale;
+    const x = marginX;
 
-  // Signer name (underlined, centered below)
-  const signerNameWidth = helvetica.widthOfTextAtSize(signatureData.signerName, 10);
-  const nameX = width - 50 - qrSize - 10 + (qrSize - signerNameWidth) / 2;
-  lastPage.drawText(signatureData.signerName, {
-    x: nameX,
-    y: yPosition - 15,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
+    // Position the footer at the bottom with proper margin
+    const bottomMargin = 40;
+    const y = bottomMargin;
 
-  // Draw underline for name
-  lastPage.drawLine({
-    start: { x: nameX, y: yPosition - 17 },
-    end: { x: nameX + signerNameWidth, y: yPosition - 17 },
-    thickness: 1,
-    color: rgb(0, 0, 0),
-  });
+    // Overlay the footer on the existing last page (transparent background allows content to show through)
+    targetPage.drawImage(footerImg, {
+      x,
+      y,
+      width: drawWidth,
+      height: drawHeight,
+    });
 
-  // 4. Add issue date (left side, above signature section)
-  yPosition += 100;
-  lastPage.drawText(`Diterbitkan di Cirebon, tanggal: ${signedDate}`, {
-    x: 50,
-    y: yPosition,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
+    root.unmount();
+    document.body.removeChild(container);
+  } catch (err) {
+    console.error("Template overlay failed — aborting signed PDF generation:", err);
+    throw err;
+  }
 
   // Serialize the PDF
   const pdfBytes = await pdfDoc.save();
-  return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
-}
-
-/**
- * Add document content to a new PDF page with actual content
- */
-async function addDocumentContent(
-  pdfDoc: PDFDocument,
-  page: any,
-  documentTitle: string,
-  documentContent?: string
-) {
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const { width, height } = page.getSize();
-
-  // Header
-  const header1 = 'UNIVERSITAS MUHAMMADIYAH CIREBON';
-  const header1Width = helveticaBold.widthOfTextAtSize(header1, 14);
-  page.drawText(header1, {
-    x: (width - header1Width) / 2,
-    y: height - 80,
-    size: 14,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
-  });
-
-  const header2Width = helveticaBold.widthOfTextAtSize(documentTitle.toUpperCase(), 12);
-  page.drawText(documentTitle.toUpperCase(), {
-    x: (width - header2Width) / 2,
-    y: height - 100,
-    size: 12,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
-  });
-
-  // Document ID/Number
-  const docNumber = `Nomor: ${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  const docNumberWidth = helvetica.widthOfTextAtSize(docNumber, 10);
-  page.drawText(docNumber, {
-    x: (width - docNumberWidth) / 2,
-    y: height - 120,
-    size: 10,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
-
-  // Draw header border line
-  page.drawLine({
-    start: { x: 50, y: height - 130 },
-    end: { x: width - 50, y: height - 130 },
-    thickness: 2,
-    color: rgb(0, 0, 0),
-  });
-
-  // Document content
-  if (documentContent) {
-    const lines = documentContent.split('\n');
-    let yPosition = height - 160;
-    const lineHeight = 14;
-    const maxWidth = width - 100;
-    
-    for (const line of lines) {
-      if (yPosition < 350) break; // Stop if too close to bottom (leave space for signature)
-      
-      // Word wrap for long lines
-      const words = line.split(' ');
-      let currentLine = '';
-      
-      for (const word of words) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
-        const testWidth = helvetica.widthOfTextAtSize(testLine, 10);
-        
-        if (testWidth > maxWidth && currentLine) {
-          page.drawText(currentLine, {
-            x: 50,
-            y: yPosition,
-            size: 10,
-            font: helvetica,
-            color: rgb(0, 0, 0),
-            maxWidth: maxWidth,
-          });
-          currentLine = word;
-          yPosition -= lineHeight;
-          if (yPosition < 350) break;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      
-      // Draw remaining text
-      if (currentLine && yPosition >= 350) {
-        page.drawText(currentLine, {
-          x: 50,
-          y: yPosition,
-          size: 10,
-          font: helvetica,
-          color: rgb(0, 0, 0),
-          maxWidth: maxWidth,
-        });
-        yPosition -= lineHeight * 1.5; // Extra spacing between paragraphs
-      }
-    }
-  } else {
-    page.drawText('Konten dokumen tidak tersedia', {
-      x: 50,
-      y: height - 160,
-      size: 10,
-      font: helvetica,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-  }
-}
-
-/**
- * Get role title in Indonesian
- */
-function getRoleTitle(role: string): string {
-  switch (role.toLowerCase()) {
-    case 'rektor':
-      return 'Rektor';
-    case 'dekan':
-      return 'Dekan';
-    case 'dosen':
-      return 'Dosen';
-    case 'admin':
-      return 'Administrator';
-    default:
-      return 'Pejabat Berwenang';
-  }
+  return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
 }
 
 /**
@@ -373,32 +425,32 @@ export async function uploadSignedPDF(
   pdfBlob: Blob,
   userId: string,
   documentId: string,
-  supabase: any
+  supabase: SupabaseClient,
 ): Promise<string | null> {
   try {
     const signedFileName = `${userId}/${documentId}-signed-${Date.now()}.pdf`;
-    
+
     const { error: uploadError } = await supabase.storage
-      .from('signed-documents')
+      .from("signed-documents")
       .upload(signedFileName, pdfBlob, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-        upsert: false
+        contentType: "application/pdf",
+        cacheControl: "3600",
+        upsert: false,
       });
 
     if (uploadError) {
-      console.error('Error uploading signed PDF:', uploadError);
+      console.error("Error uploading signed PDF:", uploadError);
       return null;
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('signed-documents')
-      .getPublicUrl(signedFileName);
-    
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("signed-documents").getPublicUrl(signedFileName);
+
     return publicUrl;
   } catch (error) {
-    console.error('Error in uploadSignedPDF:', error);
+    console.error("Error in uploadSignedPDF:", error);
     return null;
   }
 }

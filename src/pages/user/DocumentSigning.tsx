@@ -1,235 +1,186 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { PenTool, FileText, Shield, Calendar, QrCode, Lock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { createAuditEntry } from "@/lib/audit";
-import { useToast } from "@/hooks/use-toast";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from "axios";
+import { Calendar, Calendar1, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import useFetchAllDocuments from "@/hooks/document/useFetchAllDocuments";
+import useFetchDocumentsByUserId from "@/hooks/document/useFetchDocumentsByUserId";
+import useFetchLatestKey from "@/hooks/signingKey/useFetchLatestKey";
+import useFetchSigningKeys from "@/hooks/signingKey/useFetchSigningKeys";
+import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
-
-interface Document {
-  id: string;
-  title: string;
-  content?: string | null;
-  file_url: string | null;
-  status: 'pending' | 'signed' | 'revoked';
-  created_at: string;
-}
-
-interface Certificate {
-  id: string;
-  serial_number: string;
-  status: string;
-  expires_at: string;
-}
+import { UserDocument } from "@/types";
+import { Label } from "../../components/ui/Label";
 
 export default function DocumentSigning() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
-  const [signing, setSigning] = useState(false);
-  const { userProfile } = useAuth();
   const { toast } = useToast();
+  const { userProfile } = useAuth();
 
-  // Signing form state
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [selectedCertificate, setSelectedCertificate] = useState("");
-  const [certificateCode, setCertificateCode] = useState("");
+  const { data: signingKeys, isLoading: isLoadingKeys } = useFetchSigningKeys(
+    userProfile?.id ?? "",
+  );
+  const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
 
-  useEffect(() => {
-    if (userProfile) {
-      fetchDocuments();
-      fetchCertificates();
-    }
-  }, [userProfile]);
+  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"], {
+    enabled: userProfile?.role !== "admin",
+  });
+  const allDocsHook = useFetchAllDocuments({
+    enabled: userProfile?.role === "admin",
+    status: ["pending", "revoked"],
+  });
 
-  const fetchDocuments = async () => {
-    if (!userProfile) return;
+  const documents = (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) || [];
+  const isLoadingDocuments =
+    userProfile?.role === "admin" ? allDocsHook.isLoading : docsByUserHook.isLoading;
+  const refetchDocuments =
+    userProfile?.role === "admin" ? allDocsHook.refetch : docsByUserHook.refetch;
 
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+  const [passphraseInput, setPassphraseInput] = useState("");
+  const [showPassphrase, setShowPassphrase] = useState(false);
+  const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
 
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat dokumen",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
-  const fetchCertificates = async () => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('certificates')
-        .select('id, serial_number, status, expires_at')
-        .eq('user_id', userProfile.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCertificates(data || []);
-    } catch (error) {
-      console.error('Error fetching certificates:', error);
-    }
-  };
-
-  const openSignDialog = (document: Document) => {
+  const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
+    setSelectedKeyId(latestKey || signingKeys?.[0]?.kid || null);
     setIsSignDialogOpen(true);
   };
 
   const signDocument = async () => {
-    if (!selectedDocument || !selectedCertificate || !userProfile) {
+    if (!selectedDocument || !userProfile) {
       toast({
         title: "Error",
-        description: "Pilih sertifikat untuk menandatangani dokumen",
+        description: "Pilih dokumen dan sertifikat terlebih dahulu",
         variant: "destructive",
       });
       return;
     }
 
-    if (!certificateCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Masukkan kode sertifikat untuk autentikasi",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSigning(true);
-
+    setIsSigning(true);
     try {
-      // Get certificate details and verify code
-      const { data: certData, error: certError } = await supabase
-        .from('certificates')
-        .select('serial_number, certificate_code')
-        .eq('id', selectedCertificate)
-        .single();
+      // Sign the document
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
 
-      if (certError || !certData) {
-        throw new Error('Failed to fetch certificate details');
+      // Generate signed PDF. This is done first before crypto signing because this part is more prone to errors
+      const signedPdfBlob = await generateSignedPDF(selectedDocument, { accessToken });
+
+      // Now sign the document object using the selected key and passphrase
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
+      const response = await axios.post(
+        url,
+        {
+          documentId: selectedDocument.id,
+          signerUserId: userProfile.id,
+          passphrase: passphraseInput,
+          recipientName: selectedDocument.recipient_name || "",
+          recipientStudentNumber: selectedDocument.recipient_student_number || "",
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      // If signing succeeds, upload the generated signed PDF to storage
+      const signedDocumentUrl = await uploadSignedPDF(
+        signedPdfBlob,
+        userProfile.id,
+        selectedDocument.id,
+        supabase,
+      );
+
+      // If upload fail, revert document status in the db to pending
+      if (!signedDocumentUrl) {
+        await supabase
+          .from("documents")
+          .update({ status: "pending" })
+          .eq("id", selectedDocument.id);
+
+        console.error("uploadSignedPDF returned null for document", selectedDocument.id);
+        throw new Error("Failed to upload signed PDF");
       }
 
-      // Verify certificate code
-      if (certData.certificate_code !== certificateCode) {
-        toast({
-          title: "Error",
-          description: "Kode sertifikat tidak valid",
-          variant: "destructive",
-        });
-        setSigning(false);
-        return;
-      }
-
-      // Generate verification URL with document ID
-      const verificationUrl = `${window.location.origin}/document-verification?id=${selectedDocument.id}`;
-      
-      let signedDocumentUrl = null;
-
-      // Generate cryptographically signed PDF with QR code
-      try {
-        const signedPdfBlob = await generateSignedPDF(
-          selectedDocument.file_url,
-          {
-            documentId: selectedDocument.id,
-            documentTitle: selectedDocument.title,
-            documentContent: selectedDocument.content || undefined,
-            signerName: userProfile.name,
-            signerRole: userProfile.role,
-            signedAt: new Date().toISOString(),
-            certificateSerial: certData.serial_number,
-            verificationUrl: verificationUrl
-          }
-        );
-
-        // Upload signed PDF to storage
-        signedDocumentUrl = await uploadSignedPDF(
-          signedPdfBlob,
-          userProfile.id,
-          selectedDocument.id,
-          supabase
-        );
-
-        if (!signedDocumentUrl) {
-          throw new Error('Failed to upload signed document');
-        }
-      } catch (pdfError) {
-        console.error('Error generating/uploading signed PDF:', pdfError);
-        throw pdfError;
-      }
-      
-      // Update document with signature information
+      // If upload succeeds, persist the signed file URL back to the document record
       const { error: updateError } = await supabase
-        .from('documents')
-        .update({
-          status: 'signed',
-          signed_at: new Date().toISOString(),
-          certificate_id: selectedCertificate,
-          qr_code_url: verificationUrl,
-          signed_document_url: signedDocumentUrl
-        })
-        .eq('id', selectedDocument.id);
+        .from("documents")
+        .update({ file_url: signedDocumentUrl })
+        .eq("id", selectedDocument.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Failed to update document file_url:", updateError);
+        throw updateError;
+      }
 
+      // Audit and success toast only after full success
       await createAuditEntry(
         userProfile.id,
-        'SIGN_DOCUMENT',
-        `Menandatangani dokumen "${selectedDocument.title}"`
+        "SIGN_DOCUMENT",
+        `Menandatangani dokumen "${selectedDocument.title}"`,
       );
 
       toast({
         title: "Berhasil",
-        description: "Dokumen berhasil ditandatangani dan disimpan",
+        description: "Dokumen berhasil ditandatangani",
       });
 
-      setIsSignDialogOpen(false);
       setSelectedDocument(null);
-      setSelectedCertificate("");
-      fetchDocuments();
-    } catch (error) {
-      console.error('Signing error:', error);
+      closeDialog();
+    } catch (err) {
+      // Improve axios error logging
+      const serverMessage =
+        (err as any)?.response?.data?.message ??
+        (err as any)?.response?.data ??
+        (err as Error)?.message ??
+        String(err);
+
+      console.error("Gagal menandatangani dokumen:", err);
+
       toast({
         title: "Error",
-        description: "Gagal menandatangani dokumen",
+        description: err?.response?.data?.error || "Gagal menandatangani dokumen",
         variant: "destructive",
       });
     } finally {
-      setSigning(false);
+      setIsSigning(false);
+      refetchDocuments();
     }
   };
 
   const closeDialog = () => {
     setIsSignDialogOpen(false);
     setSelectedDocument(null);
-    setSelectedCertificate("");
-    setCertificateCode("");
   };
 
-  if (loading) {
+  if (isLoadingDocuments) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -245,49 +196,10 @@ export default function DocumentSigning() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Tanda Tangan Dokumen</h1>
-          <p className="text-muted-foreground">Tandatangani dokumen Anda dengan sertifikat digital</p>
+          <p className="text-muted-foreground">
+            Tandatangani dokumen Anda dengan sertifikat digital
+          </p>
         </div>
-
-        {/* Active Certificates Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Sertifikat Aktif Anda
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {certificates.length === 0 ? (
-              <div className="text-center py-6">
-                <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Anda belum memiliki sertifikat aktif. Hubungi administrator untuk mendapatkan sertifikat.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {certificates.map((cert) => (
-                  <Card key={cert.id} className="border-2">
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-status-valid text-white">Aktif</Badge>
-                        </div>
-                        <div>
-                          <p className="font-mono text-sm">{cert.serial_number}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          Berlaku hingga: {new Date(cert.expires_at).toLocaleDateString('id-ID')}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Documents to Sign */}
         <Card>
@@ -307,125 +219,231 @@ export default function DocumentSigning() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Judul Dokumen</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Judul Dokumen</TableHead>
+                        {userProfile?.role === "admin" && <TableHead>Penandatangan</TableHead>}
+                        <TableHead>Status</TableHead>
+                        <TableHead>Dibuat</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {documents.map((doc) => (
+                        <TableRow key={doc.id}>
+                          {/* Judul dokumen */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{doc.title}</span>
+                            </div>
+                          </TableCell>
+
+                          {/* (Admin only) Penandatangan */}
+                          {userProfile?.role === "admin" && (
+                            <TableCell>
+                              <div className="font-semibold">{doc.user.name}</div>
+                              <div className="text-sm text-muted-foreground">{doc.user.email}</div>
+                            </TableCell>
+                          )}
+
+                          {/* Status */}
+                          <TableCell>
+                            <StatusBadge status={doc.status as any} />
+                          </TableCell>
+
+                          {/* Dibuat */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          {/* Aksi */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {doc.file_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(doc.file_url!, "_blank")}
+                                >
+                                  Lihat
+                                </Button>
+                              )}
+                              <Button
+                                onClick={() => openSignDialog(doc)}
+                                size="sm"
+                              >
+                                <PenTool className="mr-2 h-4 w-4" />
+                                Tanda Tangan
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="block md:hidden space-y-4 max-h-[450px] overflow-y-auto pr-1">
                   {documents.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{doc.title}</span>
+                    <Card
+                      key={doc.id}
+                      className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white/80 dark:bg-zinc-800 backdrop-blur-sm"
+                    >
+                      <CardHeader className="border-b border-slate-200/60 dark:border-slate-700/50 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500">
+                            <FileText className="h-5 w-5 text-white" />
+                          </div>
+                          <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                            {doc.title}
+                          </CardTitle>
+                          <div className="ml-auto">
+                            <StatusBadge status={doc.status} />
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={doc.status as any} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {new Date(doc.created_at).toLocaleDateString('id-ID')}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      </CardHeader>
+                      <CardContent className="px-4 gap-1">
+                        <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                          Penandatangan:
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-200">
+                          {doc.user.name}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-200">
+                          {doc.user.email}
+                        </p>
+
+                        <p className="text-xs text-slate-500 dark:text-slate-300 mt-2 flex flex-row items-center">
+                          <Calendar1 className="h-3 w-3 inline-block mr-1 text-muted-foreground" />
+                          {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                        </p>
+
+                        <div className="flex items-center gap-2 justify-end mt-4">
                           {doc.file_url && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(doc.file_url!, '_blank')}
+                              onClick={() => window.open(doc.file_url!, "_blank")}
                             >
                               Lihat
                             </Button>
                           )}
                           <Button
-                            onClick={() => openSignDialog(doc)}
-                            disabled={certificates.length === 0}
                             size="sm"
+                            onClick={() => openSignDialog(doc)}
                           >
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
                           </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* Sign Dialog */}
-        <Dialog open={isSignDialogOpen} onOpenChange={closeDialog}>
+        <Dialog
+          open={isSignDialogOpen}
+          onOpenChange={closeDialog}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Tanda Tangan Dokumen</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {selectedDocument && (
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Dokumen yang akan ditandatangani:</h4>
-                  <p className="text-sm">{selectedDocument.title}</p>
-                </div>
+                <>
+                  {/* Document title */}
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label>Anda akan menandatangani:</Label>
+                    <p className="text-sm">{selectedDocument.title}</p>
+                  </div>
+
+                  {/* Certificate (internally: signing key) selection */}
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label htmlFor="signing-key">Pilih sertifikat untuk menandatangani:</Label>
+                    {signingKeys && signingKeys.length > 0 ? (
+                      <Select
+                        value={selectedKeyId ?? ""}
+                        onValueChange={(v) => setSelectedKeyId(v || null)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              isLoadingKeys ? "Memuat sertifikat..." : "Pilih sertifikat..."
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {signingKeys.map((k) => (
+                            <SelectItem
+                              key={k.kid}
+                              value={k.kid}
+                            >
+                              {k.kid}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        (Tidak ada sertifikat tersedia)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Passphrase */}
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label htmlFor="passphrase">Masukkan passphrase:</Label>
+                    <div className="relative">
+                      <Input
+                        id="passphrase"
+                        type={showPassphrase ? "text" : "password"}
+                        placeholder="Passphrase"
+                        value={passphraseInput}
+                        onChange={(e) => setPassphraseInput(e.target.value)}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassphrase(!showPassphrase)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+                        aria-label={showPassphrase ? "Hide passphrase" : "Show passphrase"}
+                      >
+                        {showPassphrase ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Pilih Sertifikat untuk Menandatangani
-                </label>
-                <Select value={selectedCertificate} onValueChange={setSelectedCertificate}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih sertifikat..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {certificates.map((cert) => (
-                      <SelectItem key={cert.id} value={cert.id}>
-                        <div className="flex flex-col">
-                          <span>{cert.serial_number}</span>
-                          <span className="text-xs text-muted-foreground">
-                            Berlaku hingga {new Date(cert.expires_at).toLocaleDateString('id-ID')}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="certificateCode" className="flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Kode Sertifikat
-                </Label>
-                <Input
-                  id="certificateCode"
-                  type="password"
-                  placeholder="Masukkan kode sertifikat Anda"
-                  value={certificateCode}
-                  onChange={(e) => setCertificateCode(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Masukkan kode rahasia sertifikat Anda untuk autentikasi
-                </p>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <QrCode className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <QrCode className="h-5 w-5 text-blue-600 dark:text-blue-300 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900">Setelah ditandatangani:</p>
-                    <p className="text-blue-700">
+                    <p className="font-medium text-blue-900 dark:text-blue-100">
+                      Setelah ditandatangani:
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-200">
                       Dokumen akan mendapatkan QR code untuk verifikasi dan tidak dapat diubah lagi.
                     </p>
                   </div>
@@ -433,22 +451,25 @@ export default function DocumentSigning() {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={closeDialog}>
+                <Button
+                  variant="outline"
+                  onClick={closeDialog}
+                >
                   Batal
                 </Button>
-                <Button 
+                <Button
                   onClick={signDocument}
-                  disabled={signing || !selectedCertificate || !certificateCode.trim()}
+                  disabled={isSigning}
                 >
-                  {signing ? (
+                  {isSigning ? (
                     <>
-                      <PenTool className="mr-2 h-4 w-4 animate-pulse" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Menandatangani...
                     </>
                   ) : (
                     <>
                       <PenTool className="mr-2 h-4 w-4" />
-                      Tanda Tangan
+                      Beri Tanda Tangan
                     </>
                   )}
                 </Button>

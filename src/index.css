@@ -50,7 +50,7 @@ All colors MUST be HSL.
     /* Status Badge Colors */
     --status-valid: 120 60% 50%;
     --status-invalid: 0 70% 50%;
-    --status-revoked: 0 0% 60%;
+    --status-revoked: 28 85% 50%;
 
     /* Glassmorphism Effect */
     --glass-bg: 0 0% 100% / 0.9;
@@ -166,7 +166,8 @@ All colors MUST be HSL.
   }
 
   @keyframes pulseSoft {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
     }
     50% {
@@ -191,4 +192,19 @@ All colors MUST be HSL.
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Ensure native date picker icon sits at the far-right of the input
+   and provide extra right padding so the text doesn't overlap it. */
+input[type="date"] {
+  position: relative;
+  padding-right: 2.5rem; /* space for the native icon */
+}
+
+/* Position the WebKit calendar picker indicator to the far right */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
 }

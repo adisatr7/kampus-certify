@@ -28,7 +28,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   // Check role-based access
   if (allowedRoles && !allowedRoles.includes(userProfile.role)) {
-    console.log("🛡️ ProtectedRoute - Role check failed:", { userRole: userProfile.role, allowedRoles, includes: allowedRoles.includes(userProfile.role) });
+    console.log("🛡️ ProtectedRoute - Role check failed:", {
+      userRole: userProfile.role,
+      allowedRoles,
+      includes: allowedRoles.includes(userProfile.role),
+    });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -1,0 +1,19 @@
+import { DocumentSignature } from "./DocumentSignature";
+import { DocumentStatus } from "./DocumentStatus";
+import { User } from "./User";
+
+export interface UserDocument {
+  id: string;
+  serial?: string | null;
+  user_id: string;
+  title: string;
+  file_url?: string | null;
+  status: DocumentStatus;
+  created_at: string;
+  updated_at: string;
+  content?: string | null;
+  user?: User;
+  document_signatures?: DocumentSignature[];
+  recipient_name?: string | null;
+  recipient_student_number?: string | null;
+}

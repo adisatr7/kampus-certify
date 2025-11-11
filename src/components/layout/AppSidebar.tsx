@@ -1,25 +1,22 @@
-import { useState } from "react";
-import { 
-
-  FileText, 
-  Award, 
-  Users, 
-  Activity, 
-  Search,
-  Settings,
+import {
+  Activity,
+  Award,
+  ChevronLeft,
+  FileText,
+  Home,
   LogOut,
   Menu,
-  ChevronLeft,
-  Home
+  Search,
+  ShieldCheck,
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Separator } from "@/components/ui/Separator";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
-  userRole: 'admin' | 'dosen' | 'rektor' | 'dekan';
+  userRole: "admin" | "dosen" | "rektor" | "dekan";
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 }
@@ -33,8 +30,9 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   const menuItems = {
     admin: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },
+      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: ShieldCheck },
       { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
+      { title: "Tanda Tangan", url: "/admin/sign", icon: Award },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
@@ -55,44 +53,58 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       { title: "Dokumen Saya", url: "/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/sign", icon: Award },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
-    ]
+    ],
   };
 
   const isActive = (path: string) => currentPath === path;
-  
-  const getNavClass = (path: string) => 
+
+  const getNavClass = (path: string) =>
     cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
-      isActive(path) 
-        ? "bg-primary text-primary-foreground" 
-        : "text-muted-foreground hover:text-accent-foreground"
+      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+      isActive(path)
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:text-accent-foreground",
     );
 
   const items = menuItems[userRole] || menuItems.dosen;
 
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Redirect to home
+    navigate("/");
+  };
+
   return (
-    <div className={cn(
-      "relative flex h-screen flex-col bg-umc-light-gray border-r border-border transition-all duration-300",
-      "fixed lg:static inset-y-0 left-0 z-40",
-      collapsed ? "w-16 -translate-x-full lg:translate-x-0" : "w-64"
-    )}>
-      {/* Header */}
-     <div className="flex items-center justify-between p-2 sm:p-4 border-b border-border">
-      {!collapsed && (
-        <div className="flex items-center gap-2">
-          {/* Logo */}
-          <img
-            src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
-            alt="Logo UMC"
-            className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
-          />
-          <div>
-            <h2 className="text-base sm:text-lg font-semibold text-primary">CA UMC</h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{userRole}</p>
-          </div>
-        </div>
+    <div
+      className={cn(
+        "relative flex h-screen flex-col bg-umc-light-gray dark:bg-neutral-900 border-r border-border transition-all duration-300 pt-28",
+        "fixed inset-y-0 left-0 z-40 overflow-hidden",
+        collapsed ? "w-14 -translate-x-full lg:translate-x-0 justify-center items-center" : "w-64",
       )}
-      {collapsed && (
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-2 sm:p-4 border-b border-border">
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            {/* Logo */}
+            <img
+              src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
+              alt="Logo UMC"
+              className="h-8 w-8 sm:h-12 sm:w-12 object-contain"
+            />
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-primary dark:text-red-600">
+                CA UMC
+              </h2>
+              <p className="text-[10px] sm:text-xs text-muted-foreground dark:text-gray-300 capitalize">
+                {userRole}
+              </p>
+            </div>
+          </div>
+        )}
+        {collapsed && (
           <div className="flex justify-center w-full">
             <img
               src="https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png"
@@ -108,7 +120,11 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
           onClick={() => onCollapsedChange(!collapsed)}
           className="h-8 w-8 sm:h-12 sm:w-12 p-0"
         >
-          {collapsed ? <Menu className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          {collapsed ? (
+            <Menu className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          )}
         </Button>
       </div>
 
@@ -124,7 +140,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
         ))}
-        
+
         <Separator className="my-4" />
       </nav>
 
@@ -133,10 +149,10 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
         <Button
           variant="ghost"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="ml-3">Keluar</span>}
+          {!collapsed && <span>Keluar</span>}
         </Button>
       </div>
     </div>
