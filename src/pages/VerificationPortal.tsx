@@ -75,10 +75,15 @@ export default function VerificationPortal() {
         return;
       }
 
-      // Fetch the document for display
-      const { data: docData } = await supabase
-        .from("documents")
-        .select(`
+      //Fetch the document for display
+      const isUuid = (id: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          id.trim()
+        );
+
+      const trimmedId = docId.trim();
+
+      const baseSelect = `
           *,
           user:users (
             name,
@@ -87,9 +92,12 @@ export default function VerificationPortal() {
           document_signatures (
             key_id
           )
-        `)
-        .eq("id", docId)
-        .maybeSingle();
+        `;
+
+      // Query by `id` when the input is a UUID, otherwise query by `serial`
+      const { data: docData } = isUuid(trimmedId)
+        ? await supabase.from("documents").select(baseSelect).eq("id", trimmedId).maybeSingle()
+        : await supabase.from("documents").select(baseSelect).eq("serial", trimmedId).maybeSingle();
 
       setVerificationResult(docData as UserDocument);
 
