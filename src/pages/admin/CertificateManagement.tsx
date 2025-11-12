@@ -99,10 +99,14 @@ export default function CertificateManagement() {
           expires_at,
           revoked_at,
           assigned_to,
-          assigned_to_user:assigned_to (
+          assigned_to_user:users!signing_keys_assigned_to_fkey (
+            id,
             name,
             email,
-            role
+            role,
+            nidn,
+            created_at,
+            updated_at
           )
         `)
         .order("created_at", { ascending: false });

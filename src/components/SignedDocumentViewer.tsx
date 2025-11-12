@@ -126,14 +126,10 @@ export default function SignedDocumentViewer({
               />
             </div>
           ) : (
-            (() => {
-              return (
-                <SignedDocumentTemplate
-                  document={document}
-                  qrCodeUrl={document.qr_code_url || undefined}
-                />
-              );
-            })()
+            <SignedDocumentTemplate
+              document={document}
+              qrCodeUrl={undefined}
+            />
           )}
         </div>
       </DialogContent>

@@ -86,8 +86,13 @@ export default function VerificationPortal() {
       const baseSelect = `
           *,
           user:users (
+            id,
             name,
-            role
+            role,
+            email,
+            nidn,
+            created_at,
+            updated_at
           ),
           document_signatures (
             key_id
@@ -99,7 +104,7 @@ export default function VerificationPortal() {
         ? await supabase.from("documents").select(baseSelect).eq("id", trimmedId).maybeSingle()
         : await supabase.from("documents").select(baseSelect).eq("serial", trimmedId).maybeSingle();
 
-      setVerificationResult(docData as UserDocument);
+      setVerificationResult(docData as unknown as UserDocument);
 
       toast({
         title: "Verifikasi Berhasil",

@@ -9,7 +9,6 @@ import { AuthProvider } from "@/lib/auth";
 import AuditTrail from "./pages/admin/AuditTrail";
 import CertificateManagement from "./pages/admin/CertificateManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
-import SignedDocumentPreview from "./pages/dev/SignedDocumentPreview";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScanner from "./pages/QrScanner";
