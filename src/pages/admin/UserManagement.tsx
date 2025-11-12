@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { useAuth } from "@/lib/auth";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ import {
 } from "@/components/ui/AlertDialog";
 
 export default function UserManagement() {
+  const { userProfile } = useAuth();
   const { data: users, isLoading, refetch } = useFetchAllUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -111,7 +113,7 @@ export default function UserManagement() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
