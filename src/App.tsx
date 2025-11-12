@@ -9,6 +9,7 @@ import { AuthProvider } from "@/lib/auth";
 import AuditTrail from "./pages/admin/AuditTrail";
 import CertificateManagement from "./pages/admin/CertificateManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
+import UserManagement from "./pages/admin/UserManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScanner from "./pages/QrScanner";
@@ -84,6 +85,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
                     <AuditTrail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <UserManagement />
                   </ProtectedRoute>
                 }
               />

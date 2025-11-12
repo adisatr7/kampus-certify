@@ -8,6 +8,7 @@ import {
   Menu,
   Search,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +35,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/admin/sign", icon: Award },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
+      { title: "Kelola Pengguna", url: "/admin/users", icon: Users },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     dosen: [
