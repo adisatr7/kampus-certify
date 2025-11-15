@@ -91,6 +91,7 @@ export default function VerificationPortal() {
             role,
             email,
             nidn,
+            jabatan,
             created_at,
             updated_at
           ),
@@ -324,13 +325,7 @@ export default function VerificationPortal() {
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Jabatan:</span>
                           <span className="font-medium">
-                            {verificationResult.user.role === "rektor"
-                              ? "Rektor"
-                              : verificationResult.user.role === "dekan"
-                                ? "Dekan"
-                                : verificationResult.user.role === "dosen"
-                                  ? "Dosen"
-                                  : verificationResult.user.role}
+                            {verificationResult.user.jabatan || "-"}
                           </span>
                         </div>
                       </>
