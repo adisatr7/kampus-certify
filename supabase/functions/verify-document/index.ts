@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const { data: sig, error: sigErr } = await supabase
       .from("document_signatures")
       .select("key_id, payload_hash, signature, signed_at")
-      .eq("document_id", documentId)
+      .eq("document_id", doc.id)
       .order("signed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
