@@ -87,7 +87,7 @@ export default function SignedDocumentTemplate({
               <div className="mb-2 w-full">
                 <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
                 <p className="text-sm text-black leading-tight">
-                  Ketua Program Studi Informatika
+                  {document.user?.jabatan || "Ketua Program Studi Informatika"}
                   <br />
                   Universitas Muhammadiyah Cirebon
                 </p>

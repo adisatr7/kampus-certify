@@ -61,7 +61,7 @@ export default function CertificateManagement() {
 
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>(
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string; jabatan?: string }[]>(
     [],
   );
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -105,6 +105,7 @@ export default function CertificateManagement() {
             email,
             role,
             nidn,
+            jabatan,
             created_at,
             updated_at
           )
@@ -136,7 +137,7 @@ export default function CertificateManagement() {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("id, name, email, role")
+        .select("id, name, email, role, jabatan")
         .order("name");
 
       if (error) throw error;
@@ -604,7 +605,7 @@ export default function CertificateManagement() {
                             variant="outline"
                             className="text-xs mt-1"
                           >
-                            {cert.assigned_to_user?.role || "Unknown"}
+                            {cert.assigned_to_user?.jabatan || "Tidak ada jabatan"}
                           </Badge>
                         </div>
                       </TableCell>
