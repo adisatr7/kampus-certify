@@ -61,6 +61,7 @@ export default function UserManagement() {
     name: "",
     role: "dosen" as UserRole,
     nidn: "",
+    jabatan: "",
   });
 
   const resetForm = () => {
@@ -69,6 +70,7 @@ export default function UserManagement() {
       name: "",
       role: "dosen",
       nidn: "",
+      jabatan: "",
     });
   };
 
@@ -108,6 +110,7 @@ export default function UserManagement() {
       name: user.name,
       role: user.role,
       nidn: user.nidn || "",
+      jabatan: user.jabatan || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -191,6 +194,16 @@ export default function UserManagement() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="jabatan">Jabatan (Opsional)</Label>
+                  <Input
+                    id="jabatan"
+                    value={formData.jabatan}
+                    onChange={(e) => setFormData({ ...formData, jabatan: e.target.value })}
+                    placeholder="Contoh: Ketua Program Studi Informatika"
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     type="button"
@@ -227,6 +240,7 @@ export default function UserManagement() {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>NIDN</TableHead>
+                    <TableHead>Jabatan</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -239,6 +253,7 @@ export default function UserManagement() {
                         <span className="capitalize">{user.role}</span>
                       </TableCell>
                       <TableCell>{user.nidn || "-"}</TableCell>
+                      <TableCell>{user.jabatan || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -319,6 +334,16 @@ export default function UserManagement() {
                   id="edit-nidn"
                   value={formData.nidn}
                   onChange={(e) => setFormData({ ...formData, nidn: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-jabatan">Jabatan (Opsional)</Label>
+                <Input
+                  id="edit-jabatan"
+                  value={formData.jabatan}
+                  onChange={(e) => setFormData({ ...formData, jabatan: e.target.value })}
+                  placeholder="Contoh: Ketua Program Studi Informatika"
                 />
               </div>
 

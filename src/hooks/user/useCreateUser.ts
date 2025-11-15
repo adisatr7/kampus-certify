@@ -8,6 +8,7 @@ interface CreateUserData {
   name: string;
   role: UserRole;
   nidn?: string;
+  jabatan?: string;
 }
 
 export function useCreateUser() {
@@ -22,6 +23,7 @@ export function useCreateUser() {
           name: data.name,
           role: data.role,
           nidn: data.nidn || null,
+          jabatan: data.jabatan || null,
         })
         .select()
         .single();

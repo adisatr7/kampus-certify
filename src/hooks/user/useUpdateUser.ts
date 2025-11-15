@@ -9,6 +9,7 @@ interface UpdateUserData {
   name: string;
   role: UserRole;
   nidn?: string;
+  jabatan?: string;
 }
 
 export function useUpdateUser() {
@@ -23,6 +24,7 @@ export function useUpdateUser() {
           name: data.name,
           role: data.role,
           nidn: data.nidn || null,
+          jabatan: data.jabatan || null,
         })
         .eq("id", id)
         .select()

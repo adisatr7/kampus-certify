@@ -8,4 +8,5 @@ export interface User {
   created_at: string;
   updated_at?: string;
   nidn?: string | null;
+  jabatan?: string | null;
 }
