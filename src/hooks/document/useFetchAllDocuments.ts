@@ -38,7 +38,9 @@ export default function useFetchAllDocuments({
           user:users (
             name,
             email,
-            role
+            role,
+            nidn,
+            jabatan
           )
         `)
         .order("created_at", { ascending: false });
