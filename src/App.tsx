@@ -8,12 +8,14 @@ import { TooltipProvider } from "@/components/ui/Tooltip";
 import { AuthProvider } from "@/lib/auth";
 import AuditTrail from "./pages/admin/AuditTrail";
 import CertificateManagement from "./pages/admin/CertificateManagement";
+import CreateIjazah from "./pages/admin/CreateIjazah";
+import CreateSertifikat from "./pages/admin/CreateSertifikat";
 import DocumentManagement from "./pages/admin/DocumentManagement";
+import TemplateManagement from "./pages/admin/TemplateManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScanner from "./pages/QrScanner";
-// import PublicDocumentVerification from "./pages/PublicDocumentVerification";
 import DocumentSigning from "./pages/user/DocumentSigning";
 import MyDocuments from "./pages/user/MyDocuments";
 import VerificationPortal from "./pages/VerificationPortal";
@@ -73,6 +75,30 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/create-ijazah"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "rektor"]}>
+                    <CreateIjazah />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/create-sertifikat"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "dosen", "rektor", "dekan"]}>
+                    <CreateSertifikat />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/templates"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <TemplateManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/sign"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
@@ -103,6 +129,22 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["dosen", "rektor", "dekan"]}>
                     <MyDocuments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-ijazah"
+                element={
+                  <ProtectedRoute allowedRoles={["rektor"]}>
+                    <CreateIjazah />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-sertifikat"
+                element={
+                  <ProtectedRoute allowedRoles={["dosen", "rektor", "dekan"]}>
+                    <CreateSertifikat />
                   </ProtectedRoute>
                 }
               />

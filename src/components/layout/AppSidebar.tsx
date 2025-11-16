@@ -1,15 +1,20 @@
 import {
   Activity,
   Award,
+  ChevronDown,
   ChevronLeft,
   FileText,
+  GraduationCap,
   Home,
+  Layout,
   LogOut,
   Menu,
   Search,
   ShieldCheck,
+  Upload,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
@@ -26,13 +31,40 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   const location = useLocation();
   const currentPath = location.pathname;
   const { signOut } = useAuth();
+  const [isDocumentMenuOpen, setIsDocumentMenuOpen] = useState(true);
 
-  // Menu items berdasarkan role - URLs disesuaikan dengan routes di App.tsx
+  // Submenu Kelola Dokumen
+  const documentSubmenu = {
+    admin: [
+      { title: "Unggah Dokumen", url: "/admin/documents", icon: Upload },
+      { title: "Daftar Dokumen", url: "/admin/documents", icon: FileText },
+      { title: "Buat Ijazah", url: "/admin/create-ijazah", icon: GraduationCap },
+      { title: "Buat Sertifikat", url: "/admin/create-sertifikat", icon: Award },
+      { title: "Kelola Template", url: "/admin/templates", icon: Layout },
+    ],
+    rektor: [
+      { title: "Unggah Dokumen", url: "/documents", icon: Upload },
+      { title: "Daftar Dokumen", url: "/documents", icon: FileText },
+      { title: "Buat Ijazah", url: "/create-ijazah", icon: GraduationCap },
+      { title: "Buat Sertifikat", url: "/create-sertifikat", icon: Award },
+    ],
+    dosen: [
+      { title: "Unggah Dokumen", url: "/documents", icon: Upload },
+      { title: "Daftar Dokumen", url: "/documents", icon: FileText },
+      { title: "Buat Sertifikat", url: "/create-sertifikat", icon: Award },
+    ],
+    dekan: [
+      { title: "Unggah Dokumen", url: "/documents", icon: Upload },
+      { title: "Daftar Dokumen", url: "/documents", icon: FileText },
+      { title: "Buat Sertifikat", url: "/create-sertifikat", icon: Award },
+    ],
+  };
+
+  // Menu items berdasarkan role
   const menuItems = {
     admin: [
       { title: "Dashboard", url: "/", icon: Home },
       { title: "Kelola Sertifikat", url: "/admin/certificates", icon: ShieldCheck },
-      { title: "Kelola Dokumen", url: "/admin/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/admin/sign", icon: Award },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
       { title: "Kelola Pengguna", url: "/admin/users", icon: Users },
@@ -40,19 +72,16 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
     ],
     dosen: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Dokumen Saya", url: "/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/sign", icon: Award },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     rektor: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Dokumen Saya", url: "/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/sign", icon: Award },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
     dekan: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Dokumen Saya", url: "/documents", icon: FileText },
       { title: "Tanda Tangan", url: "/sign", icon: Award },
       { title: "Verifikasi Publik", url: "/verify", icon: Search },
     ],
@@ -69,6 +98,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
     );
 
   const items = menuItems[userRole] || menuItems.dosen;
+  const docItems = documentSubmenu[userRole] || documentSubmenu.dosen;
 
   const navigate = useNavigate();
 
@@ -142,6 +172,51 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
         ))}
+
+        {/* Kelola Dokumen Submenu */}
+        <div className="space-y-1">
+          <button
+            onClick={() => setIsDocumentMenuOpen(!isDocumentMenuOpen)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+              "text-muted-foreground hover:text-accent-foreground"
+            )}
+          >
+            <FileText className="h-4 w-4 shrink-0" />
+            {!collapsed && (
+              <>
+                <span>Kelola Dokumen</span>
+                <ChevronDown
+                  className={cn(
+                    "ml-auto h-4 w-4 transition-transform",
+                    isDocumentMenuOpen && "rotate-180"
+                  )}
+                />
+              </>
+            )}
+          </button>
+
+          {/* Submenu Items */}
+          {!collapsed && isDocumentMenuOpen && (
+            <div className="ml-6 space-y-1 border-l-2 border-border pl-2">
+              {docItems.map((subItem) => (
+                <NavLink
+                  key={subItem.title}
+                  to={subItem.url}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                    isActive(subItem.url)
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:text-accent-foreground"
+                  )}
+                >
+                  <subItem.icon className="h-4 w-4 shrink-0" />
+                  <span>{subItem.title}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Separator className="my-4" />
       </nav>
