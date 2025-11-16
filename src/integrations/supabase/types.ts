@@ -98,12 +98,50 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          css_content: string | null
+          html_content: string
+          id: string
+          is_active: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          css_content?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          css_content?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: Database["public"]["Enums"]["document_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           content: string | null
           created_at: string | null
+          document_type: Database["public"]["Enums"]["document_type"] | null
           file_url: string | null
           id: string
+          metadata: Json | null
           recipient_name: string | null
           recipient_student_number: string | null
           serial: string | null
@@ -116,8 +154,10 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"] | null
           file_url?: string | null
           id?: string
+          metadata?: Json | null
           recipient_name?: string | null
           recipient_student_number?: string | null
           serial?: string | null
@@ -130,8 +170,10 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"] | null
           file_url?: string | null
           id?: string
+          metadata?: Json | null
           recipient_name?: string | null
           recipient_student_number?: string | null
           serial?: string | null
@@ -154,6 +196,123 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ijazah: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          gelar: string
+          id: string
+          nama_mahasiswa: string
+          nim: string
+          nomor_seri: string
+          predikat: string | null
+          program_studi: string
+          tanggal_kelulusan: string
+          tanggal_terbit: string
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          gelar: string
+          id?: string
+          nama_mahasiswa: string
+          nim: string
+          nomor_seri: string
+          predikat?: string | null
+          program_studi: string
+          tanggal_kelulusan: string
+          tanggal_terbit: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          gelar?: string
+          id?: string
+          nama_mahasiswa?: string
+          nim?: string
+          nomor_seri?: string
+          predikat?: string | null
+          program_studi?: string
+          tanggal_kelulusan?: string
+          tanggal_terbit?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ijazah_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ijazah_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sertifikat: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          id: string
+          nama_acara: string
+          nama_peserta: string
+          nomor_sertifikat: string
+          penandatangan: string | null
+          tanggal_acara: string
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          id?: string
+          nama_acara: string
+          nama_peserta: string
+          nomor_sertifikat: string
+          penandatangan?: string | null
+          tanggal_acara: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          nama_acara?: string
+          nama_peserta?: string
+          nomor_sertifikat?: string
+          penandatangan?: string | null
+          tanggal_acara?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sertifikat_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sertifikat_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -318,6 +477,7 @@ export type Database = {
     Enums: {
       certificate_status: "active" | "expired" | "revoked"
       document_status: "pending" | "signed" | "revoked"
+      document_type: "ijazah" | "sertifikat" | "other"
       user_role: "admin" | "dosen" | "rektor" | "dekan"
     }
     CompositeTypes: {
@@ -448,6 +608,7 @@ export const Constants = {
     Enums: {
       certificate_status: ["active", "expired", "revoked"],
       document_status: ["pending", "signed", "revoked"],
+      document_type: ["ijazah", "sertifikat", "other"],
       user_role: ["admin", "dosen", "rektor", "dekan"],
     },
   },
