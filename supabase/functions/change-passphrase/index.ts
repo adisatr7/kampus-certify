@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
-import { pbkdf2Hash, verifyPBKDF2 } from "../_shared/pbkdf2.ts";
+import { corsHeaders, pbkdf2Hash, verifyPBKDF2 } from "../_shared/index.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
