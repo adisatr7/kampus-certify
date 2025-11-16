@@ -1,5 +1,60 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { base64Decode, corsHeaders, verifyPBKDF2 } from "../_shared/index.ts";
+
+// CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Base64 utilities
+function base64Decode(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function base64Encode(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) {
+    s += String.fromCharCode(bytes[i]);
+  }
+  return btoa(s);
+}
+
+// PBKDF2 verify function
+async function verifyPBKDF2(pass: string, stored: string): Promise<boolean> {
+  if (!stored || typeof stored !== "string") return false;
+  const parts = stored.split(":");
+  if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
+  const iterations = Number(parts[1]);
+  if (!Number.isFinite(iterations) || iterations <= 0) return false;
+  const salt = base64Decode(parts[2]);
+  const expectedHash = base64Decode(parts[3]);
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(pass),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    keyMaterial,
+    expectedHash.byteLength * 8,
+  );
+  const derivedBytes = new Uint8Array(derived);
+  if (derivedBytes.length !== expectedHash.byteLength) return false;
+  let diff = 0;
+  for (let i = 0; i < derivedBytes.length; i++) {
+    diff |= derivedBytes[i] ^ expectedHash[i];
+  }
+  return diff === 0;
+}
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,

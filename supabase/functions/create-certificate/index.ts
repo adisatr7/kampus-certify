@@ -1,5 +1,49 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { base64Decode, base64Encode, corsHeaders, pbkdf2Hash } from "../_shared/index.ts";
+
+// CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Base64 utilities
+function base64Decode(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function base64Encode(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) {
+    s += String.fromCharCode(bytes[i]);
+  }
+  return btoa(s);
+}
+
+// PBKDF2 hash function
+async function pbkdf2Hash(pass: string, iterations = 100_000): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(pass),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    keyMaterial,
+    256,
+  );
+  const hashBytes = new Uint8Array(derived);
+  return `pbkdf2:${iterations}:${base64Encode(salt)}:${base64Encode(hashBytes)}`;
+}
 
 /**
  * Validate passphrase rules:
