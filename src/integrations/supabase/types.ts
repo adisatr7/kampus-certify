@@ -54,6 +54,7 @@ export type Database = {
           payload_hash: string
           signature: string
           signed_at: string | null
+          signer_role: string | null
           signer_user_id: string | null
         }
         Insert: {
@@ -63,6 +64,7 @@ export type Database = {
           payload_hash: string
           signature: string
           signed_at?: string | null
+          signer_role?: string | null
           signer_user_id?: string | null
         }
         Update: {
@@ -72,6 +74,7 @@ export type Database = {
           payload_hash?: string
           signature?: string
           signed_at?: string | null
+          signer_role?: string | null
           signer_user_id?: string | null
         }
         Relationships: [
@@ -206,45 +209,51 @@ export type Database = {
           document_id: string
           gelar: string
           id: string
+          is_validated: boolean | null
+          logo_url: string | null
+          nama_fakultas: string
           nama_mahasiswa: string
           nim: string
           nomor_seri: string
-          predikat: string | null
-          program_studi: string
-          tanggal_kelulusan: string
+          signing_key_id: string | null
           tanggal_terbit: string
           template_id: string | null
           updated_at: string | null
+          validation_url: string | null
         }
         Insert: {
           created_at?: string | null
           document_id: string
           gelar: string
           id?: string
+          is_validated?: boolean | null
+          logo_url?: string | null
+          nama_fakultas?: string
           nama_mahasiswa: string
           nim: string
           nomor_seri: string
-          predikat?: string | null
-          program_studi: string
-          tanggal_kelulusan: string
+          signing_key_id?: string | null
           tanggal_terbit: string
           template_id?: string | null
           updated_at?: string | null
+          validation_url?: string | null
         }
         Update: {
           created_at?: string | null
           document_id?: string
           gelar?: string
           id?: string
+          is_validated?: boolean | null
+          logo_url?: string | null
+          nama_fakultas?: string
           nama_mahasiswa?: string
           nim?: string
           nomor_seri?: string
-          predikat?: string | null
-          program_studi?: string
-          tanggal_kelulusan?: string
+          signing_key_id?: string | null
           tanggal_terbit?: string
           template_id?: string | null
           updated_at?: string | null
+          validation_url?: string | null
         }
         Relationships: [
           {
@@ -399,7 +408,7 @@ export type Database = {
           id: string
           jabatan: string | null
           name: string
-          nidn: string | null
+          nip: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
@@ -409,7 +418,7 @@ export type Database = {
           id?: string
           jabatan?: string | null
           name: string
-          nidn?: string | null
+          nip?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -419,7 +428,7 @@ export type Database = {
           id?: string
           jabatan?: string | null
           name?: string
-          nidn?: string | null
+          nip?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -434,6 +443,7 @@ export type Database = {
         Args: { p_action: string; p_description: string; p_user_id: string }
         Returns: undefined
       }
+      generate_ijazah_serial: { Args: never; Returns: string }
       get_certificate_for_signing: {
         Args: { cert_id: string }
         Returns: {
