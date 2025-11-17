@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
@@ -14,17 +14,40 @@ export default function CreateIjazah() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [dekanList, setDekanList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
+  const [rektorList, setRektorList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
+  
   const [formData, setFormData] = useState({
     nama_mahasiswa: "",
     nim: "",
-    program_studi: "",
+    nama_fakultas: "",
     gelar: "",
-    tanggal_kelulusan: "",
-    predikat: "",
-    nomor_seri: "",
     tanggal_terbit: new Date().toISOString().split("T")[0],
     template_id: "",
+    logo_url: "https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png",
+    dekan_id: "",
+    rektor_id: "",
   });
+
+  useEffect(() => {
+    // Fetch dekan and rektor
+    const fetchUsers = async () => {
+      const { data: dekans } = await supabase
+        .from("users")
+        .select("id, name, nip")
+        .eq("role", "dekan");
+      
+      const { data: rektors } = await supabase
+        .from("users")
+        .select("id, name, nip")
+        .eq("role", "rektor");
+
+      if (dekans) setDekanList(dekans as any);
+      if (rektors) setRektorList(rektors as any);
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +57,31 @@ export default function CreateIjazah() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
+      // Get dekan and rektor details
+      const dekan = dekanList.find(d => d.id === formData.dekan_id);
+      const rektor = rektorList.find(r => r.id === formData.rektor_id);
+
+      if (!dekan || !rektor) {
+        throw new Error("Dekan atau Rektor tidak ditemukan");
+      }
+
       // Create document first
       const { data: document, error: docError } = await supabase
         .from("documents")
         .insert({
-          user_id: user.id,
+          user_id: formData.dekan_id, // Assign to dekan for signing first
           title: `Ijazah - ${formData.nama_mahasiswa}`,
           status: "pending",
           document_type: "ijazah",
+          recipient_name: formData.nama_mahasiswa,
+          recipient_student_number: formData.nim,
           metadata: {
             nama_mahasiswa: formData.nama_mahasiswa,
             nim: formData.nim,
+            nama_fakultas: formData.nama_fakultas,
+            gelar: formData.gelar,
+            workflow_stage: "dekan", // Track workflow stage
+            rektor_id: formData.rektor_id, // Store rektor ID for next stage
           },
         })
         .select()
@@ -55,24 +92,24 @@ export default function CreateIjazah() {
       // Create ijazah record
       const { error: ijazahError } = await supabase
         .from("ijazah")
-        .insert({
+        .insert([{
           document_id: document.id,
           nama_mahasiswa: formData.nama_mahasiswa,
           nim: formData.nim,
-          program_studi: formData.program_studi,
           gelar: formData.gelar,
-          tanggal_kelulusan: formData.tanggal_kelulusan,
-          predikat: formData.predikat || null,
-          nomor_seri: formData.nomor_seri,
+          nama_fakultas: formData.nama_fakultas,
           tanggal_terbit: formData.tanggal_terbit,
+          nomor_seri: '',
+          logo_url: formData.logo_url,
+          is_validated: false,
           template_id: formData.template_id || null,
-        });
+        }]);
 
       if (ijazahError) throw ijazahError;
 
       toast({
         title: "Berhasil",
-        description: "Ijazah berhasil dibuat",
+        description: "Ijazah berhasil dibuat dan menunggu validasi Dekan",
       });
 
       navigate("/admin/documents");
@@ -80,7 +117,7 @@ export default function CreateIjazah() {
       console.error("Error creating ijazah:", error);
       toast({
         title: "Error",
-        description: "Gagal membuat ijazah",
+        description: error instanceof Error ? error.message : "Gagal membuat ijazah",
         variant: "destructive",
       });
     } finally {
@@ -98,7 +135,7 @@ export default function CreateIjazah() {
               <CardTitle>Buat Ijazah Digital</CardTitle>
             </div>
             <CardDescription>
-              Isi formulir di bawah untuk menerbitkan ijazah digital
+              Isi formulir di bawah untuk menerbitkan ijazah digital. Nomor seri akan dibuat otomatis.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -129,12 +166,13 @@ export default function CreateIjazah() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="program_studi">Program Studi *</Label>
+                  <Label htmlFor="nama_fakultas">Nama Fakultas *</Label>
                   <Input
-                    id="program_studi"
-                    value={formData.program_studi}
+                    id="nama_fakultas"
+                    placeholder="Contoh: Teknik Informatika"
+                    value={formData.nama_fakultas}
                     onChange={(e) =>
-                      setFormData({ ...formData, program_studi: e.target.value })
+                      setFormData({ ...formData, nama_fakultas: e.target.value })
                     }
                     required
                   />
@@ -144,55 +182,10 @@ export default function CreateIjazah() {
                   <Label htmlFor="gelar">Gelar *</Label>
                   <Input
                     id="gelar"
-                    placeholder="S.Kom, S.T, dll"
+                    placeholder="Contoh: Sarjana Teknik (S.T.)"
                     value={formData.gelar}
                     onChange={(e) =>
                       setFormData({ ...formData, gelar: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tanggal_kelulusan">Tanggal Kelulusan *</Label>
-                  <Input
-                    id="tanggal_kelulusan"
-                    type="date"
-                    value={formData.tanggal_kelulusan}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tanggal_kelulusan: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="predikat">Predikat</Label>
-                  <Select
-                    value={formData.predikat}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, predikat: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih predikat" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Cum Laude">Cum Laude</SelectItem>
-                      <SelectItem value="Sangat Memuaskan">Sangat Memuaskan</SelectItem>
-                      <SelectItem value="Memuaskan">Memuaskan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nomor_seri">Nomor Seri *</Label>
-                  <Input
-                    id="nomor_seri"
-                    placeholder="0001-UMC-I-2025"
-                    value={formData.nomor_seri}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nomor_seri: e.target.value })
                     }
                     required
                   />
@@ -210,9 +203,64 @@ export default function CreateIjazah() {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dekan">Dekan *</Label>
+                  <Select
+                    value={formData.dekan_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, dekan_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Dekan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dekanList.map((dekan) => (
+                        <SelectItem key={dekan.id} value={dekan.id}>
+                          {dekan.name} {dekan.nip ? `(NIP: ${dekan.nip})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rektor">Rektor *</Label>
+                  <Select
+                    value={formData.rektor_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, rektor_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Rektor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rektorList.map((rektor) => (
+                        <SelectItem key={rektor.id} value={rektor.id}>
+                          {rektor.name} {rektor.nip ? `(NIP: ${rektor.nip})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="logo_url">Logo URL</Label>
+                  <Input
+                    id="logo_url"
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={formData.logo_url}
+                    onChange={(e) =>
+                      setFormData({ ...formData, logo_url: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-4 justify-end">
+              <div className="flex justify-end gap-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -221,7 +269,7 @@ export default function CreateIjazah() {
                   Batal
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Menyimpan..." : "Buat Ijazah"}
+                  {loading ? "Membuat..." : "Buat Ijazah"}
                 </Button>
               </div>
             </form>

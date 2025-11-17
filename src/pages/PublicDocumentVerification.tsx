@@ -35,7 +35,7 @@ interface VerificationResult {
     id: string;
     name: string;
     role: string;
-    nidn: string | null;
+    nip: string | null;
     email: string;
     created_at: string;
     updated_at: string;
@@ -81,7 +81,7 @@ export default function PublicDocumentVerification() {
             id,
             name,
             role,
-            nidn,
+            nip,
             email,
             created_at,
             updated_at
@@ -341,13 +341,13 @@ export default function PublicDocumentVerification() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        {verificationResult.user.nidn && (
+                        {verificationResult.user.nip && (
                           <div className="bg-muted/30 p-4 rounded-lg">
                             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                              NIDN
+                              NIP
                             </p>
                             <p className="font-semibold font-mono">
-                              {verificationResult.user.nidn}
+                              {verificationResult.user.nip}
                             </p>
                           </div>
                         )}

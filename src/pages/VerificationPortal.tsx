@@ -90,7 +90,7 @@ export default function VerificationPortal() {
             name,
             role,
             email,
-            nidn,
+            nip,
             jabatan,
             created_at,
             updated_at
