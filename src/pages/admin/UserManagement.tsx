@@ -60,7 +60,7 @@ export default function UserManagement() {
     email: "",
     name: "",
     role: "dosen" as UserRole,
-    nidn: "",
+    nip: "",
     jabatan: "",
   });
 
@@ -69,7 +69,7 @@ export default function UserManagement() {
       email: "",
       name: "",
       role: "dosen",
-      nidn: "",
+      nip: "",
       jabatan: "",
     });
   };
@@ -109,7 +109,7 @@ export default function UserManagement() {
       email: user.email || "",
       name: user.name,
       role: user.role,
-      nidn: user.nidn || "",
+      nip: user.nip || "",
       jabatan: user.jabatan || "",
     });
     setIsEditDialogOpen(true);
@@ -185,12 +185,12 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="nidn">NIDN (Opsional)</Label>
+                  <Label htmlFor="nip">NIP (Opsional)</Label>
                   <Input
-                    id="nidn"
-                    value={formData.nidn}
-                    onChange={(e) => setFormData({ ...formData, nidn: e.target.value })}
-                    placeholder="NIDN"
+                    id="nip"
+                    value={formData.nip}
+                    onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
+                    placeholder="NIP"
                   />
                 </div>
 
@@ -239,7 +239,7 @@ export default function UserManagement() {
                     <TableHead>Nama</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>NIDN</TableHead>
+                    <TableHead>NIP</TableHead>
                     <TableHead>Jabatan</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
@@ -252,7 +252,7 @@ export default function UserManagement() {
                       <TableCell>
                         <span className="capitalize">{user.role}</span>
                       </TableCell>
-                      <TableCell>{user.nidn || "-"}</TableCell>
+                      <TableCell>{user.nip || "-"}</TableCell>
                       <TableCell>{user.jabatan || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -329,11 +329,11 @@ export default function UserManagement() {
               </div>
 
               <div>
-                <Label htmlFor="edit-nidn">NIDN (Opsional)</Label>
+                <Label htmlFor="edit-nip">NIP (Opsional)</Label>
                 <Input
-                  id="edit-nidn"
-                  value={formData.nidn}
-                  onChange={(e) => setFormData({ ...formData, nidn: e.target.value })}
+                  id="edit-nip"
+                  value={formData.nip}
+                  onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
                 />
               </div>
 

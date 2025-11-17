@@ -104,7 +104,7 @@ export default function CertificateManagement() {
             name,
             email,
             role,
-            nidn,
+            nip,
             jabatan,
             created_at,
             updated_at

@@ -39,7 +39,7 @@ export default function useFetchAllDocuments({
             name,
             email,
             role,
-            nidn,
+            nip,
             jabatan
           )
         `)

@@ -3,12 +3,14 @@ export interface Ijazah {
   document_id: string;
   nama_mahasiswa: string;
   nim: string;
-  program_studi: string;
   gelar: string;
-  tanggal_kelulusan: string;
-  predikat?: string | null;
   nomor_seri: string;
   tanggal_terbit: string;
+  nama_fakultas: string;
+  logo_url?: string | null;
+  signing_key_id?: string | null;
+  is_validated: boolean;
+  validation_url?: string | null;
   template_id?: string | null;
   created_at: string;
   updated_at: string;
