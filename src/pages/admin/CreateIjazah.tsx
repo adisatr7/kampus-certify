@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/Label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap } from "lucide-react";
+import { Eye, GraduationCap } from "lucide-react";
+import IjazahPreview from "@/components/IjazahPreview";
 
 export default function CreateIjazah() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [dekanList, setDekanList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
   const [rektorList, setRektorList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
   
@@ -268,6 +270,15 @@ export default function CreateIjazah() {
                 >
                   Batal
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowPreview(true)}
+                  disabled={!formData.nama_mahasiswa || !formData.nim || !formData.dekan_id}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
                 <Button type="submit" disabled={loading}>
                   {loading ? "Membuat..." : "Buat Ijazah"}
                 </Button>
@@ -276,6 +287,14 @@ export default function CreateIjazah() {
           </CardContent>
         </Card>
       </div>
+
+      <IjazahPreview
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        formData={formData}
+        dekanName={dekanList.find(d => d.id === formData.dekan_id)?.name}
+        dekanNip={dekanList.find(d => d.id === formData.dekan_id)?.nip}
+      />
     </DashboardLayout>
   );
 }
