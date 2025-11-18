@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
-import SignedDocumentTemplate from "./SignedDocumentTemplate";
+import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
 import { UserDocument } from "@/types";
 
 interface IjazahPreviewProps {
@@ -53,8 +53,17 @@ export default function IjazahPreview({
         <DialogHeader>
           <DialogTitle>Preview Ijazah</DialogTitle>
         </DialogHeader>
-        <div className="bg-white p-8">
-          <SignedDocumentTemplate document={mockDocument} />
+        <div className="bg-white">
+          <IjazahDocumentTemplate 
+            document={mockDocument}
+            ijazahData={{
+              nama_mahasiswa: formData.nama_mahasiswa,
+              nim: formData.nim,
+              gelar: formData.gelar,
+              nama_fakultas: formData.nama_fakultas,
+              tanggal_terbit: formData.tanggal_terbit,
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>
