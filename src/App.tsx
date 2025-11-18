@@ -77,7 +77,7 @@ const App = () => (
               <Route
                 path="/admin/create-ijazah"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "rektor"]}>
+                  <ProtectedRoute allowedRoles={["admin", "rektor", "dekan"]}>
                     <CreateIjazah />
                   </ProtectedRoute>
                 }
