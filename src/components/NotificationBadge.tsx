@@ -15,7 +15,7 @@ export function NotificationBadge() {
   const navigate = useNavigate();
 
   const handleViewDocument = () => {
-    navigate("/user/document-signing");
+    navigate("/sign");
   };
 
   return (
