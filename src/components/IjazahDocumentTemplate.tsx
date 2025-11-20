@@ -147,9 +147,10 @@ export default function IjazahDocumentTemplate({
           {/* Left signature - Dekan */}
           <div className="text-center">
             <p className="text-sm text-black mb-1">Mengetahui,</p>
-            <p className="text-sm text-black font-semibold mb-12">
+            <p className="text-sm text-black font-semibold">
               Dekan {ijazahData?.nama_fakultas || "Fakultas Teknik"}
             </p>
+            <p className="text-sm text-black font-semibold mb-20">Universitas Muhammadiyah Cirebon</p>
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
               <p className="text-sm text-black font-bold">
                 {document.user?.name || "Nama Dekan"}
@@ -163,25 +164,11 @@ export default function IjazahDocumentTemplate({
           {/* Right signature - Rektor with QR */}
           <div className="text-center">
             <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
-            <p className="text-sm text-black font-semibold mb-4">Rektor</p>
-            
-            {/* QR Code */}
-            <div className="flex justify-center mb-4">
-              {qrCodeDataUrl ? (
-                <img
-                  src={qrCodeDataUrl}
-                  alt="QR Code untuk verifikasi dokumen"
-                  className="w-20 h-20 border-2 border-black p-1"
-                />
-              ) : (
-                <div className="w-20 h-20 flex items-center justify-center border-2 border-black bg-white">
-                  <QrCode className="w-16 h-16 text-black" />
-                </div>
-              )}
-            </div>
+            <p className="text-sm text-black font-semibold">Rektor</p>
+            <p className="text-sm text-black font-semibold mb-20">Universitas Muhammadiyah Cirebon</p>
             
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
-              <p className="text-sm text-black font-bold">Prof. Dr. H. Achmad Faqih, M.Ag</p>
+              <p className="text-sm text-black font-bold">Prof. Dr. H. Muhammad Hidayat, M.T.</p>
               <p className="text-xs text-black">NIP. 9876543210</p>
             </div>
           </div>
