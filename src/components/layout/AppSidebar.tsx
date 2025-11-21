@@ -56,6 +56,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
     dekan: [
       { title: "Unggah Dokumen", url: "/documents", icon: Upload },
       { title: "Daftar Dokumen", url: "/documents", icon: FileText },
+      { title: "Buat Ijazah", url: "/create-ijazah", icon: GraduationCap },
       { title: "Buat Sertifikat", url: "/create-sertifikat", icon: Award },
     ],
   };
