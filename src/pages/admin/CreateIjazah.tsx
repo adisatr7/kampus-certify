@@ -32,20 +32,39 @@ export default function CreateIjazah() {
   });
 
   useEffect(() => {
-    // Fetch dekan and rektor
+    // Fetch dekan and rektor from user_roles table
     const fetchUsers = async () => {
-      const { data: dekans } = await supabase
-        .from("users")
-        .select("id, name, nip")
+      // Get dekans
+      const { data: dekanRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
         .eq("role", "dekan");
       
-      const { data: rektors } = await supabase
-        .from("users")
-        .select("id, name, nip")
-        .eq("role", "rektor");
+      if (dekanRoles && dekanRoles.length > 0) {
+        const dekanIds = dekanRoles.map(r => r.user_id);
+        const { data: dekans } = await supabase
+          .from("users")
+          .select("id, name, nip")
+          .in("id", dekanIds);
+        
+        if (dekans) setDekanList(dekans as any);
+      }
 
-      if (dekans) setDekanList(dekans as any);
-      if (rektors) setRektorList(rektors as any);
+      // Get rektors
+      const { data: rektorRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "rektor");
+      
+      if (rektorRoles && rektorRoles.length > 0) {
+        const rektorIds = rektorRoles.map(r => r.user_id);
+        const { data: rektors } = await supabase
+          .from("users")
+          .select("id, name, nip")
+          .in("id", rektorIds);
+        
+        if (rektors) setRektorList(rektors as any);
+      }
     };
 
     fetchUsers();
