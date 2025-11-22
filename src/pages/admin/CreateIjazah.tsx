@@ -111,7 +111,7 @@ export default function CreateIjazah() {
       if (docError) throw docError;
 
       // Create ijazah record
-      const { error: ijazahError } = await supabase
+      const { data: ijazahData, error: ijazahError } = await supabase
         .from("ijazah")
         .insert([{
           document_id: document.id,
@@ -124,9 +124,19 @@ export default function CreateIjazah() {
           logo_url: formData.logo_url,
           is_validated: false,
           template_id: formData.template_id || null,
-        }]);
+        }])
+        .select()
+        .single();
 
       if (ijazahError) throw ijazahError;
+
+      // Sync nomor_seri to documents.serial for verification
+      if (ijazahData?.nomor_seri) {
+        await supabase
+          .from("documents")
+          .update({ serial: ijazahData.nomor_seri })
+          .eq("id", document.id);
+      }
 
       toast({
         title: "Berhasil",

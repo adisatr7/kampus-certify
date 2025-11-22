@@ -234,12 +234,12 @@ export default function VerificationPortal() {
                     htmlFor="documentId"
                     className="text-base font-semibold"
                   >
-                    ID Dokumen
+                    ID Dokumen atau Nomor Seri Ijazah
                   </Label>
                   <div className="flex flex-col md:flex-row gap-3">
                     <Input
                       id="documentId"
-                      placeholder="Masukkan ID dokumen atau hasil scan QR code"
+                      placeholder="Contoh: IZH-0001-UMC-2025 atau ID dokumen"
                       value={documentId}
                       onChange={(e) => setDocumentId(e.target.value)}
                       onKeyPress={handleKeyPress}
@@ -282,8 +282,10 @@ export default function VerificationPortal() {
                   <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
                     <li className="pl-2">Scan QR code pada dokumen dengan kamera ponsel.</li>
                     <li className="pl-2">
-                      Atau salin dan tempel ID dokumen ke kolom di atas dan klik tombol "Verifikasi"
-                      untuk mengecek status dokumen.
+                      Atau masukkan Nomor Seri Ijazah (contoh: IZH-0001-UMC-2025) atau ID dokumen ke kolom di atas dan klik tombol "Verifikasi".
+                    </li>
+                    <li className="pl-2">
+                      Nomor seri ijazah dapat ditemukan pada dokumen ijazah yang diterbitkan.
                     </li>
                   </ol>
                 </div>
