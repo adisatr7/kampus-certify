@@ -38,11 +38,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (async () => {
           console.log("Auth: Fetching user profile for:", session.user.id, session.user.email);
           try {
-            const { data: profile, error } = await supabase
+            // First, try to find user by ID (for existing users)
+            let { data: profile, error } = await supabase
               .from("users")
               .select("*")
               .eq("id", session.user.id)
               .maybeSingle();
+
+            // If not found by ID, try to find by email (for newly whitelisted users)
+            if (!profile && !error && session.user.email) {
+              console.log("Auth: User not found by ID, checking by email:", session.user.email);
+
+              const { data: profileByEmail, error: emailError } = await supabase
+                .from("users")
+                .select("*")
+                .eq("email", session.user.email)
+                .maybeSingle();
+
+              if (emailError) {
+                console.error("Auth: Error fetching user by email:", emailError);
+                error = emailError;
+              } else if (profileByEmail) {
+                // Found user by email - update their ID to match auth.users
+                console.log("Auth: Found user by email, syncing ID");
+
+                const { data: updatedProfile, error: updateError } = await supabase
+                  .from("users")
+                  .update({ id: session.user.id })
+                  .eq("email", session.user.email)
+                  .select("*")
+                  .single();
+
+                if (updateError) {
+                  console.error("Auth: Error updating user ID:", updateError);
+                  error = updateError;
+                } else {
+                  profile = updatedProfile;
+                  console.log("Auth: Successfully synced user ID");
+                }
+              }
+            }
 
             if (error) {
               console.error("Auth: Error fetching user profile:", error);

@@ -40,179 +40,6 @@ export type Database = {
           },
         ];
       };
-      certificate_signatures: {
-        Row: {
-          certificate_id: string;
-          id: string;
-          key_id: string;
-          payload_hash: string;
-          signature: string;
-          signed_at: string | null;
-          signer_user_id: string | null;
-        };
-        Insert: {
-          certificate_id: string;
-          id?: string;
-          key_id: string;
-          payload_hash: string;
-          signature: string;
-          signed_at?: string | null;
-          signer_user_id?: string | null;
-        };
-        Update: {
-          certificate_id?: string;
-          id?: string;
-          key_id?: string;
-          payload_hash?: string;
-          signature?: string;
-          signed_at?: string | null;
-          signer_user_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "certificate_signatures_certificate_id_fkey";
-            columns: ["certificate_id"];
-            isOneToOne: false;
-            referencedRelation: "certificate_verification";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "certificate_signatures_certificate_id_fkey";
-            columns: ["certificate_id"];
-            isOneToOne: false;
-            referencedRelation: "certificates";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "certificate_signatures_key_id_fkey";
-            columns: ["key_id"];
-            isOneToOne: false;
-            referencedRelation: "signing_keys";
-            referencedColumns: ["kid"];
-          },
-        ];
-      };
-      certificates: {
-        Row: {
-          approved_at: string | null;
-          approved_by: string | null;
-          created_at: string | null;
-          expires_at: string;
-          id: string;
-          issued_at: string | null;
-          payload: Json | null;
-          rejected_at: string | null;
-          rejected_by: string | null;
-          revoked_at: string | null;
-          revoked_by: string | null;
-          serial_number: string;
-          status: Database["public"]["Enums"]["certificate_status"] | null;
-          updated_at: string | null;
-          user_id: string;
-        };
-        Insert: {
-          approved_at?: string | null;
-          approved_by?: string | null;
-          created_at?: string | null;
-          expires_at: string;
-          id?: string;
-          issued_at?: string | null;
-          payload?: Json | null;
-          rejected_at?: string | null;
-          rejected_by?: string | null;
-          revoked_at?: string | null;
-          revoked_by?: string | null;
-          serial_number: string;
-          status?: Database["public"]["Enums"]["certificate_status"] | null;
-          updated_at?: string | null;
-          user_id: string;
-        };
-        Update: {
-          approved_at?: string | null;
-          approved_by?: string | null;
-          created_at?: string | null;
-          expires_at?: string;
-          id?: string;
-          issued_at?: string | null;
-          payload?: Json | null;
-          rejected_at?: string | null;
-          rejected_by?: string | null;
-          revoked_at?: string | null;
-          revoked_by?: string | null;
-          serial_number?: string;
-          status?: Database["public"]["Enums"]["certificate_status"] | null;
-          updated_at?: string | null;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "certificates_approved_by_fkey";
-            columns: ["approved_by"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "certificates_rejected_by_fkey";
-            columns: ["rejected_by"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "certificates_revoked_by_fkey";
-            columns: ["revoked_by"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "certificates_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      device_nonces: {
-        Row: {
-          created_at: string | null;
-          device_id: string;
-          expires_at: string;
-          id: string;
-          nonce: string;
-          used: boolean | null;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          device_id: string;
-          expires_at: string;
-          id?: string;
-          nonce: string;
-          used?: boolean | null;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string | null;
-          device_id?: string;
-          expires_at?: string;
-          id?: string;
-          nonce?: string;
-          used?: boolean | null;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "device_nonces_device_id_fkey";
-            columns: ["device_id"];
-            isOneToOne: false;
-            referencedRelation: "user_devices";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       document_signatures: {
         Row: {
           document_id: string;
@@ -221,6 +48,7 @@ export type Database = {
           payload_hash: string;
           signature: string;
           signed_at: string | null;
+          signer_role: string | null;
           signer_user_id: string | null;
         };
         Insert: {
@@ -230,6 +58,7 @@ export type Database = {
           payload_hash: string;
           signature: string;
           signed_at?: string | null;
+          signer_role?: string | null;
           signer_user_id?: string | null;
         };
         Update: {
@@ -239,6 +68,7 @@ export type Database = {
           payload_hash?: string;
           signature?: string;
           signed_at?: string | null;
+          signer_role?: string | null;
           signer_user_id?: string | null;
         };
         Relationships: [
@@ -256,40 +86,95 @@ export type Database = {
             referencedRelation: "signing_keys";
             referencedColumns: ["kid"];
           },
+          {
+            foreignKeyName: "document_signatures_signer_user_id_fkey";
+            columns: ["signer_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      document_templates: {
+        Row: {
+          created_at: string | null;
+          created_by: string;
+          css_content: string | null;
+          html_content: string;
+          id: string;
+          is_active: boolean | null;
+          name: string;
+          type: Database["public"]["Enums"]["document_type"];
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by: string;
+          css_content?: string | null;
+          html_content: string;
+          id?: string;
+          is_active?: boolean | null;
+          name: string;
+          type: Database["public"]["Enums"]["document_type"];
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string;
+          css_content?: string | null;
+          html_content?: string;
+          id?: string;
+          is_active?: boolean | null;
+          name?: string;
+          type?: Database["public"]["Enums"]["document_type"];
+          updated_at?: string | null;
+        };
+        Relationships: [];
       };
       documents: {
         Row: {
-          certificate_id: string | null;
           content: string | null;
           created_at: string | null;
+          document_type: Database["public"]["Enums"]["document_type"] | null;
           file_url: string | null;
           id: string;
-          qr_code_url: string | null;
+          metadata: Json | null;
+          recipient_name: string | null;
+          recipient_student_number: string | null;
+          serial: string | null;
+          signing_key_id: string | null;
           status: Database["public"]["Enums"]["document_status"] | null;
           title: string;
           updated_at: string | null;
           user_id: string;
         };
         Insert: {
-          certificate_id?: string | null;
           content?: string | null;
           created_at?: string | null;
+          document_type?: Database["public"]["Enums"]["document_type"] | null;
           file_url?: string | null;
           id?: string;
-          qr_code_url?: string | null;
+          metadata?: Json | null;
+          recipient_name?: string | null;
+          recipient_student_number?: string | null;
+          serial?: string | null;
+          signing_key_id?: string | null;
           status?: Database["public"]["Enums"]["document_status"] | null;
           title: string;
           updated_at?: string | null;
           user_id: string;
         };
         Update: {
-          certificate_id?: string | null;
           content?: string | null;
           created_at?: string | null;
+          document_type?: Database["public"]["Enums"]["document_type"] | null;
           file_url?: string | null;
           id?: string;
-          qr_code_url?: string | null;
+          metadata?: Json | null;
+          recipient_name?: string | null;
+          recipient_student_number?: string | null;
+          serial?: string | null;
+          signing_key_id?: string | null;
           status?: Database["public"]["Enums"]["document_status"] | null;
           title?: string;
           updated_at?: string | null;
@@ -297,18 +182,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "documents_certificate_id_fkey";
-            columns: ["certificate_id"];
+            foreignKeyName: "documents_signing_key_id_fkey";
+            columns: ["signing_key_id"];
             isOneToOne: false;
-            referencedRelation: "certificate_verification";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "documents_certificate_id_fkey";
-            columns: ["certificate_id"];
-            isOneToOne: false;
-            referencedRelation: "certificates";
-            referencedColumns: ["id"];
+            referencedRelation: "signing_keys";
+            referencedColumns: ["kid"];
           },
           {
             foreignKeyName: "documents_user_id_fkey";
@@ -319,62 +197,221 @@ export type Database = {
           },
         ];
       };
+      ijazah: {
+        Row: {
+          created_at: string | null;
+          document_id: string;
+          gelar: string;
+          id: string;
+          is_validated: boolean | null;
+          logo_url: string | null;
+          nama_fakultas: string;
+          nama_mahasiswa: string;
+          nim: string;
+          nomor_seri: string;
+          signing_key_id: string | null;
+          tanggal_terbit: string;
+          template_id: string | null;
+          updated_at: string | null;
+          validation_url: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          document_id: string;
+          gelar: string;
+          id?: string;
+          is_validated?: boolean | null;
+          logo_url?: string | null;
+          nama_fakultas?: string;
+          nama_mahasiswa: string;
+          nim: string;
+          nomor_seri: string;
+          signing_key_id?: string | null;
+          tanggal_terbit: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+          validation_url?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          document_id?: string;
+          gelar?: string;
+          id?: string;
+          is_validated?: boolean | null;
+          logo_url?: string | null;
+          nama_fakultas?: string;
+          nama_mahasiswa?: string;
+          nim?: string;
+          nomor_seri?: string;
+          signing_key_id?: string | null;
+          tanggal_terbit?: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+          validation_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ijazah_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ijazah_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "document_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sertifikat: {
+        Row: {
+          created_at: string | null;
+          document_id: string;
+          id: string;
+          nama_acara: string;
+          nama_peserta: string;
+          nomor_sertifikat: string;
+          penandatangan: string | null;
+          tanggal_acara: string;
+          template_id: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          document_id: string;
+          id?: string;
+          nama_acara: string;
+          nama_peserta: string;
+          nomor_sertifikat: string;
+          penandatangan?: string | null;
+          tanggal_acara: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          document_id?: string;
+          id?: string;
+          nama_acara?: string;
+          nama_peserta?: string;
+          nomor_sertifikat?: string;
+          penandatangan?: string | null;
+          tanggal_acara?: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sertifikat_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sertifikat_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "document_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       signing_keys: {
         Row: {
           active: boolean | null;
+          assigned_to: string | null;
           created_at: string | null;
+          created_by: string | null;
           crv: string | null;
+          deleted_at: string | null;
           e: string | null;
+          enc_algo: string | null;
+          enc_private_key: string | null;
+          enc_private_key_iv: string | null;
+          expires_at: string | null;
           kid: string;
           kty: string;
           n: string | null;
+          passphrase_hash: string | null;
+          revoked_at: string | null;
           x: string | null;
         };
         Insert: {
           active?: boolean | null;
+          assigned_to?: string | null;
           created_at?: string | null;
+          created_by?: string | null;
           crv?: string | null;
+          deleted_at?: string | null;
           e?: string | null;
+          enc_algo?: string | null;
+          enc_private_key?: string | null;
+          enc_private_key_iv?: string | null;
+          expires_at?: string | null;
           kid: string;
           kty: string;
           n?: string | null;
+          passphrase_hash?: string | null;
+          revoked_at?: string | null;
           x?: string | null;
         };
         Update: {
           active?: boolean | null;
+          assigned_to?: string | null;
           created_at?: string | null;
+          created_by?: string | null;
           crv?: string | null;
+          deleted_at?: string | null;
           e?: string | null;
+          enc_algo?: string | null;
+          enc_private_key?: string | null;
+          enc_private_key_iv?: string | null;
+          expires_at?: string | null;
           kid?: string;
           kty?: string;
           n?: string | null;
+          passphrase_hash?: string | null;
+          revoked_at?: string | null;
           x?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "signing_keys_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "signing_keys_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
-      user_devices: {
+      user_roles: {
         Row: {
           created_at: string | null;
-          device_name: string;
           id: string;
-          public_key_jwk: Json;
-          revoked: boolean | null;
+          role: Database["public"]["Enums"]["user_role"];
           user_id: string;
         };
         Insert: {
           created_at?: string | null;
-          device_name: string;
           id?: string;
-          public_key_jwk: Json;
-          revoked?: boolean | null;
+          role: Database["public"]["Enums"]["user_role"];
           user_id: string;
         };
         Update: {
           created_at?: string | null;
-          device_name?: string;
           id?: string;
-          public_key_jwk?: Json;
-          revoked?: boolean | null;
+          role?: Database["public"]["Enums"]["user_role"];
           user_id?: string;
         };
         Relationships: [];
@@ -384,8 +421,9 @@ export type Database = {
           created_at: string | null;
           email: string;
           id: string;
+          jabatan: string | null;
           name: string;
-          nidn: string | null;
+          nip: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at: string | null;
         };
@@ -393,8 +431,9 @@ export type Database = {
           created_at?: string | null;
           email: string;
           id?: string;
+          jabatan?: string | null;
           name: string;
-          nidn?: string | null;
+          nip?: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
@@ -402,8 +441,9 @@ export type Database = {
           created_at?: string | null;
           email?: string;
           id?: string;
+          jabatan?: string | null;
           name?: string;
-          nidn?: string | null;
+          nip?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
@@ -411,36 +451,14 @@ export type Database = {
       };
     };
     Views: {
-      certificate_verification: {
-        Row: {
-          expires_at: string | null;
-          id: string | null;
-          issued_at: string | null;
-          serial_number: string | null;
-          status: Database["public"]["Enums"]["certificate_status"] | null;
-        };
-        Insert: {
-          expires_at?: string | null;
-          id?: string | null;
-          issued_at?: string | null;
-          serial_number?: string | null;
-          status?: Database["public"]["Enums"]["certificate_status"] | null;
-        };
-        Update: {
-          expires_at?: string | null;
-          id?: string | null;
-          issued_at?: string | null;
-          serial_number?: string | null;
-          status?: Database["public"]["Enums"]["certificate_status"] | null;
-        };
-        Relationships: [];
-      };
+      [_ in never]: never;
     };
     Functions: {
       create_audit_entry: {
         Args: { p_action: string; p_description: string; p_user_id: string };
         Returns: undefined;
       };
+      generate_ijazah_serial: { Args: never; Returns: string };
       get_certificate_for_signing: {
         Args: { cert_id: string };
         Returns: {
@@ -467,10 +485,14 @@ export type Database = {
         Args: { user_uuid: string };
         Returns: Database["public"]["Enums"]["user_role"];
       };
-      is_admin: {
-        Args: { user_uuid: string };
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"];
+          _user_id: string;
+        };
         Returns: boolean;
       };
+      is_admin: { Args: { user_uuid: string }; Returns: boolean };
       verify_document: {
         Args: { doc_id: string };
         Returns: {
@@ -487,6 +509,7 @@ export type Database = {
     Enums: {
       certificate_status: "active" | "expired" | "revoked";
       document_status: "pending" | "signed" | "revoked";
+      document_type: "ijazah" | "sertifikat" | "other";
       user_role: "admin" | "dosen" | "rektor" | "dekan";
     };
     CompositeTypes: {
@@ -615,6 +638,7 @@ export const Constants = {
     Enums: {
       certificate_status: ["active", "expired", "revoked"],
       document_status: ["pending", "signed", "revoked"],
+      document_type: ["ijazah", "sertifikat", "other"],
       user_role: ["admin", "dosen", "rektor", "dekan"],
     },
   },

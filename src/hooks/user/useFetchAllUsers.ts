@@ -17,7 +17,7 @@ export default function useFetchAllUsers() {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("id, name, email, role")
+        .select("id, name, email, role, nip, jabatan, created_at, updated_at")
         .order("name");
 
       if (error) {

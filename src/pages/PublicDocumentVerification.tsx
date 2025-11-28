@@ -10,24 +10,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { UserDocument } from "@/types/UserDocument";
 
 interface VerificationResult {
   id: string;
+  user_id: string;
   title: string;
   status: "signed" | "revoked" | "pending";
   signed_at: string | null;
   file_url: string | null;
   qr_code_url: string | null;
   content?: string | null;
+  created_at: string;
+  updated_at: string;
+  serial?: string | null;
+  signing_key_id?: string | null;
+  recipient_name?: string | null;
+  recipient_student_number?: string | null;
   certificate?: {
     serial_number: string;
     status: string;
   } | null;
   user?: {
+    id: string;
     name: string;
     role: string;
-    nidn: string | null;
+    nip: string | null;
+    email: string;
+    created_at: string;
+    updated_at: string;
   } | null;
+  document_signatures?: {
+    key_id: string;
+  }[];
 }
 
 export default function PublicDocumentVerification() {
@@ -62,14 +77,17 @@ export default function PublicDocumentVerification() {
         .from("documents")
         .select(`
           *,
-          certificate:certificates!documents_certificate_id_fkey (
-            serial_number,
-            status
-          ),
-          user:users!documents_user_id_fkey (
+          user:users (
+            id,
             name,
             role,
-            nidn
+            nip,
+            email,
+            created_at,
+            updated_at
+          ),
+          document_signatures (
+            key_id
           )
         `)
         .eq("id", docId.trim())
@@ -89,7 +107,11 @@ export default function PublicDocumentVerification() {
         return;
       }
 
-      setVerificationResult(data);
+      setVerificationResult({
+        ...data,
+        signed_at: data.updated_at,
+        qr_code_url: null,
+      });
 
       // Log verification attempt
       try {
@@ -319,14 +341,12 @@ export default function PublicDocumentVerification() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        {verificationResult.user.nidn && (
+                        {verificationResult.user.nip && (
                           <div className="bg-muted/30 p-4 rounded-lg">
                             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                              NIDN
+                              NIP
                             </p>
-                            <p className="font-semibold font-mono">
-                              {verificationResult.user.nidn}
-                            </p>
+                            <p className="font-semibold font-mono">{verificationResult.user.nip}</p>
                           </div>
                         )}
                         <div className="bg-muted/30 p-4 rounded-lg">
@@ -481,7 +501,7 @@ export default function PublicDocumentVerification() {
         <SignedDocumentViewer
           isOpen={isViewerOpen}
           onClose={() => setIsViewerOpen(false)}
-          document={verificationResult}
+          document={verificationResult as unknown as UserDocument}
         />
       )}
     </>

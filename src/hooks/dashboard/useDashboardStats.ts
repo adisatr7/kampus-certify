@@ -61,7 +61,7 @@ export const useDashboardStats = (userRole: string) => {
         const { data: activeSigningKeys } = await supabase
           .from("signing_keys")
           .select("kid, created_at")
-          .eq("active", true);
+          .is("revoked_at", null);
 
         if (Array.isArray(activeSigningKeys)) {
           stats.activeSigningKeys = activeSigningKeys.length;

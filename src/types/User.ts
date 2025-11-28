@@ -7,5 +7,6 @@ export interface User {
   role: UserRole;
   created_at: string;
   updated_at?: string;
-  nidn?: string | null;
+  nip?: string | null;
+  jabatan?: string | null;
 }

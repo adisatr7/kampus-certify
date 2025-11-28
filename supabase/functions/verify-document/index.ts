@@ -1,5 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { base64Decode, corsHeaders } from "../_shared/index.ts";
+
+// CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Base64 utility
+function base64Decode(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -69,7 +85,7 @@ Deno.serve(async (req) => {
     const { data: sig, error: sigErr } = await supabase
       .from("document_signatures")
       .select("key_id, payload_hash, signature, signed_at")
-      .eq("document_id", documentId)
+      .eq("document_id", doc.id)
       .order("signed_at", { ascending: false })
       .limit(1)
       .maybeSingle();

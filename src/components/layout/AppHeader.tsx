@@ -1,6 +1,7 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoUmc from "@/assets/logo-umc.png";
+import { NotificationBadge } from "@/components/NotificationBadge";
 import { Button } from "@/components/ui/Button";
 
 export function AppHeader() {
@@ -38,16 +39,19 @@ export function AppHeader() {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="rounded-lg sm:rounded-xl hover:bg-primary/10 transition-all duration-300 hover:scale-110 hover:rotate-12 border border-transparent hover:border-primary/20 h-8 w-8 sm:h-10 sm:w-10"
-          >
-            <Sun className="h-4 w-4 sm:h-5 sm:w-5 rotate-0 scale-100 transition-all duration-500 dark:-rotate-90 dark:scale-0 text-primary" />
-            <Moon className="absolute h-4 w-4 sm:h-5 sm:w-5 rotate-90 scale-0 transition-all duration-500 dark:rotate-0 dark:scale-100 text-primary dark:text-red-600" />
-            <span className="sr-only">Toggle theme</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBadge />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="rounded-lg sm:rounded-xl hover:bg-primary/10 transition-all duration-300 hover:scale-110 hover:rotate-12 border border-transparent hover:border-primary/20 h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5 rotate-0 scale-100 transition-all duration-500 dark:-rotate-90 dark:scale-0 text-primary" />
+              <Moon className="absolute h-4 w-4 sm:h-5 sm:w-5 rotate-90 scale-0 transition-all duration-500 dark:rotate-0 dark:scale-100 text-primary dark:text-red-600" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

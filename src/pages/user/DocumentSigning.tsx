@@ -2,6 +2,7 @@
 import axios from "axios";
 import { Calendar, Calendar1, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
 import { useState } from "react";
+import IjazahSignPreview from "@/components/IjazahSignPreview";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -62,6 +63,7 @@ export default function DocumentSigning() {
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
@@ -180,6 +182,11 @@ export default function DocumentSigning() {
     setSelectedDocument(null);
   };
 
+  const handlePreview = (document: UserDocument) => {
+    setSelectedDocument(document);
+    setIsPreviewOpen(true);
+  };
+
   if (isLoadingDocuments) {
     return (
       <div className="p-6">
@@ -269,15 +276,14 @@ export default function DocumentSigning() {
                           {/* Aksi */}
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {doc.file_url && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(doc.file_url!, "_blank")}
-                                >
-                                  Lihat
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePreview(doc)}
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                Preview
+                              </Button>
                               <Button
                                 onClick={() => openSignDialog(doc)}
                                 size="sm"
@@ -330,15 +336,14 @@ export default function DocumentSigning() {
                         </p>
 
                         <div className="flex items-center gap-2 justify-end mt-4">
-                          {doc.file_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(doc.file_url!, "_blank")}
-                            >
-                              Lihat
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePreview(doc)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </Button>
                           <Button
                             size="sm"
                             onClick={() => openSignDialog(doc)}
@@ -477,6 +482,15 @@ export default function DocumentSigning() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Preview Dialog */}
+        {selectedDocument && (
+          <IjazahSignPreview
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            document={selectedDocument}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

@@ -76,22 +76,36 @@ export default function VerificationPortal() {
       }
 
       // Fetch the document for display
-      const { data: docData } = await supabase
-        .from("documents")
-        .select(`
+      const isUuid = (id: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          id.trim(),
+        );
+
+      const trimmedId = docId.trim();
+
+      const baseSelect = `
           *,
           user:users (
+            id,
             name,
-            role
+            role,
+            email,
+            nip,
+            jabatan,
+            created_at,
+            updated_at
           ),
           document_signatures (
             key_id
           )
-        `)
-        .eq("id", docId)
-        .maybeSingle();
+        `;
 
-      setVerificationResult(docData as UserDocument);
+      // Query by `id` when the input is a UUID, otherwise query by `serial`
+      const { data: docData } = isUuid(trimmedId)
+        ? await supabase.from("documents").select(baseSelect).eq("id", trimmedId).maybeSingle()
+        : await supabase.from("documents").select(baseSelect).eq("serial", trimmedId).maybeSingle();
+
+      setVerificationResult(docData as unknown as UserDocument);
 
       toast({
         title: "Verifikasi Berhasil",
@@ -220,12 +234,12 @@ export default function VerificationPortal() {
                     htmlFor="documentId"
                     className="text-base font-semibold"
                   >
-                    ID Dokumen
+                    ID Dokumen atau Nomor Seri Ijazah
                   </Label>
                   <div className="flex flex-col md:flex-row gap-3">
                     <Input
                       id="documentId"
-                      placeholder="Masukkan ID dokumen atau hasil scan QR code"
+                      placeholder="Contoh: IZH-0001-UMC-2025 atau ID dokumen"
                       value={documentId}
                       onChange={(e) => setDocumentId(e.target.value)}
                       onKeyPress={handleKeyPress}
@@ -268,8 +282,11 @@ export default function VerificationPortal() {
                   <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
                     <li className="pl-2">Scan QR code pada dokumen dengan kamera ponsel.</li>
                     <li className="pl-2">
-                      Atau salin dan tempel ID dokumen ke kolom di atas dan klik tombol "Verifikasi"
-                      untuk mengecek status dokumen.
+                      Atau masukkan Nomor Seri Ijazah (contoh: IZH-0001-UMC-2025) atau ID dokumen ke
+                      kolom di atas dan klik tombol "Verifikasi".
+                    </li>
+                    <li className="pl-2">
+                      Nomor seri ijazah dapat ditemukan pada dokumen ijazah yang diterbitkan.
                     </li>
                   </ol>
                 </div>
@@ -311,13 +328,7 @@ export default function VerificationPortal() {
                         <div className="flex justify-between border-b pb-2">
                           <span className="text-muted-foreground">Jabatan:</span>
                           <span className="font-medium">
-                            {verificationResult.user.role === "rektor"
-                              ? "Rektor"
-                              : verificationResult.user.role === "dekan"
-                                ? "Dekan"
-                                : verificationResult.user.role === "dosen"
-                                  ? "Dosen"
-                                  : verificationResult.user.role}
+                            {verificationResult.user.jabatan || "-"}
                           </span>
                         </div>
                       </>

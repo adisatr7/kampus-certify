@@ -87,7 +87,7 @@ export default function SignedDocumentTemplate({
               <div className="mb-2 w-full">
                 <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
                 <p className="text-sm text-black leading-tight">
-                  Ketua Program Studi Informatika
+                  {document.user?.jabatan || "Ketua Program Studi Informatika"}
                   <br />
                   Universitas Muhammadiyah Cirebon
                 </p>
@@ -131,9 +131,9 @@ export default function SignedDocumentTemplate({
                 </p>
               )}
 
-              {/* Assigner NIDN */}
-              {document.user?.nidn && (
-                <p className="text-sm text-black inline-block pb-1">NIK. {document.user?.nidn}</p>
+              {/* Assigner NIP */}
+              {document.user?.nip && (
+                <p className="text-sm text-black inline-block pb-1">NIP. {document.user?.nip}</p>
               )}
             </div>
           </div>
