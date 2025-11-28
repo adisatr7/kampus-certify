@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
-import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
 import { UserDocument } from "@/types";
+import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
 
 interface IjazahPreviewProps {
   isOpen: boolean;
@@ -48,13 +48,16 @@ export default function IjazahPreview({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Preview Ijazah</DialogTitle>
         </DialogHeader>
         <div className="bg-white">
-          <IjazahDocumentTemplate 
+          <IjazahDocumentTemplate
             document={mockDocument}
             ijazahData={{
               nama_mahasiswa: formData.nama_mahasiswa,

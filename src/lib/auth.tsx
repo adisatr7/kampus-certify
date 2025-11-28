@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // If not found by ID, try to find by email (for newly whitelisted users)
             if (!profile && !error && session.user.email) {
               console.log("Auth: User not found by ID, checking by email:", session.user.email);
-              
+
               const { data: profileByEmail, error: emailError } = await supabase
                 .from("users")
                 .select("*")
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               } else if (profileByEmail) {
                 // Found user by email - update their ID to match auth.users
                 console.log("Auth: Found user by email, syncing ID");
-                
+
                 const { data: updatedProfile, error: updateError } = await supabase
                   .from("users")
                   .update({ id: session.user.id })

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "../useToast";
 import { UserRole } from "@/types";
+import { useToast } from "../useToast";
 
 interface UpdateUserData {
   id: string;

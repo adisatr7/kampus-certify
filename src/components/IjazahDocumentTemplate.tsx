@@ -82,18 +82,14 @@ export default function IjazahDocumentTemplate({
             <h1 className="text-2xl font-bold text-black uppercase tracking-wide">
               Universitas Muhammadiyah Cirebon
             </h1>
-            <p className="text-lg text-black">
-              Jl. Tuparev No. 70 Cirebon 45153
-            </p>
+            <p className="text-lg text-black">Jl. Tuparev No. 70 Cirebon 45153</p>
           </div>
         </div>
       </header>
 
       {/* Title */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-black uppercase tracking-widest mb-2">
-          IJAZAH
-        </h2>
+        <h2 className="text-3xl font-bold text-black uppercase tracking-widest mb-2">IJAZAH</h2>
         <p className="text-lg text-black">Nomor: {document.serial || "IZH-XXXX-UMC-2025"}</p>
       </div>
 
@@ -133,11 +129,14 @@ export default function IjazahDocumentTemplate({
         </div>
 
         <p className="text-base text-justify">
-          Diberikan di Cirebon pada tanggal {ijazahData?.tanggal_terbit ? new Date(ijazahData.tanggal_terbit).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }) : signedDate}
+          Diberikan di Cirebon pada tanggal{" "}
+          {ijazahData?.tanggal_terbit
+            ? new Date(ijazahData.tanggal_terbit).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : signedDate}
         </p>
       </article>
 
@@ -150,14 +149,12 @@ export default function IjazahDocumentTemplate({
             <p className="text-sm text-black font-semibold">
               Dekan {ijazahData?.nama_fakultas || "Fakultas Teknik"}
             </p>
-            <p className="text-sm text-black font-semibold mb-20">Universitas Muhammadiyah Cirebon</p>
+            <p className="text-sm text-black font-semibold mb-20">
+              Universitas Muhammadiyah Cirebon
+            </p>
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
-              <p className="text-sm text-black font-bold">
-                {document.user?.name || "Nama Dekan"}
-              </p>
-              <p className="text-xs text-black">
-                NIP. {document.user?.nip || "1234567890"}
-              </p>
+              <p className="text-sm text-black font-bold">{document.user?.name || "Nama Dekan"}</p>
+              <p className="text-xs text-black">NIP. {document.user?.nip || "1234567890"}</p>
             </div>
           </div>
 
@@ -165,8 +162,10 @@ export default function IjazahDocumentTemplate({
           <div className="text-center">
             <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
             <p className="text-sm text-black font-semibold">Rektor</p>
-            <p className="text-sm text-black font-semibold mb-20">Universitas Muhammadiyah Cirebon</p>
-            
+            <p className="text-sm text-black font-semibold mb-20">
+              Universitas Muhammadiyah Cirebon
+            </p>
+
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
               <p className="text-sm text-black font-bold">Prof. Dr. H. Muhammad Hidayat, M.T.</p>
               <p className="text-xs text-black">NIP. 9876543210</p>
@@ -180,8 +179,9 @@ export default function IjazahDocumentTemplate({
         <div className="bg-gray-100 border-2 border-black p-4">
           <p className="text-xs text-black text-center leading-relaxed">
             Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat digital yang
-            diterbitkan oleh CA UMC. Keaslian dokumen ini dapat diverifikasi melalui pemindaian QR Code
-            atau portal verifikasi di: <span className="font-semibold">https://ca.umc/verify</span>
+            diterbitkan oleh CA UMC. Keaslian dokumen ini dapat diverifikasi melalui pemindaian QR
+            Code atau portal verifikasi di:{" "}
+            <span className="font-semibold">https://ca.umc/verify</span>
           </p>
         </div>
       </footer>

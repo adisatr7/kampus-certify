@@ -346,9 +346,7 @@ export default function PublicDocumentVerification() {
                             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                               NIP
                             </p>
-                            <p className="font-semibold font-mono">
-                              {verificationResult.user.nip}
-                            </p>
+                            <p className="font-semibold font-mono">{verificationResult.user.nip}</p>
                           </div>
                         )}
                         <div className="bg-muted/30 p-4 rounded-lg">

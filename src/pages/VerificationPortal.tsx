@@ -78,7 +78,7 @@ export default function VerificationPortal() {
       // Fetch the document for display
       const isUuid = (id: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          id.trim()
+          id.trim(),
         );
 
       const trimmedId = docId.trim();
@@ -282,7 +282,8 @@ export default function VerificationPortal() {
                   <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
                     <li className="pl-2">Scan QR code pada dokumen dengan kamera ponsel.</li>
                     <li className="pl-2">
-                      Atau masukkan Nomor Seri Ijazah (contoh: IZH-0001-UMC-2025) atau ID dokumen ke kolom di atas dan klik tombol "Verifikasi".
+                      Atau masukkan Nomor Seri Ijazah (contoh: IZH-0001-UMC-2025) atau ID dokumen ke
+                      kolom di atas dan klik tombol "Verifikasi".
                     </li>
                     <li className="pl-2">
                       Nomor seri ijazah dapat ditemukan pada dokumen ijazah yang diterbitkan.

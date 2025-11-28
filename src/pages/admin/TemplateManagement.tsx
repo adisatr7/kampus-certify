@@ -1,18 +1,31 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Plus, Trash2, Eye } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { DocumentType } from "@/types/DocumentType";
 import { DocumentTemplate } from "@/types/DocumentTemplate";
+import { DocumentType } from "@/types/DocumentType";
 
 export default function TemplateManagement() {
   const { toast } = useToast();
@@ -43,7 +56,9 @@ export default function TemplateManagement() {
   // Create template mutation
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { error } = await supabase.from("document_templates").insert({
@@ -146,7 +161,10 @@ export default function TemplateManagement() {
             <h1 className="text-3xl font-bold">Kelola Template</h1>
             <p className="text-muted-foreground">Atur template untuk ijazah dan sertifikat</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -162,7 +180,10 @@ export default function TemplateManagement() {
                   Isi formulir di bawah untuk membuat template dokumen
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="name">Nama Template *</Label>
                   <Input
@@ -197,9 +218,7 @@ export default function TemplateManagement() {
                   <Textarea
                     id="html_content"
                     value={formData.html_content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, html_content: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, html_content: e.target.value })}
                     rows={10}
                     className="font-mono text-sm"
                     required
@@ -211,21 +230,21 @@ export default function TemplateManagement() {
                   <Textarea
                     id="css_content"
                     value={formData.css_content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, css_content: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, css_content: e.target.value })}
                     rows={6}
                     className="font-mono text-sm"
                   />
                 </div>
 
                 <div className="flex gap-4 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Batal
                   </Button>
-                  <Button type="submit">
-                    {editingTemplate ? "Perbarui" : "Buat"} Template
-                  </Button>
+                  <Button type="submit">{editingTemplate ? "Perbarui" : "Buat"} Template</Button>
                 </div>
               </form>
             </DialogContent>

@@ -1,4 +1,6 @@
 import { Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import {
@@ -7,8 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/DropdownMenu";
-import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
-import { useNavigate } from "react-router-dom";
 
 export function NotificationBadge() {
   const { pendingCount, pendingDocuments } = useRealtimeNotifications();
@@ -21,7 +21,11 @@ export function NotificationBadge() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+        >
           <Bell className="h-5 w-5" />
           {pendingCount > 0 && (
             <Badge
@@ -33,7 +37,10 @@ export function NotificationBadge() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent
+        align="end"
+        className="w-80"
+      >
         <div className="p-2">
           <h3 className="font-semibold text-sm mb-2">Dokumen Menunggu Tanda Tangan</h3>
           {pendingDocuments.length === 0 ? (

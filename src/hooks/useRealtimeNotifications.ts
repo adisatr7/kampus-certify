@@ -18,7 +18,9 @@ export function useRealtimeNotifications() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const setupRealtimeSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Initial fetch of pending documents
@@ -59,7 +61,7 @@ export function useRealtimeNotifications() {
               });
               fetchPendingDocuments();
             }
-          }
+          },
         )
         .on(
           "postgres_changes",
@@ -81,7 +83,7 @@ export function useRealtimeNotifications() {
             } else if (updatedDoc.status === "signed") {
               fetchPendingDocuments();
             }
-          }
+          },
         )
         .subscribe();
     };

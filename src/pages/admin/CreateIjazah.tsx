@@ -1,15 +1,21 @@
+import { Eye, GraduationCap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import IjazahPreview from "@/components/IjazahPreview";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, GraduationCap } from "lucide-react";
-import IjazahPreview from "@/components/IjazahPreview";
 
 export default function CreateIjazah() {
   const navigate = useNavigate();
@@ -17,8 +23,10 @@ export default function CreateIjazah() {
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [dekanList, setDekanList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
-  const [rektorList, setRektorList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
-  
+  const [rektorList, setRektorList] = useState<Array<{ id: string; name: string; nip: string }>>(
+    [],
+  );
+
   const [formData, setFormData] = useState({
     nama_mahasiswa: "",
     nim: "",
@@ -26,7 +34,8 @@ export default function CreateIjazah() {
     gelar: "",
     tanggal_terbit: new Date().toISOString().split("T")[0],
     template_id: "",
-    logo_url: "https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png",
+    logo_url:
+      "https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png",
     dekan_id: "",
     rektor_id: "",
   });
@@ -39,14 +48,14 @@ export default function CreateIjazah() {
         .from("user_roles")
         .select("user_id")
         .eq("role", "dekan");
-      
+
       if (dekanRoles && dekanRoles.length > 0) {
-        const dekanIds = dekanRoles.map(r => r.user_id);
+        const dekanIds = dekanRoles.map((r) => r.user_id);
         const { data: dekans } = await supabase
           .from("users")
           .select("id, name, nip")
           .in("id", dekanIds);
-        
+
         if (dekans) setDekanList(dekans as any);
       }
 
@@ -55,14 +64,14 @@ export default function CreateIjazah() {
         .from("user_roles")
         .select("user_id")
         .eq("role", "rektor");
-      
+
       if (rektorRoles && rektorRoles.length > 0) {
-        const rektorIds = rektorRoles.map(r => r.user_id);
+        const rektorIds = rektorRoles.map((r) => r.user_id);
         const { data: rektors } = await supabase
           .from("users")
           .select("id, name, nip")
           .in("id", rektorIds);
-        
+
         if (rektors) setRektorList(rektors as any);
       }
     };
@@ -75,12 +84,14 @@ export default function CreateIjazah() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       // Get dekan and rektor details
-      const dekan = dekanList.find(d => d.id === formData.dekan_id);
-      const rektor = rektorList.find(r => r.id === formData.rektor_id);
+      const dekan = dekanList.find((d) => d.id === formData.dekan_id);
+      const rektor = rektorList.find((r) => r.id === formData.rektor_id);
 
       if (!dekan || !rektor) {
         throw new Error("Dekan atau Rektor tidak ditemukan");
@@ -113,18 +124,20 @@ export default function CreateIjazah() {
       // Create ijazah record
       const { data: ijazahData, error: ijazahError } = await supabase
         .from("ijazah")
-        .insert([{
-          document_id: document.id,
-          nama_mahasiswa: formData.nama_mahasiswa,
-          nim: formData.nim,
-          gelar: formData.gelar,
-          nama_fakultas: formData.nama_fakultas,
-          tanggal_terbit: formData.tanggal_terbit,
-          nomor_seri: '',
-          logo_url: formData.logo_url,
-          is_validated: false,
-          template_id: formData.template_id || null,
-        }])
+        .insert([
+          {
+            document_id: document.id,
+            nama_mahasiswa: formData.nama_mahasiswa,
+            nim: formData.nim,
+            gelar: formData.gelar,
+            nama_fakultas: formData.nama_fakultas,
+            tanggal_terbit: formData.tanggal_terbit,
+            nomor_seri: "",
+            logo_url: formData.logo_url,
+            is_validated: false,
+            template_id: formData.template_id || null,
+          },
+        ])
         .select()
         .single();
 
@@ -166,20 +179,22 @@ export default function CreateIjazah() {
               <CardTitle>Buat Ijazah Digital</CardTitle>
             </div>
             <CardDescription>
-              Isi formulir di bawah untuk menerbitkan ijazah digital. Nomor seri akan dibuat otomatis.
+              Isi formulir di bawah untuk menerbitkan ijazah digital. Nomor seri akan dibuat
+              otomatis.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nama_mahasiswa">Nama Mahasiswa *</Label>
                   <Input
                     id="nama_mahasiswa"
                     value={formData.nama_mahasiswa}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nama_mahasiswa: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nama_mahasiswa: e.target.value })}
                     required
                   />
                 </div>
@@ -189,9 +204,7 @@ export default function CreateIjazah() {
                   <Input
                     id="nim"
                     value={formData.nim}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nim: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nim: e.target.value })}
                     required
                   />
                 </div>
@@ -202,9 +215,7 @@ export default function CreateIjazah() {
                     id="nama_fakultas"
                     placeholder="Contoh: Teknik Informatika"
                     value={formData.nama_fakultas}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nama_fakultas: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nama_fakultas: e.target.value })}
                     required
                   />
                 </div>
@@ -215,9 +226,7 @@ export default function CreateIjazah() {
                     id="gelar"
                     placeholder="Contoh: Sarjana Teknik (S.T.)"
                     value={formData.gelar}
-                    onChange={(e) =>
-                      setFormData({ ...formData, gelar: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, gelar: e.target.value })}
                     required
                   />
                 </div>
@@ -228,9 +237,7 @@ export default function CreateIjazah() {
                     id="tanggal_terbit"
                     type="date"
                     value={formData.tanggal_terbit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tanggal_terbit: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, tanggal_terbit: e.target.value })}
                     required
                   />
                 </div>
@@ -239,17 +246,18 @@ export default function CreateIjazah() {
                   <Label htmlFor="dekan">Dekan *</Label>
                   <Select
                     value={formData.dekan_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, dekan_id: value })
-                    }
+                    onValueChange={(value) => setFormData({ ...formData, dekan_id: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Dekan" />
                     </SelectTrigger>
                     <SelectContent>
                       {dekanList.map((dekan) => (
-                        <SelectItem key={dekan.id} value={dekan.id}>
-                          {dekan.name} {dekan.nip ? `(NIP: ${dekan.nip})` : ''}
+                        <SelectItem
+                          key={dekan.id}
+                          value={dekan.id}
+                        >
+                          {dekan.name} {dekan.nip ? `(NIP: ${dekan.nip})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -260,17 +268,18 @@ export default function CreateIjazah() {
                   <Label htmlFor="rektor">Rektor *</Label>
                   <Select
                     value={formData.rektor_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, rektor_id: value })
-                    }
+                    onValueChange={(value) => setFormData({ ...formData, rektor_id: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Rektor" />
                     </SelectTrigger>
                     <SelectContent>
                       {rektorList.map((rektor) => (
-                        <SelectItem key={rektor.id} value={rektor.id}>
-                          {rektor.name} {rektor.nip ? `(NIP: ${rektor.nip})` : ''}
+                        <SelectItem
+                          key={rektor.id}
+                          value={rektor.id}
+                        >
+                          {rektor.name} {rektor.nip ? `(NIP: ${rektor.nip})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -284,9 +293,7 @@ export default function CreateIjazah() {
                     type="url"
                     placeholder="https://example.com/logo.png"
                     value={formData.logo_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, logo_url: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
                   />
                 </div>
               </div>
@@ -308,7 +315,10 @@ export default function CreateIjazah() {
                   <Eye className="w-4 h-4 mr-2" />
                   Preview
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? "Membuat..." : "Buat Ijazah"}
                 </Button>
               </div>
@@ -321,8 +331,8 @@ export default function CreateIjazah() {
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
         formData={formData}
-        dekanName={dekanList.find(d => d.id === formData.dekan_id)?.name}
-        dekanNip={dekanList.find(d => d.id === formData.dekan_id)?.nip}
+        dekanName={dekanList.find((d) => d.id === formData.dekan_id)?.name}
+        dekanNip={dekanList.find((d) => d.id === formData.dekan_id)?.nip}
       />
     </DashboardLayout>
   );

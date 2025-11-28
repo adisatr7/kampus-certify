@@ -61,9 +61,9 @@ export default function CertificateManagement() {
 
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string; jabatan?: string }[]>(
-    [],
-  );
+  const [users, setUsers] = useState<
+    { id: string; name: string; email: string; role: string; jabatan?: string }[]
+  >([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 

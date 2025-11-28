@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
           },
         })
         .eq("id", documentId);
-      
+
       if (workflowError) {
         console.error("Workflow transition error:", workflowError);
       }

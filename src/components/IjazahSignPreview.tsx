@@ -1,9 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
-import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
-import { UserDocument } from "@/types";
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { UserDocument } from "@/types";
 import { Ijazah } from "@/types/Ijazah";
+import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
 
 interface IjazahSignPreviewProps {
   isOpen: boolean;
@@ -11,11 +11,7 @@ interface IjazahSignPreviewProps {
   document: UserDocument;
 }
 
-export default function IjazahSignPreview({
-  isOpen,
-  onClose,
-  document,
-}: IjazahSignPreviewProps) {
+export default function IjazahSignPreview({ isOpen, onClose, document }: IjazahSignPreviewProps) {
   const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
 
   useEffect(() => {
@@ -42,14 +38,17 @@ export default function IjazahSignPreview({
   }, [isOpen, document.id]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Preview Ijazah - {document.title}</DialogTitle>
         </DialogHeader>
         <div className="bg-white">
           {ijazahData ? (
-            <IjazahDocumentTemplate 
+            <IjazahDocumentTemplate
               document={document}
               ijazahData={{
                 nama_mahasiswa: ijazahData.nama_mahasiswa,

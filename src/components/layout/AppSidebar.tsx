@@ -180,7 +180,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             onClick={() => setIsDocumentMenuOpen(!isDocumentMenuOpen)}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-              "text-muted-foreground hover:text-accent-foreground"
+              "text-muted-foreground hover:text-accent-foreground",
             )}
           >
             <FileText className="h-4 w-4 shrink-0" />
@@ -190,7 +190,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
                 <ChevronDown
                   className={cn(
                     "ml-auto h-4 w-4 transition-transform",
-                    isDocumentMenuOpen && "rotate-180"
+                    isDocumentMenuOpen && "rotate-180",
                   )}
                 />
               </>
@@ -208,7 +208,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                     isActive(subItem.url)
                       ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-accent-foreground"
+                      : "text-muted-foreground hover:text-accent-foreground",
                   )}
                 >
                   <subItem.icon className="h-4 w-4 shrink-0" />

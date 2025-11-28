@@ -2,12 +2,12 @@
 import axios from "axios";
 import { Calendar, Calendar1, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
 import { useState } from "react";
+import IjazahSignPreview from "@/components/IjazahSignPreview";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
-import IjazahSignPreview from "@/components/IjazahSignPreview";
 import {
   Select,
   SelectContent,

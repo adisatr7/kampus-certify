@@ -1,8 +1,8 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoUmc from "@/assets/logo-umc.png";
-import { Button } from "@/components/ui/Button";
 import { NotificationBadge } from "@/components/NotificationBadge";
+import { Button } from "@/components/ui/Button";
 
 export function AppHeader() {
   const { theme, setTheme } = useTheme();

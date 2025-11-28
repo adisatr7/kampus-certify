@@ -1,38 +1,6 @@
+import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { useAuth } from "@/lib/auth";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/Dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/Table";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
-import { UserPlus, Pencil, Trash2 } from "lucide-react";
-import useFetchAllUsers from "@/hooks/user/useFetchAllUsers";
-import { useCreateUser } from "@/hooks/user/useCreateUser";
-import { useUpdateUser } from "@/hooks/user/useUpdateUser";
-import { useDeleteUser } from "@/hooks/user/useDeleteUser";
-import { User, UserRole } from "@/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +11,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/AlertDialog";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import { useCreateUser } from "@/hooks/user/useCreateUser";
+import { useDeleteUser } from "@/hooks/user/useDeleteUser";
+import useFetchAllUsers from "@/hooks/user/useFetchAllUsers";
+import { useUpdateUser } from "@/hooks/user/useUpdateUser";
+import { useAuth } from "@/lib/auth";
+import { User, UserRole } from "@/types";
 
 export default function UserManagement() {
   const { userProfile } = useAuth();
@@ -126,7 +126,10 @@ export default function UserManagement() {
             </p>
           </div>
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -137,7 +140,10 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>Tambah Pengguna Baru</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
+              <form
+                onSubmit={handleCreate}
+                className="space-y-4"
+              >
                 <div>
                   <Label htmlFor="email">Email Google</Label>
                   <Input
@@ -168,9 +174,7 @@ export default function UserManagement() {
                   <Label htmlFor="role">Role</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(value: UserRole) =>
-                      setFormData({ ...formData, role: value })
-                    }
+                    onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -212,7 +216,10 @@ export default function UserManagement() {
                   >
                     Batal
                   </Button>
-                  <Button type="submit" disabled={createUser.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={createUser.isPending}
+                  >
                     {createUser.isPending ? "Menyimpan..." : "Simpan"}
                   </Button>
                 </div>
@@ -281,12 +288,18 @@ export default function UserManagement() {
         </Card>
 
         {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Pengguna</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleEdit} className="space-y-4">
+            <form
+              onSubmit={handleEdit}
+              className="space-y-4"
+            >
               <div>
                 <Label htmlFor="edit-email">Email Google</Label>
                 <Input
@@ -312,9 +325,7 @@ export default function UserManagement() {
                 <Label htmlFor="edit-role">Role</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: UserRole) =>
-                    setFormData({ ...formData, role: value })
-                  }
+                  onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -355,7 +366,10 @@ export default function UserManagement() {
                 >
                   Batal
                 </Button>
-                <Button type="submit" disabled={updateUser.isPending}>
+                <Button
+                  type="submit"
+                  disabled={updateUser.isPending}
+                >
                   {updateUser.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
               </div>
@@ -364,7 +378,10 @@ export default function UserManagement() {
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialog
+          open={!!userToDelete}
+          onOpenChange={() => setUserToDelete(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Hapus Pengguna</AlertDialogTitle>

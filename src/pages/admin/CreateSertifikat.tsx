@@ -1,3 +1,4 @@
+import { Award } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,7 +8,6 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
-import { Award } from "lucide-react";
 
 export default function CreateSertifikat() {
   const navigate = useNavigate();
@@ -27,7 +27,9 @@ export default function CreateSertifikat() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       // Create document first
@@ -49,17 +51,15 @@ export default function CreateSertifikat() {
       if (docError) throw docError;
 
       // Create sertifikat record
-      const { error: sertifikatError } = await supabase
-        .from("sertifikat")
-        .insert({
-          document_id: document.id,
-          nama_peserta: formData.nama_peserta,
-          nama_acara: formData.nama_acara,
-          tanggal_acara: formData.tanggal_acara,
-          nomor_sertifikat: formData.nomor_sertifikat,
-          penandatangan: formData.penandatangan || null,
-          template_id: formData.template_id || null,
-        });
+      const { error: sertifikatError } = await supabase.from("sertifikat").insert({
+        document_id: document.id,
+        nama_peserta: formData.nama_peserta,
+        nama_acara: formData.nama_acara,
+        tanggal_acara: formData.tanggal_acara,
+        nomor_sertifikat: formData.nomor_sertifikat,
+        penandatangan: formData.penandatangan || null,
+        template_id: formData.template_id || null,
+      });
 
       if (sertifikatError) throw sertifikatError;
 
@@ -95,16 +95,17 @@ export default function CreateSertifikat() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nama_peserta">Nama Peserta *</Label>
                   <Input
                     id="nama_peserta"
                     value={formData.nama_peserta}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nama_peserta: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nama_peserta: e.target.value })}
                     required
                   />
                 </div>
@@ -114,9 +115,7 @@ export default function CreateSertifikat() {
                   <Input
                     id="nama_acara"
                     value={formData.nama_acara}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nama_acara: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nama_acara: e.target.value })}
                     required
                   />
                 </div>
@@ -127,9 +126,7 @@ export default function CreateSertifikat() {
                     id="tanggal_acara"
                     type="date"
                     value={formData.tanggal_acara}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tanggal_acara: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, tanggal_acara: e.target.value })}
                     required
                   />
                 </div>
@@ -140,9 +137,7 @@ export default function CreateSertifikat() {
                     id="nomor_sertifikat"
                     placeholder="001/CERT/UMC/2025"
                     value={formData.nomor_sertifikat}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nomor_sertifikat: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nomor_sertifikat: e.target.value })}
                     required
                   />
                 </div>
@@ -153,9 +148,7 @@ export default function CreateSertifikat() {
                     id="penandatangan"
                     placeholder="Nama penandatangan"
                     value={formData.penandatangan}
-                    onChange={(e) =>
-                      setFormData({ ...formData, penandatangan: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, penandatangan: e.target.value })}
                   />
                 </div>
               </div>
@@ -168,7 +161,10 @@ export default function CreateSertifikat() {
                 >
                   Batal
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? "Menyimpan..." : "Buat Sertifikat"}
                 </Button>
               </div>
