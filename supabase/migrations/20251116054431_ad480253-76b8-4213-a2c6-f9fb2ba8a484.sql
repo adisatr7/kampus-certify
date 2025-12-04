@@ -138,42 +138,51 @@ CREATE INDEX idx_sertifikat_document_id ON public.sertifikat(document_id);
 CREATE INDEX idx_sertifikat_nomor ON public.sertifikat(nomor_sertifikat);
 CREATE INDEX idx_templates_type ON public.document_templates(type);
 
--- Insert default templates
-INSERT INTO public.document_templates (name, type, html_content, css_content, created_by, is_active)
-VALUES 
-  (
-    'Template Ijazah Default',
-    'ijazah',
-    '<div class="ijazah-container">
-      <h1>IJAZAH</h1>
-      <p>Diberikan kepada:</p>
-      <h2>{{nama_mahasiswa}}</h2>
-      <p>NIM: {{nim}}</p>
-      <p>Program Studi: {{program_studi}}</p>
-      <p>Gelar: {{gelar}}</p>
-      <p>Lulus pada: {{tanggal_kelulusan}}</p>
-      <p>Predikat: {{predikat}}</p>
-      <p>Nomor Seri: {{nomor_seri}}</p>
-      <p>Tanggal Terbit: {{tanggal_terbit}}</p>
-    </div>',
-    '.ijazah-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
-    (SELECT id FROM public.users WHERE role = 'admin' LIMIT 1),
-    true
-  ),
-  (
-    'Template Sertifikat Default',
-    'sertifikat',
-    '<div class="sertifikat-container">
-      <h1>SERTIFIKAT</h1>
-      <p>Diberikan kepada:</p>
-      <h2>{{nama_peserta}}</h2>
-      <p>Atas partisipasinya dalam:</p>
-      <h3>{{nama_acara}}</h3>
-      <p>Tanggal: {{tanggal_acara}}</p>
-      <p>Nomor: {{nomor_sertifikat}}</p>
-      <p>Penandatangan: {{penandatangan}}</p>
-    </div>',
-    '.sertifikat-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
-    (SELECT id FROM public.users WHERE role = 'admin' LIMIT 1),
-    true
-  );
+-- Insert default templates (only if admin user exists)
+DO $$
+DECLARE
+  admin_id uuid;
+BEGIN
+  SELECT id INTO admin_id FROM public.users WHERE role = 'admin' LIMIT 1;
+  
+  IF admin_id IS NOT NULL THEN
+    INSERT INTO public.document_templates (name, type, html_content, css_content, created_by, is_active)
+    VALUES 
+      (
+        'Template Ijazah Default',
+        'ijazah',
+        '<div class="ijazah-container">
+          <h1>IJAZAH</h1>
+          <p>Diberikan kepada:</p>
+          <h2>{{nama_mahasiswa}}</h2>
+          <p>NIM: {{nim}}</p>
+          <p>Program Studi: {{program_studi}}</p>
+          <p>Gelar: {{gelar}}</p>
+          <p>Lulus pada: {{tanggal_kelulusan}}</p>
+          <p>Predikat: {{predikat}}</p>
+          <p>Nomor Seri: {{nomor_seri}}</p>
+          <p>Tanggal Terbit: {{tanggal_terbit}}</p>
+        </div>',
+        '.ijazah-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
+        admin_id,
+        true
+      ),
+      (
+        'Template Sertifikat Default',
+        'sertifikat',
+        '<div class="sertifikat-container">
+          <h1>SERTIFIKAT</h1>
+          <p>Diberikan kepada:</p>
+          <h2>{{nama_peserta}}</h2>
+          <p>Atas partisipasinya dalam:</p>
+          <h3>{{nama_acara}}</h3>
+          <p>Tanggal: {{tanggal_acara}}</p>
+          <p>Nomor: {{nomor_sertifikat}}</p>
+          <p>Penandatangan: {{penandatangan}}</p>
+        </div>',
+        '.sertifikat-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
+        admin_id,
+        true
+      );
+  END IF;
+END $$;

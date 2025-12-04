@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
   try {
     const contentType = req.headers.get("content-type") || "";
     const body = contentType.includes("application/json") ? await req.json() : {};
+    
+    // Get authorization header if present (for authenticated requests)
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
 
     // Also allow `/verify-document?id=...` for QR links
     const url = new URL(req.url);

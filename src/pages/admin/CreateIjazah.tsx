@@ -1,10 +1,16 @@
-import { Eye, GraduationCap } from "lucide-react";
+import { Eye, GraduationCap, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import IjazahPreview from "@/components/IjazahPreview";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
@@ -16,16 +22,20 @@ import {
 } from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { canCreateDocument } from "@/lib/documentAccess";
 
 export default function CreateIjazah() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [dekanList, setDekanList] = useState<Array<{ id: string; name: string; nip: string }>>([]);
-  const [rektorList, setRektorList] = useState<Array<{ id: string; name: string; nip: string }>>(
-    [],
-  );
+  const [dekanList, setDekanList] = useState<
+    Array<{ id: string; name: string; nip: string }>
+  >([]);
+  const [rektorList, setRektorList] = useState<
+    Array<{ id: string; name: string; nip: string }>
+  >([]);
 
   const [formData, setFormData] = useState({
     nama_mahasiswa: "",
@@ -161,7 +171,8 @@ export default function CreateIjazah() {
       console.error("Error creating ijazah:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Gagal membuat ijazah",
+        description:
+          error instanceof Error ? error.message : "Gagal membuat ijazah",
         variant: "destructive",
       });
     } finally {
@@ -179,22 +190,24 @@ export default function CreateIjazah() {
               <CardTitle>Buat Ijazah Digital</CardTitle>
             </div>
             <CardDescription>
-              Isi formulir di bawah untuk menerbitkan ijazah digital. Nomor seri akan dibuat
-              otomatis.
+              Isi formulir di bawah untuk menerbitkan ijazah digital. Nomor seri
+              akan dibuat otomatis.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6"
-            >
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nama_mahasiswa">Nama Mahasiswa *</Label>
                   <Input
                     id="nama_mahasiswa"
                     value={formData.nama_mahasiswa}
-                    onChange={(e) => setFormData({ ...formData, nama_mahasiswa: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        nama_mahasiswa: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
@@ -204,7 +217,9 @@ export default function CreateIjazah() {
                   <Input
                     id="nim"
                     value={formData.nim}
-                    onChange={(e) => setFormData({ ...formData, nim: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nim: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -215,7 +230,12 @@ export default function CreateIjazah() {
                     id="nama_fakultas"
                     placeholder="Contoh: Teknik Informatika"
                     value={formData.nama_fakultas}
-                    onChange={(e) => setFormData({ ...formData, nama_fakultas: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        nama_fakultas: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
@@ -226,7 +246,9 @@ export default function CreateIjazah() {
                     id="gelar"
                     placeholder="Contoh: Sarjana Teknik (S.T.)"
                     value={formData.gelar}
-                    onChange={(e) => setFormData({ ...formData, gelar: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, gelar: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -237,7 +259,12 @@ export default function CreateIjazah() {
                     id="tanggal_terbit"
                     type="date"
                     value={formData.tanggal_terbit}
-                    onChange={(e) => setFormData({ ...formData, tanggal_terbit: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tanggal_terbit: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
@@ -246,17 +273,16 @@ export default function CreateIjazah() {
                   <Label htmlFor="dekan">Dekan *</Label>
                   <Select
                     value={formData.dekan_id}
-                    onValueChange={(value) => setFormData({ ...formData, dekan_id: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, dekan_id: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Dekan" />
                     </SelectTrigger>
                     <SelectContent>
                       {dekanList.map((dekan) => (
-                        <SelectItem
-                          key={dekan.id}
-                          value={dekan.id}
-                        >
+                        <SelectItem key={dekan.id} value={dekan.id}>
                           {dekan.name} {dekan.nip ? `(NIP: ${dekan.nip})` : ""}
                         </SelectItem>
                       ))}
@@ -268,18 +294,18 @@ export default function CreateIjazah() {
                   <Label htmlFor="rektor">Rektor *</Label>
                   <Select
                     value={formData.rektor_id}
-                    onValueChange={(value) => setFormData({ ...formData, rektor_id: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, rektor_id: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Rektor" />
                     </SelectTrigger>
                     <SelectContent>
                       {rektorList.map((rektor) => (
-                        <SelectItem
-                          key={rektor.id}
-                          value={rektor.id}
-                        >
-                          {rektor.name} {rektor.nip ? `(NIP: ${rektor.nip})` : ""}
+                        <SelectItem key={rektor.id} value={rektor.id}>
+                          {rektor.name}{" "}
+                          {rektor.nip ? `(NIP: ${rektor.nip})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -293,7 +319,9 @@ export default function CreateIjazah() {
                     type="url"
                     placeholder="https://example.com/logo.png"
                     value={formData.logo_url}
-                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, logo_url: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -310,15 +338,16 @@ export default function CreateIjazah() {
                   type="button"
                   variant="secondary"
                   onClick={() => setShowPreview(true)}
-                  disabled={!formData.nama_mahasiswa || !formData.nim || !formData.dekan_id}
+                  disabled={
+                    !formData.nama_mahasiswa ||
+                    !formData.nim ||
+                    !formData.dekan_id
+                  }
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Preview
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                >
+                <Button type="submit" disabled={loading}>
                   {loading ? "Membuat..." : "Buat Ijazah"}
                 </Button>
               </div>

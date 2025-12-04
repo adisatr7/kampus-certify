@@ -1,5 +1,11 @@
 import { Session, User } from "@supabase/supabase-js";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserProfile } from "../types";
@@ -36,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Verify user exists in database
         (async () => {
-          console.log("Auth: Fetching user profile for:", session.user.id, session.user.email);
+          console.log(
+            "Auth: Fetching user profile for:",
+            session.user.id,
+            session.user.email
+          );
           try {
             // First, try to find user by ID (for existing users)
             let { data: profile, error } = await supabase
@@ -47,27 +57,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // If not found by ID, try to find by email (for newly whitelisted users)
             if (!profile && !error && session.user.email) {
-              console.log("Auth: User not found by ID, checking by email:", session.user.email);
+              console.log(
+                "Auth: User not found by ID, checking by email:",
+                session.user.email
+              );
 
+              // Use service role to bypass RLS when checking email
               const { data: profileByEmail, error: emailError } = await supabase
                 .from("users")
                 .select("*")
                 .eq("email", session.user.email)
                 .maybeSingle();
 
+              console.log("Auth: Email lookup result:", {
+                profileByEmail,
+                emailError,
+              });
+
               if (emailError) {
-                console.error("Auth: Error fetching user by email:", emailError);
+                console.error(
+                  "Auth: Error fetching user by email:",
+                  emailError
+                );
                 error = emailError;
               } else if (profileByEmail) {
                 // Found user by email - update their ID to match auth.users
                 console.log("Auth: Found user by email, syncing ID");
 
-                const { data: updatedProfile, error: updateError } = await supabase
-                  .from("users")
-                  .update({ id: session.user.id })
-                  .eq("email", session.user.email)
-                  .select("*")
-                  .single();
+                const { data: updatedProfile, error: updateError } =
+                  await supabase
+                    .from("users")
+                    .update({ id: session.user.id })
+                    .eq("email", session.user.email)
+                    .select("*")
+                    .single();
 
                 if (updateError) {
                   console.error("Auth: Error updating user ID:", updateError);
@@ -76,6 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   profile = updatedProfile;
                   console.log("Auth: Successfully synced user ID");
                 }
+              } else {
+                console.log(
+                  "Auth: No user found with email:",
+                  session.user.email
+                );
               }
             }
 
@@ -83,7 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.error("Auth: Error fetching user profile:", error);
               toast({
                 title: "Akses Ditolak",
-                description: "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
+                description:
+                  "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
                 variant: "destructive",
               });
               await supabase.auth.signOut();

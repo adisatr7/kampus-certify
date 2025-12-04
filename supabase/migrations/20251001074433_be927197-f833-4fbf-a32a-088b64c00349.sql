@@ -1,4 +1,4 @@
--- Create storage bucket for signed documents
+-- Create storage bucket for signed documents (if not exists)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'signed-documents',
@@ -6,7 +6,8 @@ VALUES (
   true,
   10485760,
   ARRAY['application/pdf', 'image/png', 'image/jpeg']
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- RLS Policy: Anyone can view signed documents (for public verification)
 CREATE POLICY "Public can view signed documents"

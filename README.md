@@ -1,383 +1,183 @@
-# CA UMC - Certificate Authority Universitas Muhammadiyah Cirebon
+# Supabase CLI
 
-Sistem Certificate Authority (CA) internal kampus untuk penerbitan sertifikat digital, tanda tangan elektronik, manajemen dokumen, audit trail, dan portal verifikasi publik.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
-## 🏛️ Tentang Sistem
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-**CA UMC** adalah sistem Certificate Authority berbasis web yang dirancang khusus untuk Universitas Muhammadiyah Cirebon. Sistem ini memungkinkan penerbitan dan pengelolaan sertifikat digital untuk dokumen resmi kampus dengan standar keamanan tinggi.
+This repository contains all the functionality for Supabase CLI.
 
-### Fitur Utama
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
-- ✅ **Autentikasi Google SSO** - Login menggunakan akun Google dengan whitelist
-- ✅ **Manajemen Sertifikat Digital** - Penerbitan, pencabutan, dan pemantauan sertifikat
-- ✅ **Tanda Tangan Digital (PAdES)** - Dokumen PDF dengan tanda tangan yang valid di Adobe Reader
-- ✅ **Portal Verifikasi Publik** - Verifikasi keaslian dokumen tanpa perlu login
-- ✅ **QR Code Generator** - Setiap dokumen dilengkapi QR code untuk verifikasi
-- ✅ **Multi-Role Management** - Admin, Dosen, Rektor, Dekan dengan hak akses berbeda
-- ✅ **Audit Trail** - Pencatatan seluruh aktivitas sistem
-- ✅ **Certificate Revocation List (CRL)** - Pengelolaan sertifikat yang dicabut
-- ✅ **Modern UI/UX** - Desain responsif dengan palet warna UMC
+## Getting started
 
-## 🎨 Desain & Branding
+### Install the CLI
 
-### Palet Warna UMC
-- **Maroon (#800000)** - Warna utama/primary
-- **Abu-abu (#808080)** - Background sidebar
-- **Hitam (#000000)** - Teks utama
-- **Putih (#FFFFFF)** - Background konten
-
-### Konsep Desain
-- **Modern Minimalis** dengan clean layout
-- **Glassmorphism Effect** pada card dan modal
-- **Responsive Design** untuk desktop dan mobile
-- **Sidebar Navigation** dengan icon dan label
-
-## 👥 Role & Hak Akses
-
-### 🔧 **Admin**
-- Penerbitan sertifikat untuk semua pengguna
-- Manajemen dokumen: CRUD untuk semua pengguna
-- Pencabutan (revoke) sertifikat
-- Manajemen pengguna sistem
-- Audit trail lengkap
-- Verifikasi dokumen
-
-### 👨‍🏫 **Dosen / Rektor / Dekan**
-- Manajemen dokumen pribadi
-- Tanda tangan dokumen dengan sertifikat sendiri
-- Verifikasi dokumen
-- Melihat sertifikat pribadi
-
-### 🌐 **Publik (Tanpa Login)**
-- Portal verifikasi dokumen
-- Scan QR code dari dokumen
-- Download dokumen yang terverifikasi
-
-## 🛠️ Teknologi
-
-### Frontend
-- **React 18** dengan TypeScript
-- **Vite** untuk build tool
-- **Tailwind CSS** untuk styling
-- **Shadcn/ui** untuk component library
-- **Lucide React** untuk icons
-- **React Router** untuk routing
-
-### Backend & Database
-- **Supabase** (PostgreSQL)
-- **Supabase Auth** untuk autentikasi
-- **Supabase Storage** untuk file storage
-- **Edge Functions** untuk digital signature
-
-### Keamanan & Sertifikat
-- **Digital Signature (PAdES)** - PDF Advanced Electronic Signatures
-- **RSA-2048** encryption untuk sertifikat
-- **QR Code** dengan unique ID untuk verifikasi
-- **Certificate Revocation List (CRL)**
-
-## 🗄️ Struktur Database
-
-### Tabel `users`
-```sql
-   id uuid NOT NULL DEFAULT gen_random_uuid(),
-   email text NOT NULL UNIQUE,
-   name text,
-   role USER-DEFINED NOT NULL,
-   google_id text UNIQUE,
-   certificate_id uuid,
-   created_at timestamp with time zone DEFAULT now(),
-   updated_at timestamp with time zone DEFAULT now(),
-   nidn text,
-```
-
-### Tabel `certificates`
-```sql
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  serial_number text NOT NULL UNIQUE,
-  public_key text NOT NULL,
-  private_key text NOT NULL,
-  issued_at timestamp with time zone DEFAULT now(),
-  expires_at timestamp with time zone NOT NULL,
-  status USER-DEFINED DEFAULT 'active'::certificate_status,
-  revoked_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  certificate_code text,
-```
-
-### Tabel `documents`
-```sql
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  title text NOT NULL,
-  file_url text,
-  signed boolean DEFAULT false,
-  signed_at timestamp with time zone,
-  qr_code_url text,
-  status USER-DEFINED DEFAULT 'pending'::document_status,
-  certificate_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  content text,
-  signed_document_url text,
-```
-
-### Tabel `audit_trail`
-```sql
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid,
-  action text NOT NULL,
-  timestamp timestamp with time zone DEFAULT now(),
-  description text,
-  created_at timestamp with time zone DEFAULT now(),
-```
-
-## 🚀 Cara Menjalankan Aplikasi
-
-### Prasyarat
-- **Node.js** versi 18 atau lebih baru
-- **npm** atau **yarn**
-- Akun **Supabase** (untuk backend)
-- Akun **Google Cloud Console** (untuk OAuth)
-
-### Langkah 1: Clone Repository
-```bash
-git clone <repository-url>
-cd ca-umc-system
-```
-
-### Langkah 2: Install Dependencies
-```bash
-npm install
-# atau
-yarn install
-```
-
-### Langkah 3: Setup Supabase
-
-1. **Buat Project Baru di Supabase**
-   - Kunjungi [supabase.com](https://supabase.com)
-   - Buat project baru dengan nama "CA-UMC"
-
-2. **Setup Database**
-   ```sql
-   -- Jalankan script SQL berikut di Supabase SQL Editor:
-   
-   -- Enable UUID extension
-   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-   
-   -- Create enum types
-   CREATE TYPE user_role AS ENUM ('admin', 'dosen', 'rektor', 'dekan');
-   CREATE TYPE cert_status AS ENUM ('active', 'expired', 'revoked');
-   CREATE TYPE doc_status AS ENUM ('pending', 'signed', 'revoked');
-   
-   -- Create users table
-   CREATE TABLE users (
-     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-     email TEXT UNIQUE NOT NULL,
-     name TEXT NOT NULL,
-     role user_role NOT NULL DEFAULT 'dosen',
-     google_id TEXT UNIQUE,
-     certificate_id UUID,
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   );
-   
-   -- Create certificates table
-   CREATE TABLE certificates (
-     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-     serial_number TEXT UNIQUE NOT NULL,
-     public_key TEXT NOT NULL,
-     private_key TEXT NOT NULL, -- akan dienkripsi di aplikasi
-     issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-     status cert_status DEFAULT 'active',
-     revoked_at TIMESTAMP WITH TIME ZONE,
-     algorithm TEXT DEFAULT 'RSA-2048'
-   );
-   
-   -- Create documents table
-   CREATE TABLE documents (
-     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-     title TEXT NOT NULL,
-     file_url TEXT,
-     signed BOOLEAN DEFAULT FALSE,
-     signed_at TIMESTAMP WITH TIME ZONE,
-     qr_code_url TEXT,
-     status doc_status DEFAULT 'pending',
-     certificate_id UUID REFERENCES certificates(id),
-     document_hash TEXT,
-     signature_data JSONB,
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   );
-   
-   -- Create audit_trail table
-   CREATE TABLE audit_trail (
-     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-     user_id UUID REFERENCES users(id),
-     action TEXT NOT NULL,
-     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-     description TEXT,
-     ip_address INET,
-     user_agent TEXT
-   );
-   
-   -- Create indexes
-   CREATE INDEX idx_users_email ON users(email);
-   CREATE INDEX idx_certificates_user_id ON certificates(user_id);
-   CREATE INDEX idx_documents_user_id ON documents(user_id);
-   CREATE INDEX idx_audit_trail_user_id ON audit_trail(user_id);
-   CREATE INDEX idx_audit_trail_timestamp ON audit_trail(timestamp);
-   ```
-
-3. **Setup Storage Bucket**
-   ```sql
-   -- Buat storage bucket untuk dokumen
-   INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true);
-   INSERT INTO storage.buckets (id, name, public) VALUES ('qr-codes', 'qr-codes', true);
-   
-   -- Policy untuk akses file
-   CREATE POLICY "Public read access" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
-   CREATE POLICY "Authenticated upload access" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documents' AND auth.role() = 'authenticated');
-   ```
-
-### Langkah 4: Setup Google OAuth
-
-1. **Google Cloud Console**
-   - Buka [Google Cloud Console](https://console.cloud.google.com/)
-   - Buat project baru atau pilih yang sudah ada
-   - Aktifkan Google+ API dan People API
-
-2. **Credentials OAuth 2.0**
-   - Buat OAuth 2.0 Client ID
-   - Authorized JavaScript origins: `http://localhost:5173`, `https://yourdomain.com`
-   - Authorized redirect URIs: `http://localhost:5173/auth/callback`
-
-### Langkah 5: Konfigurasi Supabase di Lovable
-
-1. **Aktivasi Integrasi Supabase**
-   - Klik tombol **Supabase** hijau di pojok kanan atas Lovable
-   - Masukkan Supabase URL dan ANON KEY
-   - Masukkan Google OAuth Client ID
-
-2. **Setup Environment Variables**
-   ```env
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_GOOGLE_CLIENT_ID=your_google_client_id
-   ```
-
-### Langkah 6: Jalankan Aplikasi
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
 ```bash
-# Development mode
-npm run dev
-
-# Build untuk production
-npm run build
-
-# Preview production build
-npm run preview
+npm i supabase --save-dev
 ```
 
-### Langkah 7: Setup Data Initial
+To install the beta release channel:
 
-1. **Tambahkan Admin User**
-   ```sql
-   INSERT INTO users (email, name, role) 
-   VALUES ('admin@umc.ac.id', 'Administrator UMC', 'admin');
-   ```
+```bash
+npm i supabase@beta --save-dev
+```
 
-2. **Tambahkan Sample Users**
-   ```sql
-   INSERT INTO users (email, name, role) VALUES 
-   ('rektor@umc.ac.id', 'Prof. Dr. Ahmad Zain, M.Pd.', 'rektor'),
-   ('dekan.teknik@umc.ac.id', 'Dr. Siti Fatimah, S.T., M.T.', 'dekan'),
-   ('dosen1@umc.ac.id', 'Ahmad Hidayat, S.Kom., M.T.', 'dosen');
-   ```
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
 
-## 📱 Penggunaan Aplikasi
+```
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+```
 
-### Untuk Admin
-1. Login dengan akun Google yang terdaftar
-2. Dashboard menampilkan statistik sistem
-3. Kelola sertifikat: terbitkan, lihat, cabut
-4. Kelola dokumen semua pengguna
-5. Monitor audit trail
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
 
-### Untuk Dosen/Rektor/Dekan
-1. Login dengan akun Google
-2. Upload dokumen pribadi
-3. Tanda tangani dokumen dengan sertifikat
-4. Verifikasi dokumen
-5. Download dokumen yang sudah ditandatangani
+<details>
+  <summary><b>macOS</b></summary>
 
-### Untuk Publik
-1. Akses `/verify` tanpa login
-2. Masukkan ID dokumen atau scan QR code
-3. Lihat status verifikasi (VALID/INVALID/REVOKED)
-4. Download dokumen jika valid
+  Available via [Homebrew](https://brew.sh). To install:
 
-## 🔐 Keamanan
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
-### Digital Signature
-- Menggunakan standar **PAdES** (PDF Advanced Electronic Signatures)
-- Algoritma **RSA-2048** untuk enkripsi
-- Private key disimpan terenkripsi di database
-- Validasi signature di Adobe Reader
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
 
-### Autentikasi
-- **Google OAuth 2.0** dengan whitelist email
-- Session management dengan Supabase Auth
-- Role-based access control (RBAC)
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
 
-### Audit Trail
-- Semua aktivitas tercatat dengan timestamp
-- IP address dan User Agent tracking
-- Log untuk sertifikat, dokumen, dan verifikasi
+<details>
+  <summary><b>Windows</b></summary>
 
-## 🚧 Roadmap Development
+  Available via [Scoop](https://scoop.sh). To install:
 
-### Phase 1 (Current)
-- ✅ UI/UX Design System
-- ✅ Authentication flow
-- ✅ Basic dashboard
-- ✅ Public verification portal
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
 
-### Phase 2 (Next)
-- 🔄 Supabase integration
-- 🔄 Certificate management
-- 🔄 Document upload & signing
-- 🔄 QR code generation
+  To upgrade:
 
-### Phase 3 (Future)
-- ⏳ Digital signature (PAdES)
-- ⏳ Mobile app
-- ⏳ Bulk operations
-- ⏳ Advanced reporting
+  ```powershell
+  scoop update supabase
+  ```
+</details>
 
-## 🤝 Kontribusi
+<details>
+  <summary><b>Linux</b></summary>
 
-Untuk berkontribusi pada project ini:
+  Available via [Homebrew](https://brew.sh) and Linux packages.
 
-1. Fork repository
-2. Buat branch feature (`git checkout -b feature/nama-fitur`)
-3. Commit perubahan (`git commit -m 'Tambah fitur baru'`)
-4. Push ke branch (`git push origin feature/nama-fitur`)
-5. Buat Pull Request
+  #### via Homebrew
 
-## 📞 Kontak & Support
+  To install:
 
-- **Email**: admin@umc.ac.id
-- **Website**: https://umc.ac.id
-- **GitHub**: [Repository CA UMC]
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
----
+  To upgrade:
 
-**© 2025 Universitas Muhammadiyah Cirebon - Certificate Authority**
+  ```sh
+  brew upgrade supabase
+  ```
 
-*Sistem ini dikembangkan untuk mendukung transformasi digital kampus dengan standar keamanan tinggi dan user experience yang modern.*
+  #### via Linux packages
+
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
+
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
+
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
+
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
+
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
+
+<details>
+  <summary><b>Other Platforms</b></summary>
+
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
+
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
+
+  Add a symlink to the binary in `$PATH` for easier access:
+
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
+
+  This works on other non-standard Linux distros.
+</details>
+
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
+
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
+
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
+
+```bash
+supabase bootstrap
+```
+
+Or using npx:
+
+```bash
+npx supabase bootstrap
+```
+
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+
+## Docs
+
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+
+## Breaking changes
+
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+
+## Developing
+
+To run from source:
+
+```sh
+# Go >= 1.22
+go run . help
+```

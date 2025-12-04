@@ -7,9 +7,29 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("users").delete().eq("id", userId);
+      try {
+        // Call Edge Function to delete user (bypasses RLS)
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({ id: userId }),
+          }
+        );
 
-      if (error) throw error;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Gagal menghapus pengguna");
+        }
+
+        return await response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

@@ -16,7 +16,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DocumentStatus } from "@/types";
@@ -38,7 +44,8 @@ interface VerificationResult {
 export default function PublicVerify() {
   const [documentId, setDocumentId] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [verificationResult, setVerificationResult] =
+    useState<VerificationResult | null>(null);
 
   // Mock verification function
   const handleVerify = async () => {
@@ -61,8 +68,8 @@ export default function PublicVerify() {
         status: documentId.includes("invalid")
           ? "invalid"
           : documentId.includes("revoked")
-            ? "revoked"
-            : "valid",
+          ? "revoked"
+          : "valid",
         certificateSerial: "UMC-CERT-2025-001",
         downloadUrl: "#",
       };
@@ -152,7 +159,8 @@ export default function PublicVerify() {
                   Verifikasi Dokumen Digital
                 </CardTitle>
                 <CardDescription className="text-base">
-                  Masukkan ID dokumen atau scan QR Code untuk memverifikasi keaslian dokumen
+                  Masukkan ID dokumen atau scan QR Code untuk memverifikasi
+                  keaslian dokumen
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
@@ -208,12 +216,14 @@ export default function PublicVerify() {
                         verificationResult.status === "valid"
                           ? ("signed" as DocumentStatus)
                           : verificationResult.status === "revoked"
-                            ? ("revoked" as DocumentStatus)
-                            : ("pending" as DocumentStatus)
+                          ? ("revoked" as DocumentStatus)
+                          : ("pending" as DocumentStatus)
                       }
                     />
                   </CardTitle>
-                  <CardDescription>{getStatusMessage(verificationResult.status)}</CardDescription>
+                  <CardDescription>
+                    {getStatusMessage(verificationResult.status)}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -246,7 +256,9 @@ export default function PublicVerify() {
                       <div className="flex items-start gap-3">
                         <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Tanggal Ditandatangani</p>
+                          <p className="text-sm font-medium">
+                            Tanggal Ditandatangani
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {verificationResult.signedDate}
                           </p>
@@ -256,7 +268,9 @@ export default function PublicVerify() {
                       <div className="flex items-start gap-3">
                         <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Sertifikat Serial</p>
+                          <p className="text-sm font-medium">
+                            Sertifikat Serial
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {verificationResult.certificateSerial}
                           </p>
@@ -265,14 +279,15 @@ export default function PublicVerify() {
                     </div>
                   </div>
 
-                  {verificationResult.status === "valid" && verificationResult.downloadUrl && (
-                    <div className="pt-4 border-t border-border">
-                      <Button className="w-full bg-primary hover:bg-primary/90">
-                        <Download className="mr-2 h-4 w-4" />
-                        Unduh Dokumen PDF
-                      </Button>
-                    </div>
-                  )}
+                  {verificationResult.status === "valid" &&
+                    verificationResult.downloadUrl && (
+                      <div className="pt-4 border-t border-border">
+                        <Button className="w-full bg-primary hover:bg-primary/90">
+                          <Download className="mr-2 h-4 w-4" />
+                          Unduh Dokumen PDF
+                        </Button>
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             )}
@@ -289,27 +304,30 @@ export default function PublicVerify() {
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                   <p>
-                    Dokumen yang valid menandakan bahwa dokumen tersebut asli dan belum dimodifikasi
-                    sejak ditandatangani.
+                    Dokumen yang valid menandakan bahwa dokumen tersebut asli
+                    dan belum dimodifikasi sejak ditandatangani.
                   </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                   <p>
-                    Dokumen yang invalid mungkin telah dimodifikasi atau tidak berasal dari sumber
-                    resmi.
+                    Dokumen yang invalid mungkin telah dimodifikasi atau tidak
+                    berasal dari sumber resmi.
                   </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                   <p>
-                    Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya meskipun sebelumnya
-                    valid.
+                    Dokumen dengan sertifikat revoked tidak lagi dapat dipercaya
+                    meskipun sebelumnya valid.
                   </p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-card/50 rounded-lg">
                   <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <p>Sistem ini hanya memverifikasi dokumen yang diterbitkan melalui CA UMC.</p>
+                  <p>
+                    Sistem ini hanya memverifikasi dokumen yang diterbitkan
+                    melalui CA UMC.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -320,7 +338,9 @@ export default function PublicVerify() {
             <p className="font-medium">
               © 2025 Universitas Muhammadiyah Cirebon - Certificate Authority
             </p>
-            <p className="text-xs">Sistem Verifikasi Dokumen Digital Internal</p>
+            <p className="text-xs">
+              Sistem Verifikasi Dokumen Digital Internal
+            </p>
           </div>
         </div>
       </div>
