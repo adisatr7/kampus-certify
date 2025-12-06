@@ -42,8 +42,7 @@ export default function CreateIjazahNew() {
     gelar: "",
     tanggal_terbit: new Date().toISOString().split("T")[0],
     template_id: "",
-    logo_url:
-      "https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png",
+    logo_url: "/logo-umc.svg", // Use local logo to avoid CORS issues
     rektor_id: "",
   });
 
@@ -64,24 +63,51 @@ export default function CreateIjazahNew() {
 
   useEffect(() => {
     const fetchRektors = async () => {
-      const { data: rektorRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "rektor");
+      try {
+        console.log("🔍 Fetching rektors...");
 
-      if (rektorRoles && rektorRoles.length > 0) {
-        const rektorIds = rektorRoles.map((r) => r.user_id);
-        const { data: rektors } = await supabase
+        // Direct query from users table with role filter
+        const { data: rektors, error } = await supabase
           .from("users")
-          .select("id, name, nip")
-          .in("id", rektorIds);
+          .select("id, name, nip, jabatan")
+          .eq("role", "rektor")
+          .order("name");
 
-        if (rektors) setRektorList(rektors as any);
+        console.log("👥 Rektors query result:", rektors);
+
+        if (error) {
+          console.error("❌ Error fetching rektors:", error);
+          toast({
+            title: "Error",
+            description: "Gagal memuat daftar rektor: " + error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (rektors && rektors.length > 0) {
+          setRektorList(rektors as any);
+          console.log("✅ Rektor list set:", rektors.length, "rektors");
+        } else {
+          console.warn("⚠️ No rektor found");
+          toast({
+            title: "Peringatan",
+            description:
+              "Tidak ada user dengan role rektor. Silakan buat user rektor terlebih dahulu.",
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error in fetchRektors:", error);
+        toast({
+          title: "Error",
+          description: "Terjadi kesalahan saat memuat daftar rektor",
+          variant: "destructive",
+        });
       }
     };
 
     fetchRektors();
-  }, []);
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,10 +158,11 @@ export default function CreateIjazahNew() {
       toast({
         title: "Berhasil",
         description:
-          "Ijazah berhasil dibuat. Silakan tanda tangani untuk melanjutkan.",
+          "Ijazah berhasil dibuat. Anda akan diarahkan untuk menandatangani dokumen.",
       });
 
-      navigate(`/user/documents/${document.id}/sign`);
+      // Redirect to signing page
+      navigate(`/document-signing/${document.id}`);
     } catch (error) {
       console.error("Error creating ijazah:", error);
       toast({
@@ -175,11 +202,21 @@ export default function CreateIjazahNew() {
                 <div className="text-sm text-blue-800 dark:text-blue-200">
                   <p className="font-semibold mb-2">Alur Pembuatan Ijazah:</p>
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Isi data ijazah pada formulir</li>
-                    <li>Preview ijazah sebelum dibuat</li>
-                    <li>Buat ijazah dan tanda tangani</li>
-                    <li>Dokumen dikirim ke Rektor untuk ditandatangani</li>
-                    <li>Setelah Rektor tanda tangan, ijazah selesai</li>
+                    <li>Dekan membuat ijazah, input data manual pada form</li>
+                    <li>
+                      Setelah selesai menginput data, dapat preview terlebih
+                      dahulu
+                    </li>
+                    <li>Setelah ijazah dibuat, dekan menandatangani ijazah</li>
+                    <li>Pada nama dekan muncul QR code setelah tanda tangan</li>
+                    <li>Status dokumen dekan berubah menjadi "signed"</li>
+                    <li>Dokumen otomatis terkirim pada rektor yang dipilih</li>
+                    <li>Rektor ttd dan isi QR code pada kotak rektor</li>
+                    <li>Setelah rektor ttd, status berubah menjadi "signed"</li>
+                    <li>
+                      Ijazah selesai dan masuk ke tabel dokumen dekan dan rektor
+                      dengan status signed
+                    </li>
                   </ol>
                 </div>
               </div>

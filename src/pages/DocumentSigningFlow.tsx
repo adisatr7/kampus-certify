@@ -24,7 +24,6 @@ export default function DocumentSigningFlow() {
   const [document, setDocument] = useState<UserDocument | null>(null);
   const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
   const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null);
-  const [showQrInput, setShowQrInput] = useState(false);
   const [qrValue, setQrValue] = useState("");
 
   useEffect(() => {
@@ -67,92 +66,206 @@ export default function DocumentSigningFlow() {
 
     setLoading(true);
     try {
+      // Validate QR code input
+      if (!qrValue.trim()) {
+        toast({
+          title: "Error",
+          description: "Silakan masukkan QR code terlebih dahulu",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const metadata = (document.metadata as any) || {};
       const workflowStage = metadata.workflow_stage;
 
-      // Update document status to signed
-      const { error: updateError } = await supabase
-        .from("documents")
-        .update({
-          status: "signed",
-          metadata: {
-            ...metadata,
-            workflow_stage: getNextStage(workflowStage),
-            [`${getCurrentSignerPosition(workflowStage)}_signed_at`]:
-              new Date().toISOString(),
+      // Validate document type data exists
+      const isIjazahDoc = document.title?.toLowerCase().includes("ijazah");
+      const isSertifikatDoc = document.title
+        ?.toLowerCase()
+        .includes("sertifikat");
+
+      if (isIjazahDoc && !ijazahData) {
+        throw new Error(
+          "Data ijazah tidak ditemukan. Silakan buat ulang dokumen."
+        );
+      }
+
+      if (isSertifikatDoc && !sertifikatData) {
+        throw new Error(
+          "Data sertifikat tidak ditemukan. Silakan buat ulang dokumen."
+        );
+      }
+
+      // For ijazah workflow
+      const isIjazahWorkflow = document.title?.toLowerCase().includes("ijazah");
+      const isDekanSigning = workflowStage === "dekan_pending";
+      const isRektorSigning = workflowStage === "rektor_pending";
+
+      console.log("=== Signing Document ===");
+      console.log("Document ID:", document.id);
+      console.log(
+        "Document Type:",
+        isIjazahWorkflow ? "Ijazah" : isSertifikatDoc ? "Sertifikat" : "Other"
+      );
+      console.log("Workflow Stage:", workflowStage);
+      console.log("QR Value:", qrValue);
+
+      // Call edge function to sign document
+      // The edge function will handle:
+      // 1. Creating the cryptographic signature
+      // 2. Updating document status
+      // 3. Generating and uploading the signed PDF
+      // 4. Updating file_url in the database
+      const { data: signResult, error: signError } =
+        await supabase.functions.invoke("sign-document", {
+          body: {
+            documentId: document.id,
+            signerUserId: userProfile.id,
+            passphrase: qrValue, // Using QR code as passphrase
           },
-        })
-        .eq("id", document.id);
+        });
 
-      if (updateError) throw updateError;
+      if (signError) {
+        console.error("Edge function error:", signError);
+        throw new Error(signError.message || "Failed to sign document");
+      }
 
-      // Log workflow progression for audit trail
-      if (
-        document.title?.toLowerCase().includes("ijazah") &&
-        workflowStage === "dekan_pending"
-      ) {
-        // Document will be sent to rektor in next stage
-        await supabase.rpc("create_audit_entry", {
-          p_user_id: userProfile.id,
-          p_action: "SIGN_DOCUMENT",
-          p_description: `Dekan menandatangani ijazah untuk ${document.recipient_name}`,
+      if (!signResult?.ok) {
+        throw new Error(signResult?.error || "Failed to sign document");
+      }
+
+      console.log("=== Sign Result ===");
+      console.log("Signature created:", signResult.signature);
+      console.log("PDF generated:", signResult.pdfGenerated);
+      console.log("File URL:", signResult.fileUrl);
+
+      // Show warning if PDF generation failed but signing succeeded
+      if (!signResult.pdfGenerated) {
+        toast({
+          title: "Peringatan",
+          description:
+            "Dokumen berhasil ditandatangani, tetapi PDF gagal di-generate. " +
+            "Silakan hubungi admin untuk regenerate PDF.",
+          variant: "default",
         });
       }
 
-      if (
-        document.title?.toLowerCase().includes("sertifikat") &&
-        workflowStage === "pending_signer1"
-      ) {
-        // Document will be sent to signer2 in next stage
-        await supabase.rpc("create_audit_entry", {
-          p_user_id: userProfile.id,
-          p_action: "SIGN_DOCUMENT",
-          p_description: `Penandatangan 1 menandatangani sertifikat untuk ${document.recipient_name}`,
+      // For ijazah workflow: handle multi-stage signing
+      if (isIjazahWorkflow && isDekanSigning) {
+        // Create a copy for rektor to sign
+        const nextStage = "rektor_pending";
+        const { data: rektorDocument, error: rektorDocError } = await supabase
+          .from("documents")
+          .insert({
+            user_id: metadata.rektor_id,
+            title: document.title,
+            status: "pending",
+            recipient_name: document.recipient_name,
+            recipient_student_number: document.recipient_student_number,
+            metadata: {
+              ...metadata,
+              workflow_stage: nextStage,
+              original_document_id: document.id,
+              dekan_signed: true,
+              dekan_signed_at: new Date().toISOString(),
+              dekan_qr_code: qrValue,
+            },
+          })
+          .select()
+          .single();
+
+        if (rektorDocError) throw rektorDocError;
+
+        // Link ijazah to rektor's document as well
+        const { data: ijazahData } = await supabase
+          .from("ijazah")
+          .select("*")
+          .eq("document_id", document.id)
+          .single();
+
+        if (ijazahData) {
+          await supabase.from("ijazah").insert({
+            ...ijazahData,
+            id: undefined,
+            document_id: rektorDocument.id,
+            created_at: undefined,
+            updated_at: undefined,
+          });
+        }
+
+        toast({
+          title: "Berhasil",
+          description: "Ijazah berhasil ditandatangani dan dikirim ke Rektor",
+        });
+      } else if (isIjazahWorkflow && isRektorSigning) {
+        // Update original dekan document to mark as completed
+        if (metadata.original_document_id) {
+          await supabase
+            .from("documents")
+            .update({
+              metadata: {
+                ...metadata,
+                workflow_stage: "completed",
+                rektor_signed: true,
+                rektor_signed_at: new Date().toISOString(),
+                rektor_qr_code: qrValue,
+              },
+              file_url: signResult.fileUrl, // Update with the same file_url
+            })
+            .eq("id", metadata.original_document_id);
+        }
+
+        toast({
+          title: "Berhasil",
+          description:
+            "Ijazah berhasil ditandatangani" +
+            (signResult.pdfGenerated ? " dan PDF telah di-generate" : ""),
+        });
+      } else {
+        toast({
+          title: "Berhasil",
+          description:
+            "Dokumen berhasil ditandatangani" +
+            (signResult.pdfGenerated ? " dan PDF telah di-generate" : ""),
         });
       }
-
-      toast({
-        title: "Berhasil",
-        description: "Dokumen berhasil ditandatangani",
-      });
 
       navigate("/user/documents");
     } catch (error) {
       console.error("Error signing document:", error);
+
+      // Provide more specific error messages
+      let errorMessage = "Gagal menandatangani dokumen";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+
+        // Add helpful context based on error type
+        if (error.message.includes("not found")) {
+          errorMessage +=
+            "\n\nData dokumen tidak ditemukan. Silakan buat ulang dokumen.";
+        } else if (error.message.includes("fetch")) {
+          errorMessage +=
+            "\n\nGagal mengambil data. Periksa koneksi internet Anda.";
+        } else if (
+          error.message.includes("permission") ||
+          error.message.includes("RLS")
+        ) {
+          errorMessage +=
+            "\n\nAnda tidak memiliki izin untuk menandatangani dokumen ini.";
+        }
+      }
+
       toast({
         title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Gagal menandatangani dokumen",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const getNextStage = (currentStage: string): string => {
-    switch (currentStage) {
-      case "dekan_pending":
-        return "rektor_pending";
-      case "rektor_pending":
-        return "completed";
-      case "pending_signer1":
-        return "pending_signer2";
-      case "pending_signer2":
-        return "completed";
-      default:
-        return "completed";
-    }
-  };
-
-  const getCurrentSignerPosition = (stage: string): string => {
-    if (stage === "dekan_pending" || stage === "pending_signer1")
-      return "signer1";
-    if (stage === "rektor_pending" || stage === "pending_signer2")
-      return "signer2";
-    return "signer1";
   };
 
   if (!document) {
@@ -264,40 +377,41 @@ export default function DocumentSigningFlow() {
                   </p>
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Periksa data dokumen dengan teliti</li>
+                    <li>Isi QR code pada kotak yang tersedia</li>
                     <li>Klik tombol "Tanda Tangani" untuk menandatangani</li>
-                    <li>
-                      Scan QR code yang muncul dengan perangkat penandatangan
-                    </li>
-                    <li>
-                      Dokumen akan dikirim ke penandatangan berikutnya (jika
-                      ada)
-                    </li>
+                    <li>QR code akan muncul pada nama penandatangan</li>
+                    <li>Status dokumen akan berubah menjadi "signed"</li>
+                    {isIjazah &&
+                      metadata.workflow_stage === "dekan_pending" && (
+                        <li>Dokumen akan otomatis terkirim ke Rektor</li>
+                      )}
                   </ol>
                 </div>
               </div>
             </div>
 
-            {/* QR Code Section */}
-            {showQrInput && (
-              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800/30">
-                <div className="flex gap-3">
-                  <QrCode className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">
-                      Scan QR Code Penandatangan
-                    </p>
-                    <input
-                      type="text"
-                      placeholder="Arahkan kamera ke QR code..."
-                      value={qrValue}
-                      onChange={(e) => setQrValue(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      autoFocus
-                    />
-                  </div>
+            {/* QR Code Input Section */}
+            <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800/30">
+              <div className="flex gap-3">
+                <QrCode className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">
+                    Isi QR Code Penandatangan
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Masukkan kode QR atau scan QR code..."
+                    value={qrValue}
+                    onChange={(e) => setQrValue(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    required
+                  />
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                    QR code ini akan ditampilkan pada nama Anda di dokumen
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Action Buttons */}
             <div className="flex gap-4 justify-end">
@@ -310,7 +424,7 @@ export default function DocumentSigningFlow() {
               </Button>
               <Button
                 onClick={handleSign}
-                disabled={loading}
+                disabled={loading || !qrValue.trim()}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />

@@ -44,46 +44,31 @@ export default function CreateIjazah() {
     gelar: "",
     tanggal_terbit: new Date().toISOString().split("T")[0],
     template_id: "",
-    logo_url:
-      "https://muslimahnews.id/wp-content/uploads/2022/07/logo-umc-1009x1024-Reza-M-768x779-1.png",
+    logo_url: "/logo-umc.svg", // Use local logo to avoid CORS issues
     dekan_id: "",
     rektor_id: "",
   });
 
   useEffect(() => {
-    // Fetch dekan and rektor from user_roles table
+    // Fetch dekan and rektor directly from users table
     const fetchUsers = async () => {
       // Get dekans
-      const { data: dekanRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "dekan");
+      const { data: dekans } = await supabase
+        .from("users")
+        .select("id, name, nip, jabatan")
+        .eq("role", "dekan")
+        .order("name");
 
-      if (dekanRoles && dekanRoles.length > 0) {
-        const dekanIds = dekanRoles.map((r) => r.user_id);
-        const { data: dekans } = await supabase
-          .from("users")
-          .select("id, name, nip")
-          .in("id", dekanIds);
-
-        if (dekans) setDekanList(dekans as any);
-      }
+      if (dekans) setDekanList(dekans as any);
 
       // Get rektors
-      const { data: rektorRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "rektor");
+      const { data: rektors } = await supabase
+        .from("users")
+        .select("id, name, nip, jabatan")
+        .eq("role", "rektor")
+        .order("name");
 
-      if (rektorRoles && rektorRoles.length > 0) {
-        const rektorIds = rektorRoles.map((r) => r.user_id);
-        const { data: rektors } = await supabase
-          .from("users")
-          .select("id, name, nip")
-          .in("id", rektorIds);
-
-        if (rektors) setRektorList(rektors as any);
-      }
+      if (rektors) setRektorList(rektors as any);
     };
 
     fetchUsers();

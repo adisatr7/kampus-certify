@@ -1,7 +1,9 @@
-import { Award, AlertCircle } from "lucide-react";
+import { Award, AlertCircle, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import SertifikatPreview from "@/components/SertifikatPreview";
+import { DEFAULT_CERTIFICATE_TEMPLATES } from "@/types/CertificateTemplate";
 import { Button } from "@/components/ui/Button";
 import {
   Card,
@@ -29,8 +31,9 @@ export default function CreateSertifikatNew() {
   const { toast } = useToast();
   const { userProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [userList, setUserList] = useState<
-    Array<{ id: string; name: string; nip: string }>
+    Array<{ id: string; name: string; nip: string; jabatan?: string }>
   >([]);
 
   const [formData, setFormData] = useState({
@@ -42,7 +45,7 @@ export default function CreateSertifikatNew() {
     penyelenggara: "",
     signer1_id: "",
     signer2_id: "",
-    template_id: "",
+    template_id: "default",
   });
 
   // Check access
@@ -63,24 +66,39 @@ export default function CreateSertifikatNew() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Get all users from user_roles to respect RLS
-        const { data: userRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .order("user_id");
+        console.log("🔍 Fetching users for signers...");
 
-        if (userRoles && userRoles.length > 0) {
-          const userIds = userRoles.map((r) => r.user_id);
-          const { data: users } = await supabase
-            .from("users")
-            .select("id, name, nip")
-            .in("id", userIds)
-            .order("name");
+        // Direct query from users table - get all users for signers
+        const { data: users, error } = await supabase
+          .from("users")
+          .select("id, name, nip, jabatan, role")
+          .order("name");
 
-          if (users) setUserList(users as any);
+        console.log("👥 Users query result:", users);
+
+        if (error) {
+          console.error("❌ Error fetching users:", error);
+          toast({
+            title: "Error",
+            description: "Gagal memuat daftar penandatangan: " + error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (users && users.length > 0) {
+          setUserList(users as any);
+          console.log("✅ User list set:", users.length, "users");
+        } else {
+          console.warn("⚠️ No users found");
+          toast({
+            title: "Peringatan",
+            description:
+              "Tidak ada user yang tersedia. Silakan buat user terlebih dahulu.",
+          });
         }
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error("❌ Error fetching users:", error);
         toast({
           title: "Error",
           description: "Gagal memuat daftar penandatangan",
@@ -130,7 +148,7 @@ export default function CreateSertifikatNew() {
           tanggal_acara: formData.tanggal_acara,
           nomor_sertifikat: formData.nomor_sertifikat,
           penandatangan: formData.signer1_id,
-          template_id: formData.template_id || null,
+          template_id: formData.template_id || "default",
         });
 
       if (sertifikatError) throw sertifikatError;
@@ -208,6 +226,29 @@ export default function CreateSertifikatNew() {
                     }
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="template_id">Template Sertifikat *</Label>
+                  <Select
+                    value={formData.template_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, template_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_CERTIFICATE_TEMPLATES.filter(
+                        (t) => t.is_active
+                      ).map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -318,16 +359,19 @@ export default function CreateSertifikatNew() {
                 <div className="space-y-2">
                   <Label htmlFor="signer2">Penandatangan 2 (Opsional)</Label>
                   <Select
-                    value={formData.signer2_id}
+                    value={formData.signer2_id || "none"}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, signer2_id: value })
+                      setFormData({
+                        ...formData,
+                        signer2_id: value === "none" ? "" : value,
+                      })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih penandatangan kedua (opsional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="none">
                         Tidak ada penandatangan kedua
                       </SelectItem>
                       {userList.map((user) => (
@@ -349,6 +393,19 @@ export default function CreateSertifikatNew() {
                   Batal
                 </Button>
                 <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowPreview(true)}
+                  disabled={
+                    !formData.nama_peserta ||
+                    !formData.nama_acara ||
+                    !formData.signer1_id
+                  }
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
+                <Button
                   type="submit"
                   disabled={
                     loading ||
@@ -364,6 +421,27 @@ export default function CreateSertifikatNew() {
           </CardContent>
         </Card>
       </div>
+
+      <SertifikatPreview
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        formData={formData}
+        templateId={formData.template_id}
+        signer1Name={userList.find((u) => u.id === formData.signer1_id)?.name}
+        signer1Jabatan={
+          userList.find((u) => u.id === formData.signer1_id)?.jabatan
+        }
+        signer2Name={
+          formData.signer2_id
+            ? userList.find((u) => u.id === formData.signer2_id)?.name
+            : undefined
+        }
+        signer2Jabatan={
+          formData.signer2_id
+            ? userList.find((u) => u.id === formData.signer2_id)?.jabatan
+            : undefined
+        }
+      />
     </DashboardLayout>
   );
 }

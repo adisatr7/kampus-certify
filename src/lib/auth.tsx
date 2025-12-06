@@ -43,68 +43,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verify user exists in database
         (async () => {
           console.log(
-            "Auth: Fetching user profile for:",
-            session.user.id,
+            "Auth: Fetching user profile for email:",
             session.user.email
           );
           try {
-            // First, try to find user by ID (for existing users)
+            // Find user by email only
             let { data: profile, error } = await supabase
               .from("users")
               .select("*")
-              .eq("id", session.user.id)
+              .eq("email", session.user.email)
               .maybeSingle();
 
-            // If not found by ID, try to find by email (for newly whitelisted users)
-            if (!profile && !error && session.user.email) {
-              console.log(
-                "Auth: User not found by ID, checking by email:",
-                session.user.email
-              );
+            console.log("Auth: Email lookup result:", {
+              profile,
+              error,
+            });
 
-              // Use service role to bypass RLS when checking email
-              const { data: profileByEmail, error: emailError } = await supabase
-                .from("users")
-                .select("*")
-                .eq("email", session.user.email)
-                .maybeSingle();
-
-              console.log("Auth: Email lookup result:", {
-                profileByEmail,
-                emailError,
-              });
-
-              if (emailError) {
-                console.error(
-                  "Auth: Error fetching user by email:",
-                  emailError
+            if (error) {
+              console.error("Auth: Error fetching user by email:", error);
+            } else if (profile) {
+              // Found user by email - sync ID if different
+              if (profile.id !== session.user.id) {
+                console.log(
+                  "Auth: Syncing user ID from",
+                  profile.id,
+                  "to",
+                  session.user.id
                 );
-                error = emailError;
-              } else if (profileByEmail) {
-                // Found user by email - update their ID to match auth.users
-                console.log("Auth: Found user by email, syncing ID");
 
-                const { data: updatedProfile, error: updateError } =
-                  await supabase
-                    .from("users")
-                    .update({ id: session.user.id })
-                    .eq("email", session.user.email)
-                    .select("*")
-                    .single();
+                const { data: updatedProfile, error: updateError } = await (
+                  supabase.rpc as any
+                )("sync_user_id_by_email", {
+                  p_email: session.user.email,
+                  p_new_id: session.user.id,
+                });
 
                 if (updateError) {
                   console.error("Auth: Error updating user ID:", updateError);
                   error = updateError;
-                } else {
-                  profile = updatedProfile;
+                } else if (
+                  updatedProfile &&
+                  Array.isArray(updatedProfile) &&
+                  updatedProfile.length > 0
+                ) {
+                  profile = updatedProfile[0];
                   console.log("Auth: Successfully synced user ID");
+                } else {
+                  console.error("Auth: No profile returned from sync");
+                  error = { message: "Failed to sync user ID" } as any;
                 }
-              } else {
-                console.log(
-                  "Auth: No user found with email:",
-                  session.user.email
-                );
               }
+            } else {
+              console.log(
+                "Auth: No user found with email:",
+                session.user.email
+              );
             }
 
             if (error) {

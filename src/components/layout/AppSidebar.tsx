@@ -27,7 +27,11 @@ interface AppSidebarProps {
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
-export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSidebarProps) {
+export function AppSidebar({
+  userRole,
+  collapsed,
+  onCollapsedChange,
+}: AppSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
   const { signOut } = useAuth();
@@ -38,8 +42,16 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
     admin: [
       { title: "Unggah Dokumen", url: "/admin/documents", icon: Upload },
       { title: "Daftar Dokumen", url: "/admin/documents", icon: FileText },
-      { title: "Buat Ijazah", url: "/admin/create-ijazah", icon: GraduationCap },
-      { title: "Buat Sertifikat", url: "/admin/create-sertifikat", icon: Award },
+      {
+        title: "Buat Ijazah",
+        url: "/admin/create-ijazah",
+        icon: GraduationCap,
+      },
+      {
+        title: "Buat Sertifikat",
+        url: "/admin/create-sertifikat",
+        icon: Award,
+      },
       { title: "Kelola Template", url: "/admin/templates", icon: Layout },
     ],
     rektor: [
@@ -65,7 +77,11 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
   const menuItems = {
     admin: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Kelola Sertifikat", url: "/admin/certificates", icon: ShieldCheck },
+      {
+        title: "Kelola Sertifikat",
+        url: "/admin/certificates",
+        icon: ShieldCheck,
+      },
       { title: "Tanda Tangan", url: "/admin/sign", icon: Award },
       { title: "Audit Trail", url: "/admin/audit", icon: Activity },
       { title: "Kelola Pengguna", url: "/admin/users", icon: Users },
@@ -95,7 +111,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
       isActive(path)
         ? "bg-primary text-primary-foreground"
-        : "text-muted-foreground hover:text-accent-foreground",
+        : "text-muted-foreground hover:text-accent-foreground"
     );
 
   const items = menuItems[userRole] || menuItems.dosen;
@@ -114,7 +130,9 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
       className={cn(
         "relative flex h-screen flex-col bg-umc-light-gray dark:bg-neutral-900 border-r border-border transition-all duration-300 pt-28",
         "fixed inset-y-0 left-0 z-40 overflow-hidden",
-        collapsed ? "w-14 -translate-x-full lg:translate-x-0 justify-center items-center" : "w-64",
+        collapsed
+          ? "w-14 -translate-x-full lg:translate-x-0 justify-center items-center"
+          : "w-64"
       )}
     >
       {/* Header */}
@@ -180,7 +198,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
             onClick={() => setIsDocumentMenuOpen(!isDocumentMenuOpen)}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-              "text-muted-foreground hover:text-accent-foreground",
+              "text-muted-foreground hover:text-accent-foreground"
             )}
           >
             <FileText className="h-4 w-4 shrink-0" />
@@ -190,7 +208,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
                 <ChevronDown
                   className={cn(
                     "ml-auto h-4 w-4 transition-transform",
-                    isDocumentMenuOpen && "rotate-180",
+                    isDocumentMenuOpen && "rotate-180"
                   )}
                 />
               </>
@@ -208,7 +226,7 @@ export function AppSidebar({ userRole, collapsed, onCollapsedChange }: AppSideba
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                     isActive(subItem.url)
                       ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-accent-foreground",
+                      : "text-muted-foreground hover:text-accent-foreground"
                   )}
                 >
                   <subItem.icon className="h-4 w-4 shrink-0" />

@@ -1,12 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { Calendar, Calendar1, Eye, EyeOff, FileText, Loader2, PenTool, QrCode } from "lucide-react";
+import {
+  Calendar,
+  Calendar1,
+  Eye,
+  EyeOff,
+  FileText,
+  Loader2,
+  PenTool,
+  QrCode,
+} from "lucide-react";
 import { useState } from "react";
 import IjazahSignPreview from "@/components/IjazahSignPreview";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import {
   Select,
@@ -41,23 +55,33 @@ export default function DocumentSigning() {
   const { userProfile } = useAuth();
 
   const { data: signingKeys, isLoading: isLoadingKeys } = useFetchSigningKeys(
-    userProfile?.id ?? "",
+    userProfile?.id ?? ""
   );
   const { latestKey } = useFetchLatestKey(userProfile?.id ?? "");
 
-  const docsByUserHook = useFetchDocumentsByUserId(userProfile?.id ?? "", ["pending", "revoked"], {
-    enabled: userProfile?.role !== "admin",
-  });
+  const docsByUserHook = useFetchDocumentsByUserId(
+    userProfile?.id ?? "",
+    ["pending", "revoked"],
+    {
+      enabled: userProfile?.role !== "admin",
+    }
+  );
   const allDocsHook = useFetchAllDocuments({
     enabled: userProfile?.role === "admin",
     status: ["pending", "revoked"],
   });
 
-  const documents = (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) || [];
+  const documents =
+    (userProfile?.role === "admin" ? allDocsHook.data : docsByUserHook.data) ||
+    [];
   const isLoadingDocuments =
-    userProfile?.role === "admin" ? allDocsHook.isLoading : docsByUserHook.isLoading;
+    userProfile?.role === "admin"
+      ? allDocsHook.isLoading
+      : docsByUserHook.isLoading;
   const refetchDocuments =
-    userProfile?.role === "admin" ? allDocsHook.refetch : docsByUserHook.refetch;
+    userProfile?.role === "admin"
+      ? allDocsHook.refetch
+      : docsByUserHook.refetch;
 
   const [passphraseInput, setPassphraseInput] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
@@ -65,7 +89,9 @@ export default function DocumentSigning() {
   const [isSigning, setIsSigning] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(
+    null
+  );
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
   const openSignDialog = (document: UserDocument) => {
@@ -91,10 +117,14 @@ export default function DocumentSigning() {
       const accessToken = sessionData.session?.access_token;
 
       // Generate signed PDF. This is done first before crypto signing because this part is more prone to errors
-      const signedPdfBlob = await generateSignedPDF(selectedDocument, { accessToken });
+      const signedPdfBlob = await generateSignedPDF(selectedDocument, {
+        accessToken,
+      });
 
       // Now sign the document object using the selected key and passphrase
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sign-document`;
+      const url = `${
+        import.meta.env.VITE_SUPABASE_URL
+      }/functions/v1/sign-document`;
       const response = await axios.post(
         url,
         {
@@ -102,14 +132,15 @@ export default function DocumentSigning() {
           signerUserId: userProfile.id,
           passphrase: passphraseInput,
           recipientName: selectedDocument.recipient_name || "",
-          recipientStudentNumber: selectedDocument.recipient_student_number || "",
+          recipientStudentNumber:
+            selectedDocument.recipient_student_number || "",
         },
         {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        },
+        }
       );
 
       // If signing succeeds, upload the generated signed PDF to storage
@@ -117,7 +148,7 @@ export default function DocumentSigning() {
         signedPdfBlob,
         userProfile.id,
         selectedDocument.id,
-        supabase,
+        supabase
       );
 
       // If upload fail, revert document status in the db to pending
@@ -127,7 +158,10 @@ export default function DocumentSigning() {
           .update({ status: "pending" })
           .eq("id", selectedDocument.id);
 
-        console.error("uploadSignedPDF returned null for document", selectedDocument.id);
+        console.error(
+          "uploadSignedPDF returned null for document",
+          selectedDocument.id
+        );
         throw new Error("Failed to upload signed PDF");
       }
 
@@ -146,7 +180,7 @@ export default function DocumentSigning() {
       await createAuditEntry(
         userProfile.id,
         "SIGN_DOCUMENT",
-        `Menandatangani dokumen "${selectedDocument.title}"`,
+        `Menandatangani dokumen "${selectedDocument.title}"`
       );
 
       toast({
@@ -168,7 +202,8 @@ export default function DocumentSigning() {
 
       toast({
         title: "Error",
-        description: err?.response?.data?.error || "Gagal menandatangani dokumen",
+        description:
+          err?.response?.data?.error || "Gagal menandatangani dokumen",
         variant: "destructive",
       });
     } finally {
@@ -202,7 +237,9 @@ export default function DocumentSigning() {
     <DashboardLayout userRole={userProfile?.role as any}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tanda Tangan Dokumen</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Tanda Tangan Dokumen
+          </h1>
           <p className="text-muted-foreground">
             Tandatangani dokumen Anda dengan sertifikat digital
           </p>
@@ -220,9 +257,12 @@ export default function DocumentSigning() {
             {documents.length === 0 ? (
               <div className="text-center py-12">
                 <PenTool className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Tidak Ada Dokumen Pending</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  Tidak Ada Dokumen Pending
+                </h3>
                 <p className="text-muted-foreground">
-                  Semua dokumen Anda sudah ditandatangani atau belum ada dokumen yang diupload
+                  Semua dokumen Anda sudah ditandatangani atau belum ada dokumen
+                  yang diupload
                 </p>
               </div>
             ) : (
@@ -233,7 +273,9 @@ export default function DocumentSigning() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Judul Dokumen</TableHead>
-                        {userProfile?.role === "admin" && <TableHead>Penandatangan</TableHead>}
+                        {userProfile?.role === "admin" && (
+                          <TableHead>Penandatangan</TableHead>
+                        )}
                         <TableHead>Status</TableHead>
                         <TableHead>Dibuat</TableHead>
                         <TableHead>Aksi</TableHead>
@@ -253,8 +295,12 @@ export default function DocumentSigning() {
                           {/* (Admin only) Penandatangan */}
                           {userProfile?.role === "admin" && (
                             <TableCell>
-                              <div className="font-semibold">{doc.user.name}</div>
-                              <div className="text-sm text-muted-foreground">{doc.user.email}</div>
+                              <div className="font-semibold">
+                                {doc.user.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {doc.user.email}
+                              </div>
                             </TableCell>
                           )}
 
@@ -268,7 +314,9 @@ export default function DocumentSigning() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span className="text-sm">
-                                {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                                {new Date(doc.created_at).toLocaleDateString(
+                                  "id-ID"
+                                )}
                               </span>
                             </div>
                           </TableCell>
@@ -344,10 +392,7 @@ export default function DocumentSigning() {
                             <Eye className="mr-2 h-4 w-4" />
                             Preview
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => openSignDialog(doc)}
-                          >
+                          <Button size="sm" onClick={() => openSignDialog(doc)}>
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
                           </Button>
@@ -362,10 +407,7 @@ export default function DocumentSigning() {
         </Card>
 
         {/* Sign Dialog */}
-        <Dialog
-          open={isSignDialogOpen}
-          onOpenChange={closeDialog}
-        >
+        <Dialog open={isSignDialogOpen} onOpenChange={closeDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Tanda Tangan Dokumen</DialogTitle>
@@ -381,7 +423,9 @@ export default function DocumentSigning() {
 
                   {/* Certificate (internally: signing key) selection */}
                   <div className="p-4 bg-muted rounded-lg">
-                    <Label htmlFor="signing-key">Pilih sertifikat untuk menandatangani:</Label>
+                    <Label htmlFor="signing-key">
+                      Pilih kunci digital untuk menandatangani:
+                    </Label>
                     {signingKeys && signingKeys.length > 0 ? (
                       <Select
                         value={selectedKeyId ?? ""}
@@ -390,16 +434,15 @@ export default function DocumentSigning() {
                         <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
-                              isLoadingKeys ? "Memuat sertifikat..." : "Pilih sertifikat..."
+                              isLoadingKeys
+                                ? "Memuat kunci digital..."
+                                : "Pilih kunci digital..."
                             }
                           />
                         </SelectTrigger>
                         <SelectContent>
                           {signingKeys.map((k) => (
-                            <SelectItem
-                              key={k.kid}
-                              value={k.kid}
-                            >
+                            <SelectItem key={k.kid} value={k.kid}>
                               {k.kid}
                             </SelectItem>
                           ))}
@@ -407,7 +450,7 @@ export default function DocumentSigning() {
                       </Select>
                     ) : (
                       <div className="text-sm text-muted-foreground">
-                        (Tidak ada sertifikat tersedia)
+                        (Tidak ada kunci digital tersedia)
                       </div>
                     )}
                   </div>
@@ -428,7 +471,9 @@ export default function DocumentSigning() {
                         type="button"
                         onClick={() => setShowPassphrase(!showPassphrase)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
-                        aria-label={showPassphrase ? "Hide passphrase" : "Show passphrase"}
+                        aria-label={
+                          showPassphrase ? "Hide passphrase" : "Show passphrase"
+                        }
                       >
                         {showPassphrase ? (
                           <EyeOff className="h-4 w-4" />
@@ -449,23 +494,18 @@ export default function DocumentSigning() {
                       Setelah ditandatangani:
                     </p>
                     <p className="text-blue-700 dark:text-blue-200">
-                      Dokumen akan mendapatkan QR code untuk verifikasi dan tidak dapat diubah lagi.
+                      Dokumen akan mendapatkan QR code untuk verifikasi dan
+                      tidak dapat diubah lagi.
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={closeDialog}
-                >
+                <Button variant="outline" onClick={closeDialog}>
                   Batal
                 </Button>
-                <Button
-                  onClick={signDocument}
-                  disabled={isSigning}
-                >
+                <Button onClick={signDocument} disabled={isSigning}>
                   {isSigning ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateSignedPDF, uploadPDF } from "../_shared/pdfGenerator.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -64,6 +65,99 @@ const supabase = createClient(
 // Helper for base64 → string
 function base64ToStr(bytes: Uint8Array) {
   return String.fromCharCode(...bytes);
+}
+
+// Retry helper with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000,
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Attempt ${attempt + 1} failed:`, lastError.message);
+      
+      if (attempt < maxRetries - 1) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error("All retry attempts failed");
+}
+
+// Generate and upload PDF with retry logic
+async function generateAndUploadPDF(
+  documentId: string,
+  userId: string,
+): Promise<{ fileUrl: string; pdfGenerated: boolean }> {
+  try {
+    console.log("Starting PDF generation for document:", documentId);
+    
+    // Fetch document with all necessary data
+    const { data: document, error: docError } = await supabase
+      .from("documents")
+      .select("*")
+      .eq("id", documentId)
+      .single();
+    
+    if (docError || !document) {
+      throw new Error(`Failed to fetch document: ${docError?.message || "Not found"}`);
+    }
+    
+    // Fetch all signatures for this document
+    const { data: signatures, error: sigError } = await supabase
+      .from("document_signatures")
+      .select("*")
+      .eq("document_id", documentId)
+      .order("created_at", { ascending: true });
+    
+    if (sigError) {
+      throw new Error(`Failed to fetch signatures: ${sigError.message}`);
+    }
+    
+    // Generate PDF
+    console.log("Generating PDF...");
+    const pdfBytes = await generateSignedPDF(document, signatures || [], supabase);
+    console.log("PDF generated successfully, size:", pdfBytes.length, "bytes");
+    
+    // Upload PDF with retry logic
+    console.log("Uploading PDF to storage...");
+    const fileUrl = await retryWithBackoff(
+      () => uploadPDF(pdfBytes, userId, documentId, supabase),
+      3,
+      1000
+    );
+    console.log("PDF uploaded successfully:", fileUrl);
+    
+    // Update document with file_url with retry logic
+    console.log("Updating document with file_url...");
+    await retryWithBackoff(async () => {
+      const { error: updateError } = await supabase
+        .from("documents")
+        .update({ file_url: fileUrl })
+        .eq("id", documentId);
+      
+      if (updateError) {
+        throw new Error(`Failed to update file_url: ${updateError.message}`);
+      }
+    }, 3, 1000);
+    
+    console.log("Document updated successfully with file_url");
+    
+    return { fileUrl, pdfGenerated: true };
+  } catch (error) {
+    console.error("Error in generateAndUploadPDF:", error);
+    // Don't throw - we want signing to succeed even if PDF generation fails
+    return { fileUrl: "", pdfGenerated: false };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -206,28 +300,100 @@ Deno.serve(async (req) => {
     const metadata = doc.metadata as any;
     const workflowStage = metadata?.workflow_stage;
     const rektorId = metadata?.rektor_id;
+    const signer1Id = metadata?.signer1_id;
+    const signer2Id = metadata?.signer2_id;
 
-    // If dekan signed, move to rektor
-    if (workflowStage === "dekan" && rektorId) {
-      const { error: workflowError } = await supabase
-        .from("documents")
-        .update({
-          status: "pending",
-          user_id: rektorId,
-          signing_key_id: keyRow.kid,
-          metadata: {
-            ...metadata,
-            workflow_stage: "rektor",
-            dekan_signed_at: new Date().toISOString(),
-          },
-        })
-        .eq("id", documentId);
+    let shouldGeneratePDF = false;
+    let fileUrl = "";
+    let pdfGenerated = false;
 
-      if (workflowError) {
-        console.error("Workflow transition error:", workflowError);
+    // Determine if this is a multi-stage workflow and handle transitions
+    let isMultiStage = false;
+    let isFinalStage = false;
+
+    // Ijazah workflow: dekan_pending → dekan → rektor
+    if (workflowStage === "dekan_pending" || workflowStage === "dekan") {
+      isMultiStage = true;
+      if (rektorId) {
+        // Dekan signed, transition to rektor
+        const { error: workflowError } = await supabase
+          .from("documents")
+          .update({
+            status: "pending",
+            user_id: rektorId,
+            signing_key_id: keyRow.kid,
+            metadata: {
+              ...metadata,
+              workflow_stage: "rektor",
+              dekan_signed_at: new Date().toISOString(),
+            },
+          })
+          .eq("id", documentId);
+
+        if (workflowError) {
+          console.error("Workflow transition error (dekan → rektor):", workflowError);
+        }
+        
+        isFinalStage = false;
+        console.log("Ijazah workflow: Dekan signed, transitioning to Rektor");
+      } else {
+        // No rektor specified, this is final
+        isFinalStage = true;
+        console.log("Ijazah workflow: No rektor specified, treating as final stage");
       }
-    } else {
-      // Final signature or single-stage document
+    } 
+    // Ijazah workflow: rektor stage (final)
+    else if (workflowStage === "rektor") {
+      isMultiStage = true;
+      isFinalStage = true;
+      console.log("Ijazah workflow: Rektor signed (final stage)");
+    }
+    // Sertifikat workflow: pending_signer1 → pending_signer2 (if exists)
+    else if (workflowStage === "pending_signer1") {
+      isMultiStage = true;
+      if (signer2Id) {
+        // Signer1 signed, transition to signer2
+        const { error: workflowError } = await supabase
+          .from("documents")
+          .update({
+            status: "pending",
+            user_id: signer2Id,
+            signing_key_id: keyRow.kid,
+            metadata: {
+              ...metadata,
+              workflow_stage: "pending_signer2",
+              signer1_signed_at: new Date().toISOString(),
+            },
+          })
+          .eq("id", documentId);
+
+        if (workflowError) {
+          console.error("Workflow transition error (signer1 → signer2):", workflowError);
+        }
+        
+        isFinalStage = false;
+        console.log("Sertifikat workflow: Signer1 signed, transitioning to Signer2");
+      } else {
+        // No signer2, this is final
+        isFinalStage = true;
+        console.log("Sertifikat workflow: No signer2, treating as final stage");
+      }
+    }
+    // Sertifikat workflow: pending_signer2 (final)
+    else if (workflowStage === "pending_signer2") {
+      isMultiStage = true;
+      isFinalStage = true;
+      console.log("Sertifikat workflow: Signer2 signed (final stage)");
+    }
+    // No workflow stage or unknown stage - treat as single-stage document
+    else {
+      isMultiStage = false;
+      isFinalStage = true;
+      console.log("Single-stage document or unknown workflow stage");
+    }
+
+    // Update document status based on whether this is the final stage
+    if (isFinalStage) {
       const { error: updateError } = await supabase
         .from("documents")
         .update({ status: "signed", signing_key_id: keyRow.kid })
@@ -235,12 +401,47 @@ Deno.serve(async (req) => {
       if (updateError) {
         throw updateError;
       }
+      
+      // Generate PDF only at final stage
+      shouldGeneratePDF = true;
+      console.log("Final signature - will generate PDF");
+    } else {
+      // Not final stage, don't generate PDF yet
+      shouldGeneratePDF = false;
+      console.log("Multi-stage workflow: waiting for next signer, PDF generation deferred");
     }
 
-    return new Response(JSON.stringify({ ok: true, keyId: keyRow.kid, hash, signature }), {
-      status: 200,
-      headers,
-    });
+    // Generate and upload PDF if this is the final signature
+    if (shouldGeneratePDF) {
+      try {
+        const pdfResult = await generateAndUploadPDF(documentId, doc.user_id);
+        fileUrl = pdfResult.fileUrl;
+        pdfGenerated = pdfResult.pdfGenerated;
+        
+        if (!pdfGenerated) {
+          console.warn("PDF generation failed, but signing completed successfully");
+        }
+      } catch (error) {
+        // Log error but don't fail the signing process
+        console.error("PDF generation error (non-fatal):", error);
+        pdfGenerated = false;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        ok: true, 
+        keyId: keyRow.kid, 
+        hash, 
+        signature,
+        fileUrl: fileUrl || undefined,
+        pdfGenerated,
+      }), 
+      {
+        status: 200,
+        headers,
+      }
+    );
   } catch (err) {
     console.error("sign-document error:", err);
     return new Response(JSON.stringify({ error: String(err?.message ?? err) }), {

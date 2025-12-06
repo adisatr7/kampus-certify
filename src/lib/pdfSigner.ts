@@ -5,7 +5,9 @@ import QRCode from "qrcode";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
-import { UserDocument } from "@/types";
+import { SertifikatTemplate } from "@/components/SertifikatTemplate";
+import IjazahTemplate from "@/components/IjazahTemplate";
+import { UserDocument, Sertifikat, Ijazah } from "@/types";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
@@ -21,7 +23,8 @@ export async function generateSignedPDF(
   const shouldUseHtmlSnapshot = !originalPdfUrl;
 
   // Pre-generate QR code (used both for programmatic and html snapshot flows)
-  const qrContent = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${doc.serial ?? doc.id}`;
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const qrContent = `${window.location.origin}${baseUrl}verify?id=${doc.serial ?? doc.id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {
     width: 200,
     margin: 2,
@@ -54,6 +57,9 @@ export async function generateSignedPDF(
     }
   } else {
     if (shouldUseHtmlSnapshot) {
+      let container: HTMLDivElement | null = null;
+      let root: any = null;
+      
       try {
         const DPI = 300; // Desired output DPI (changeable)
 
@@ -70,7 +76,7 @@ export async function generateSignedPDF(
         // Compute scale for html2canvas to reach desired DPI
         const scale = DPI / CSS_DPI; // e.g. 300/96 ~= 3.125
 
-        const container = document.createElement("div");
+        container = document.createElement("div");
         container.style.position = "fixed";
         container.style.left = "-9999px";
         container.style.top = "0";
@@ -88,12 +94,135 @@ export async function generateSignedPDF(
 
         document.body.appendChild(container);
 
-        const root = createRoot(container);
+        root = createRoot(container);
 
-        // Pass qr_code_url so the template renders the same QR we expect
-        const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
-        // Use React.createElement instead of JSX since this is a .ts file
-        root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
+        // Import supabase client
+        const { supabase } = await import("@/integrations/supabase/client");
+
+        // Check document type
+        const isIjazah = doc.title?.toLowerCase().includes("ijazah");
+        const isSertifikat = doc.title?.toLowerCase().includes("sertifikat");
+        
+        if (isIjazah) {
+          console.log("Rendering ijazah template for document:", doc.id);
+          
+          console.log("Fetching ijazah data for document_id:", doc.id);
+          const { data: ijazahData, error: ijazahError } = await supabase
+            .from("ijazah")
+            .select("*")
+            .eq("document_id", doc.id)
+            .maybeSingle();
+          
+          if (ijazahError) {
+            console.error("Error fetching ijazah data:", ijazahError);
+            throw new Error(`Failed to fetch ijazah data: ${ijazahError.message}`);
+          }
+          
+          if (!ijazahData) {
+            console.error("Ijazah data not found for document_id:", doc.id);
+            throw new Error("Ijazah data not found");
+          }
+          
+          console.log("Ijazah data fetched:", ijazahData);
+          
+          // Get metadata for dekan and rektor info
+          const metadata = (doc.metadata as any) || {};
+          
+          // Fetch dekan data
+          const dekanId = metadata.created_by_id || doc.user_id;
+          const { data: dekanData } = await supabase
+            .from("users")
+            .select("name, nip")
+            .eq("id", dekanId)
+            .maybeSingle();
+          
+          // Fetch rektor data
+          const rektorId = metadata.rektor_id;
+          const { data: rektorData } = await supabase
+            .from("users")
+            .select("name, nip")
+            .eq("id", rektorId)
+            .maybeSingle();
+          
+          console.log("Dekan data:", dekanData);
+          console.log("Rektor data:", rektorData);
+          
+          // Render IjazahTemplate
+          root.render(
+            React.createElement(IjazahTemplate, {
+              nim: ijazahData.nim,
+              nomorIjazah: ijazahData.nomor_seri || doc.serial || doc.id,
+              logoUrl: ijazahData.logo_url || "/logo-umc.svg",
+              namaMahasiswa: ijazahData.nama_mahasiswa,
+              programStudi: "", // Not in database, can be added later if needed
+              fakultas: ijazahData.nama_fakultas,
+              gelar: ijazahData.gelar,
+              tanggalTerbit: ijazahData.tanggal_terbit,
+              dekanName: dekanData?.name,
+              dekanNip: dekanData?.nip,
+              dekanQrCode: metadata.dekan_qr_code,
+              rektorName: rektorData?.name,
+              rektorNip: rektorData?.nip,
+              rektorQrCode: metadata.rektor_qr_code,
+            })
+          );
+        } else if (isSertifikat) {
+          console.log("Rendering sertifikat template for document:", doc.id);
+          
+          console.log("Fetching sertifikat data for document_id:", doc.id);
+          const { data: sertifikatData, error: sertifikatError } = await supabase
+            .from("sertifikat")
+            .select("*")
+            .eq("document_id", doc.id)
+            .maybeSingle();
+          
+          if (sertifikatError) {
+            console.error("Error fetching sertifikat data:", sertifikatError);
+            throw new Error(`Failed to fetch sertifikat data: ${sertifikatError.message}`);
+          }
+          
+          if (!sertifikatData) {
+            console.error("Sertifikat data not found for document_id:", doc.id);
+            throw new Error("Sertifikat data not found");
+          }
+          
+          console.log("Sertifikat data fetched:", sertifikatData);
+          
+          // Fetch user data for penandatangan from document metadata or user_id
+          const metadata = (doc.metadata as any) || {};
+          const signerId = metadata.signer1_id || doc.user_id;
+          
+          console.log("Fetching user data for signer:", signerId);
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("name, jabatan")
+            .eq("id", signerId)
+            .maybeSingle();
+          
+          if (userError) {
+            console.warn("Error fetching user data:", userError);
+          }
+          
+          console.log("User data fetched:", userData);
+          
+          // Render SertifikatTemplate
+          root.render(
+            React.createElement(SertifikatTemplate, {
+              sertifikat: sertifikatData as Sertifikat,
+              qrValue: qrContent,
+              showQR: true,
+              penandatangan1: userData
+                ? { name: userData.name, jabatan: userData.jabatan || undefined }
+                : undefined,
+              templateId: sertifikatData.template_id || "default",
+            })
+          );
+        } else {
+          // Pass qr_code_url so the template renders the same QR we expect
+          const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+          // Use React.createElement instead of JSX since this is a .ts file
+          root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
+        }
 
         // Wait for webfonts to be ready (ensures text metrics match preview)
         if (document.fonts && document.fonts.ready) {
@@ -104,20 +233,49 @@ export async function generateSignedPDF(
           }
         }
 
-        // Wait for any images inside the offscreen container to load (e.g., QR)
+        // Wait for any images inside the offscreen container to load (e.g., QR, background)
         const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
+        console.log(`Waiting for ${imgs.length} images to load...`);
+        
+        // Force images to load by setting crossOrigin
+        imgs.forEach((img) => {
+          if (!img.crossOrigin) {
+            img.crossOrigin = "anonymous";
+          }
+        });
+        
         await Promise.all(
           imgs.map(
-            (img) =>
+            (img, index) =>
               new Promise<void>((res) => {
-                if (img.complete) return res();
-                img.onload = img.onerror = () => res();
+                if (img.complete && img.naturalWidth > 0) {
+                  console.log(`Image ${index + 1}/${imgs.length} already loaded: ${img.src.substring(0, 80)}`);
+                  return res();
+                }
+                console.log(`Waiting for image ${index + 1}/${imgs.length}: ${img.src.substring(0, 80)}`);
+                
+                const timeout = setTimeout(() => {
+                  console.warn(`Image ${index + 1} load timeout: ${img.src}`);
+                  res();
+                }, 10000);
+                
+                img.onload = () => {
+                  clearTimeout(timeout);
+                  console.log(`✅ Image ${index + 1}/${imgs.length} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`);
+                  res();
+                };
+                img.onerror = (e) => {
+                  clearTimeout(timeout);
+                  console.error(`❌ Image ${index + 1} failed to load: ${img.src}`, e);
+                  res(); // Continue even if image fails
+                };
               }),
           ),
         );
 
-        // Small extra settle time for layout
-        await new Promise((res) => setTimeout(res, 120));
+        // Small extra settle time for layout and background rendering
+        console.log("Waiting for layout to settle...");
+        await new Promise((res) => setTimeout(res, 1000));
 
         // Measure the actual rendered height of the template (in CSS px)
         const renderedHeightCss = Math.max(container.scrollHeight, heightCssPx);
@@ -128,13 +286,15 @@ export async function generateSignedPDF(
         const canvas = await html2canvas(container as HTMLElement, {
           scale,
           useCORS: true,
-          allowTaint: false,
+          allowTaint: true, // Allow tainted canvas to capture background images
           backgroundColor: "#ffffff",
           width: widthCssPx,
           height: renderedHeightCss,
           windowWidth: widthCssPx,
           windowHeight: renderedHeightCss,
           logging: true,
+          foreignObjectRendering: false, // Use native rendering for better background support
+          imageTimeout: 15000, // Wait longer for images to load
         });
 
         console.debug("Full-page canvas dimensions:", canvas.width, "x", canvas.height);
@@ -212,6 +372,19 @@ export async function generateSignedPDF(
         return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       } catch (err) {
         console.error("html2canvas snapshot failed — aborting (template required):", err);
+        
+        // Cleanup: unmount and remove container if it exists
+        try {
+          if (root) {
+            root.unmount();
+          }
+          if (container && container.parentNode) {
+            document.body.removeChild(container);
+          }
+        } catch (cleanupErr) {
+          console.error("Error during cleanup:", cleanupErr);
+        }
+        
         throw new Error(
           `Signed document snapshot failed for document ${doc.id}: ${
             err instanceof Error ? err.message : String(err)
@@ -428,9 +601,16 @@ export async function uploadSignedPDF(
   supabase: SupabaseClient,
 ): Promise<string | null> {
   try {
+    console.log("=== Upload Signed PDF ===");
+    console.log("User ID:", userId);
+    console.log("Document ID:", documentId);
+    console.log("PDF Blob size:", pdfBlob.size, "bytes");
+    console.log("PDF Blob type:", pdfBlob.type);
+    
     const signedFileName = `${userId}/${documentId}-signed-${Date.now()}.pdf`;
+    console.log("Upload path:", signedFileName);
 
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from("signed-documents")
       .upload(signedFileName, pdfBlob, {
         contentType: "application/pdf",
@@ -439,18 +619,40 @@ export async function uploadSignedPDF(
       });
 
     if (uploadError) {
-      console.error("Error uploading signed PDF:", uploadError);
+      console.error("=== Upload Error ===");
+      console.error("Error code:", uploadError.message);
+      console.error("Error details:", uploadError);
       return null;
     }
+
+    console.log("Upload successful:", uploadData);
 
     // Get public URL
     const {
       data: { publicUrl },
     } = supabase.storage.from("signed-documents").getPublicUrl(signedFileName);
 
+    console.log("Public URL generated:", publicUrl);
+    
+    // Verify the file exists by checking if we can get it
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from("signed-documents")
+      .list(userId, {
+        search: `${documentId}-signed`,
+      });
+    
+    if (fileError) {
+      console.warn("Warning: Could not verify file upload:", fileError);
+    } else {
+      console.log("File verification:", fileData);
+    }
+
     return publicUrl;
   } catch (error) {
-    console.error("Error in uploadSignedPDF:", error);
+    console.error("=== Exception in uploadSignedPDF ===");
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "N/A");
     return null;
   }
 }

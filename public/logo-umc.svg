@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="95" fill="#8B0000" stroke="#FFD700" stroke-width="5"/>
+  <text x="100" y="85" text-anchor="middle" fill="#FFD700" font-size="24" font-weight="bold" font-family="serif">UNIVERSITAS</text>
+  <text x="100" y="115" text-anchor="middle" fill="#FFD700" font-size="24" font-weight="bold" font-family="serif">MUHAMMADIYAH</text>
+  <text x="100" y="145" text-anchor="middle" fill="#FFD700" font-size="24" font-weight="bold" font-family="serif">CIREBON</text>
+</svg>

@@ -4,8 +4,9 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, authorization",
+    "authorization, x-client-info, apikey, content-type, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, user-agent, referer",
   "Access-Control-Max-Age": "86400",
+  "Access-Control-Allow-Credentials": "true",
 };
 
 interface CreateUserRequest {
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create user in users table
+    // Create user in users table (role is already in users table)
     const { data: newUser, error: userError } = await supabaseAdmin
       .from("users")
       .insert({
@@ -113,32 +114,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create user role entry
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({
-        user_id: newUser.id,
-        role: body.role,
-      });
-
-    if (roleError) {
-      console.error("Error creating user role:", roleError);
-      // Delete user if role creation fails
-      await supabaseAdmin.from("users").delete().eq("id", newUser.id);
-
-      return new Response(
-        JSON.stringify({
-          error: `Gagal membuat role pengguna: ${roleError.message}`,
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
+    // Note: user_roles table is not used anymore, role is stored directly in users table
 
     return new Response(
       JSON.stringify({

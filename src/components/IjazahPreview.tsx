@@ -1,6 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
-import { UserDocument } from "@/types";
-import IjazahDocumentTemplate from "./IjazahDocumentTemplate";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/Dialog";
+import IjazahTemplate from "./IjazahTemplate";
 
 interface IjazahPreviewProps {
   isOpen: boolean;
@@ -11,9 +15,12 @@ interface IjazahPreviewProps {
     nama_fakultas: string;
     gelar: string;
     tanggal_terbit: string;
+    logo_url?: string;
   };
   dekanName?: string;
   dekanNip?: string;
+  rektorName?: string;
+  rektorNip?: string;
 }
 
 export default function IjazahPreview({
@@ -22,51 +29,40 @@ export default function IjazahPreview({
   formData,
   dekanName,
   dekanNip,
+  rektorName,
+  rektorNip,
 }: IjazahPreviewProps) {
-  // Create a mock document for preview
-  const mockDocument: UserDocument = {
-    id: "preview-id",
-    title: `Ijazah - ${formData.nama_mahasiswa}`,
-    content: "",
-    status: "pending",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    user_id: "preview-user",
-    recipient_name: formData.nama_mahasiswa,
-    recipient_student_number: formData.nim,
-    serial: "IZH-XXXX-UMC-2025",
-    user: {
-      id: "preview-user",
-      name: dekanName || "Nama Dekan",
-      email: "dekan@example.com",
-      role: "dekan",
-      nip: dekanNip || "1234567890",
-      jabatan: "Dekan Fakultas",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  };
+  // Generate nomor ijazah untuk preview
+  const nomorIjazah = `IZH/0001/XI/${new Date().getFullYear()}`;
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={onClose}
-    >
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Preview Ijazah</DialogTitle>
         </DialogHeader>
-        <div className="bg-white">
-          <IjazahDocumentTemplate
-            document={mockDocument}
-            ijazahData={{
-              nama_mahasiswa: formData.nama_mahasiswa,
-              nim: formData.nim,
-              gelar: formData.gelar,
-              nama_fakultas: formData.nama_fakultas,
-              tanggal_terbit: formData.tanggal_terbit,
-            }}
-          />
+        <div className="bg-gray-100 p-4">
+          <div className="transform scale-75 origin-top">
+            <IjazahTemplate
+              nim={formData.nim}
+              nomorIjazah={nomorIjazah}
+              logoUrl={formData.logo_url || "/logo-umc.svg"}
+              namaMahasiswa={formData.nama_mahasiswa}
+              programStudi="Teknik Informatika"
+              fakultas={formData.nama_fakultas}
+              gelar={formData.gelar}
+              tanggalTerbit={formData.tanggal_terbit}
+              dekanName={dekanName}
+              dekanNip={dekanNip}
+              rektorName={rektorName}
+              rektorNip={rektorNip}
+            />
+          </div>
+          <div className="mt-4 text-center text-sm text-gray-600">
+            <p>
+              Catatan: QR code akan ditambahkan setelah ijazah ditandatangani
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
