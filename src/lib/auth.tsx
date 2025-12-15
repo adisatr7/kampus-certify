@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "./audit";
 import { User as UserProfile } from "../types";
 
 interface AuthContextType {
@@ -124,6 +125,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               console.log("Auth: Successfully fetched profile:", profile);
               setUserProfile(profile);
+
+              // Audit log for login
+              await createAuditEntry(
+                profile.id,
+                "LOGIN",
+                `Login berhasil: ${profile.name} (${profile.email})`
+              );
             }
           } catch (err) {
             console.error("Auth: Profile fetch error:", err);
@@ -178,6 +186,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Audit log for logout before clearing profile
+      if (userProfile?.id) {
+        await createAuditEntry(
+          userProfile.id,
+          "LOGOUT",
+          `Logout: ${userProfile.name} (${userProfile.email})`
+        );
+      }
+
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);

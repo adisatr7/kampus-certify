@@ -1,13 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import html2canvas from "html2canvas";
-import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
+import { generateIjazahPDF } from "./puppeteerPdfGenerator";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
 import { SertifikatTemplate } from "@/components/SertifikatTemplate";
-import IjazahTemplate from "@/components/IjazahTemplate";
-import { UserDocument, Sertifikat, Ijazah } from "@/types";
+import IjazahRenderer from "@/components/IjazahRenderer";
+import { UserDocument, Sertifikat, DocumentTemplate } from "@/types";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
@@ -15,7 +16,7 @@ import { UserDocument, Sertifikat, Ijazah } from "@/types";
  */
 export async function generateSignedPDF(
   doc: UserDocument,
-  options?: { accessToken?: string },
+  options?: { accessToken?: string; usePuppeteer?: boolean },
 ): Promise<Blob> {
   const { file_url: originalPdfUrl } = doc;
   let pdfDoc: PDFDocument;
@@ -63,15 +64,25 @@ export async function generateSignedPDF(
       try {
         const DPI = 300; // Desired output DPI (changeable)
 
-        // A4 in mm and helper
+        // Check document type for orientation (declare once at the top)
+        const isIjazahDoc = doc.title?.toLowerCase().includes("ijazah");
+        const isSertifikatDoc = doc.title?.toLowerCase().includes("sertifikat");
+        
+        // A4 dimensions in mm
         const A4_WIDTH_MM = 210;
         const A4_HEIGHT_MM = 297;
         const mmToInch = (mm: number) => mm / 25.4;
 
         // CSS pixels viewport based on 96 DPI (so Tailwind breakpoints match)
         const CSS_DPI = 96;
-        const widthCssPx = Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI); // ~794
-        const heightCssPx = Math.round(mmToInch(A4_HEIGHT_MM) * CSS_DPI); // ~1123
+        
+        // Use landscape for sertifikat, portrait for ijazah
+        const widthCssPx = isSertifikatDoc 
+          ? Math.round(mmToInch(A4_HEIGHT_MM) * CSS_DPI) // ~1123 (landscape width)
+          : Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI);  // ~794 (portrait width)
+        const heightCssPx = isSertifikatDoc 
+          ? Math.round(mmToInch(A4_WIDTH_MM) * CSS_DPI)  // ~794 (landscape height)
+          : Math.round(mmToInch(A4_HEIGHT_MM) * CSS_DPI); // ~1123 (portrait height)
 
         // Compute scale for html2canvas to reach desired DPI
         const scale = DPI / CSS_DPI; // e.g. 300/96 ~= 3.125
@@ -81,14 +92,67 @@ export async function generateSignedPDF(
         container.style.left = "-9999px";
         container.style.top = "0";
         container.style.width = `${widthCssPx}px`;
-        container.style.background = "white";
+        container.style.height = `${heightCssPx}px`;
+        container.style.background = isSertifikatDoc ? "#f5f5f0" : "white";
 
-        // Insert a style override to make the template fill the container (disable max-width)
+        // Insert a style override to make the template fill the container and match preview styling
         const overrideStyle = document.createElement("style");
         overrideStyle.innerText = `
           .max-w-4xl { max-width: none !important; width: 100% !important; }
+          .max-w-5xl { max-width: none !important; width: 100% !important; }
           html, body { margin: 0; padding: 0; }
-          img { max-width: 100%; }
+          img { max-width: 100%; height: auto; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .bg-gray-100 { background-color: #f5f5f0 !important; }
+          .bg-gradient-to-br { background: linear-gradient(to bottom right, var(--tw-gradient-stops)) !important; }
+          .from-slate-50 { --tw-gradient-from: #f8fafc !important; }
+          .to-slate-100 { --tw-gradient-to: #f1f5f9 !important; }
+          .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important; }
+          .border-amber-500 { border-color: #f59e0b !important; }
+          .bg-amber-500 { background-color: #f59e0b !important; }
+          .text-white { color: white !important; }
+          .font-bold { font-weight: 700 !important; }
+          .font-medium { font-weight: 500 !important; }
+          .font-semibold { font-weight: 600 !important; }
+          /* Preserve Tailwind padding classes for ijazah - FORCE OVERRIDE */
+          .p-24, div.p-24, [class*="p-24"] { 
+            padding: 6rem !important; 
+            box-sizing: border-box !important;
+          }
+          .p-16, div.p-16, [class*="p-16"] { 
+            padding: 4rem !important; 
+            box-sizing: border-box !important;
+          }
+          .px-8, div.px-8, [class*="px-8"] { 
+            padding-left: 2rem !important; 
+            padding-right: 2rem !important; 
+            box-sizing: border-box !important;
+          }
+          /* Force all padding to be preserved */
+          * { box-sizing: border-box !important; }
+          .mb-6 { margin-bottom: 1.5rem !important; }
+          .mb-4 { margin-bottom: 1rem !important; }
+          .mb-2 { margin-bottom: 0.5rem !important; }
+          .mt-auto { margin-top: auto !important; }
+          .text-center { text-align: center !important; }
+          .flex { display: flex !important; }
+          .flex-col { flex-direction: column !important; }
+          .justify-between { justify-content: space-between !important; }
+          .justify-center { justify-content: center !important; }
+          .items-start { align-items: flex-start !important; }
+          .items-center { align-items: center !important; }
+          .items-end { align-items: flex-end !important; }
+          .relative { position: relative !important; }
+          .absolute { position: absolute !important; }
+          .w-full { width: 100% !important; }
+          .h-full { height: 100% !important; }
+          .flex-1 { flex: 1 1 0% !important; }
+          /* Ensure landscape layout for sertifikat */
+          ${isSertifikatDoc ? `
+            .mb-8 { margin-bottom: 2rem !important; }
+            .px-16 { padding-left: 4rem !important; padding-right: 4rem !important; }
+            .justify-end { justify-content: flex-end !important; }
+          ` : ''}
         `;
         container.appendChild(overrideStyle);
 
@@ -99,11 +163,8 @@ export async function generateSignedPDF(
         // Import supabase client
         const { supabase } = await import("@/integrations/supabase/client");
 
-        // Check document type
-        const isIjazah = doc.title?.toLowerCase().includes("ijazah");
-        const isSertifikat = doc.title?.toLowerCase().includes("sertifikat");
-        
-        if (isIjazah) {
+        // Use the document type variables declared above
+        if (isIjazahDoc) {
           console.log("Rendering ijazah template for document:", doc.id);
           
           console.log("Fetching ijazah data for document_id:", doc.id);
@@ -124,12 +185,16 @@ export async function generateSignedPDF(
           }
           
           console.log("Ijazah data fetched:", ijazahData);
+          console.log("Ijazah template_id from DB:", ijazahData.template_id);
+          
+          // Cast ijazahData to include optional fields
+          const ijazah = ijazahData as any;
           
           // Get metadata for dekan and rektor info
           const metadata = (doc.metadata as any) || {};
           
           // Fetch dekan data
-          const dekanId = metadata.created_by_id || doc.user_id;
+          const dekanId = ijazah.dekan_id || metadata.dekan_id || metadata.created_by_id || doc.user_id;
           const { data: dekanData } = await supabase
             .from("users")
             .select("name, nip")
@@ -137,7 +202,7 @@ export async function generateSignedPDF(
             .maybeSingle();
           
           // Fetch rektor data
-          const rektorId = metadata.rektor_id;
+          const rektorId = ijazah.rektor_id || metadata.rektor_id;
           const { data: rektorData } = await supabase
             .from("users")
             .select("name, nip")
@@ -146,27 +211,29 @@ export async function generateSignedPDF(
           
           console.log("Dekan data:", dekanData);
           console.log("Rektor data:", rektorData);
-          
-          // Render IjazahTemplate
+
+          // Always render IjazahRenderer component to ensure consistency with preview
+          console.log("Rendering IjazahRenderer component for ijazah");
+          console.log("Container dimensions:", widthCssPx, "x", heightCssPx);
           root.render(
-            React.createElement(IjazahTemplate, {
-              nim: ijazahData.nim,
-              nomorIjazah: ijazahData.nomor_seri || doc.serial || doc.id,
-              logoUrl: ijazahData.logo_url || "/logo-umc.svg",
-              namaMahasiswa: ijazahData.nama_mahasiswa,
-              programStudi: "", // Not in database, can be added later if needed
-              fakultas: ijazahData.nama_fakultas,
-              gelar: ijazahData.gelar,
-              tanggalTerbit: ijazahData.tanggal_terbit,
+            React.createElement(IjazahRenderer, {
+              nim: ijazah.nim,
+              nomorIjazah: ijazah.nomor_seri || doc.serial || doc.id,
+              namaMahasiswa: ijazah.nama_mahasiswa,
+              programStudi: "Teknik Informatika",
+              fakultas: ijazah.nama_fakultas,
+              gelar: ijazah.gelar,
+              tanggalTerbit: ijazah.tanggal_terbit,
               dekanName: dekanData?.name,
               dekanNip: dekanData?.nip,
-              dekanQrCode: metadata.dekan_qr_code,
               rektorName: rektorData?.name,
               rektorNip: rektorData?.nip,
-              rektorQrCode: metadata.rektor_qr_code,
+              templateId: ijazah.template_id,
+              qrCodeUrl: qrContent,
+              renderMode: 'pdf-generation',
             })
           );
-        } else if (isSertifikat) {
+        } else if (isSertifikatDoc) {
           console.log("Rendering sertifikat template for document:", doc.id);
           
           console.log("Fetching sertifikat data for document_id:", doc.id);
@@ -205,17 +272,45 @@ export async function generateSignedPDF(
           
           console.log("User data fetched:", userData);
           
-          // Render SertifikatTemplate
+          // Fetch signer2 data if exists
+          const signer2Id = metadata.signer2_id;
+          let signer2Data = null;
+          if (signer2Id) {
+            const { data: signer2 } = await supabase
+              .from("users")
+              .select("name, jabatan")
+              .eq("id", signer2Id)
+              .maybeSingle();
+            signer2Data = signer2;
+          }
+
+          // Render SertifikatTemplate with proper landscape layout
           root.render(
-            React.createElement(SertifikatTemplate, {
-              sertifikat: sertifikatData as Sertifikat,
-              qrValue: qrContent,
-              showQR: true,
-              penandatangan1: userData
-                ? { name: userData.name, jabatan: userData.jabatan || undefined }
-                : undefined,
-              templateId: sertifikatData.template_id || "default",
-            })
+            React.createElement("div", {
+              style: {
+                backgroundColor: "#f5f5f0",
+                padding: "0",
+                width: `${widthCssPx}px`,
+                height: `${heightCssPx}px`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }
+            },
+              React.createElement(SertifikatTemplate, {
+                sertifikat: sertifikatData as Sertifikat,
+                qrValue: qrContent,
+                showQR: true,
+                penandatangan1: userData
+                  ? { name: userData.name, jabatan: userData.jabatan || undefined }
+                  : undefined,
+                penandatangan2: signer2Data
+                  ? { name: signer2Data.name, jabatan: signer2Data.jabatan || undefined }
+                  : undefined,
+                templateId: sertifikatData.template_id || "default",
+              })
+            )
           );
         } else {
           // Pass qr_code_url so the template renders the same QR we expect
@@ -283,11 +378,12 @@ export async function generateSignedPDF(
         // Capture the container using html2canvas at higher scale so the final
         // canvas has DPI*inch pixels while keeping the same CSS layout.
         // Use the container's rendered height to avoid clipping.
+        console.log("Capturing canvas with dimensions:", widthCssPx, "x", renderedHeightCss);
         const canvas = await html2canvas(container as HTMLElement, {
           scale,
           useCORS: true,
           allowTaint: true, // Allow tainted canvas to capture background images
-          backgroundColor: "#ffffff",
+          backgroundColor: isSertifikatDoc ? "#f5f5f0" : "#ffffff", // Match sertifikat background
           width: widthCssPx,
           height: renderedHeightCss,
           windowWidth: widthCssPx,
@@ -295,6 +391,15 @@ export async function generateSignedPDF(
           logging: true,
           foreignObjectRendering: false, // Use native rendering for better background support
           imageTimeout: 15000, // Wait longer for images to load
+          onclone: (clonedDoc) => {
+            // Ensure all styles are properly applied in the cloned document
+            const clonedContainer = clonedDoc.body.querySelector('div');
+            if (clonedContainer) {
+              clonedContainer.style.fontFamily = "'Times New Roman', serif";
+              (clonedContainer.style as any).webkitPrintColorAdjust = "exact";
+              clonedContainer.style.printColorAdjust = "exact";
+            }
+          }
         });
 
         console.debug("Full-page canvas dimensions:", canvas.width, "x", canvas.height);
@@ -323,7 +428,10 @@ export async function generateSignedPDF(
         }
 
         pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([595.28, 841.89]);
+        // Use landscape orientation for sertifikat, portrait for ijazah
+        const page = isSertifikatDoc 
+          ? pdfDoc.addPage([841.89, 595.28]) // A4 landscape (width x height)
+          : pdfDoc.addPage([595.28, 841.89]); // A4 portrait (width x height)
 
         // Debug: log PNG signature
         const sig = pngBytes.slice(0, 8);

@@ -41,6 +41,7 @@ import { useCreateUser } from "@/hooks/user/useCreateUser";
 import { useDeleteUser } from "@/hooks/user/useDeleteUser";
 import useFetchAllUsers from "@/hooks/user/useFetchAllUsers";
 import { useUpdateUser } from "@/hooks/user/useUpdateUser";
+import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { User, UserRole } from "@/types";
 
@@ -77,6 +78,16 @@ export default function UserManagement() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     await createUser.mutateAsync(formData);
+
+    // Audit log
+    if (userProfile?.id) {
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_USER",
+        `Membuat pengguna baru: ${formData.name} (${formData.email}) dengan role ${formData.role}`
+      );
+    }
+
     setIsCreateDialogOpen(false);
     resetForm();
     refetch();
@@ -90,6 +101,16 @@ export default function UserManagement() {
       id: editingUser.id,
       ...formData,
     });
+
+    // Audit log
+    if (userProfile?.id) {
+      await createAuditEntry(
+        userProfile.id,
+        "UPDATE_USER",
+        `Memperbarui pengguna: ${formData.name} (${formData.email})`
+      );
+    }
+
     setIsEditDialogOpen(false);
     setEditingUser(null);
     resetForm();
@@ -98,7 +119,21 @@ export default function UserManagement() {
 
   const handleDelete = async () => {
     if (!userToDelete) return;
+
+    const deletedUserName = userToDelete.name;
+    const deletedUserEmail = userToDelete.email;
+
     await deleteUser.mutateAsync(userToDelete.id);
+
+    // Audit log
+    if (userProfile?.id) {
+      await createAuditEntry(
+        userProfile.id,
+        "DELETE_USER",
+        `Menghapus pengguna: ${deletedUserName} (${deletedUserEmail})`
+      );
+    }
+
     setUserToDelete(null);
     refetch();
   };
@@ -120,7 +155,9 @@ export default function UserManagement() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Manajemen Pengguna</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              Manajemen Pengguna
+            </h1>
             <p className="text-muted-foreground mt-1">
               Kelola akun pengguna yang dapat mengakses sistem
             </p>
@@ -140,17 +177,16 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>Tambah Pengguna Baru</DialogTitle>
               </DialogHeader>
-              <form
-                onSubmit={handleCreate}
-                className="space-y-4"
-              >
+              <form onSubmit={handleCreate} className="space-y-4">
                 <div>
                   <Label htmlFor="email">Email Google</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="user@example.com"
                     required
                   />
@@ -164,7 +200,9 @@ export default function UserManagement() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="Nama Lengkap"
                     required
                   />
@@ -174,7 +212,9 @@ export default function UserManagement() {
                   <Label htmlFor="role">Role</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}
+                    onValueChange={(value: UserRole) =>
+                      setFormData({ ...formData, role: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -193,7 +233,9 @@ export default function UserManagement() {
                   <Input
                     id="nip"
                     value={formData.nip}
-                    onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nip: e.target.value })
+                    }
                     placeholder="NIP"
                   />
                 </div>
@@ -203,7 +245,9 @@ export default function UserManagement() {
                   <Input
                     id="jabatan"
                     value={formData.jabatan}
-                    onChange={(e) => setFormData({ ...formData, jabatan: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, jabatan: e.target.value })
+                    }
                     placeholder="Contoh: Ketua Program Studi Informatika"
                   />
                 </div>
@@ -216,10 +260,7 @@ export default function UserManagement() {
                   >
                     Batal
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={createUser.isPending}
-                  >
+                  <Button type="submit" disabled={createUser.isPending}>
                     {createUser.isPending ? "Menyimpan..." : "Simpan"}
                   </Button>
                 </div>
@@ -234,7 +275,9 @@ export default function UserManagement() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Memuat data...</div>
+              <div className="text-center py-8 text-muted-foreground">
+                Memuat data...
+              </div>
             ) : users.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 Belum ada pengguna terdaftar
@@ -288,25 +331,21 @@ export default function UserManagement() {
         </Card>
 
         {/* Edit Dialog */}
-        <Dialog
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-        >
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Pengguna</DialogTitle>
             </DialogHeader>
-            <form
-              onSubmit={handleEdit}
-              className="space-y-4"
-            >
+            <form onSubmit={handleEdit} className="space-y-4">
               <div>
                 <Label htmlFor="edit-email">Email Google</Label>
                 <Input
                   id="edit-email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -316,7 +355,9 @@ export default function UserManagement() {
                 <Input
                   id="edit-name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -325,7 +366,9 @@ export default function UserManagement() {
                 <Label htmlFor="edit-role">Role</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}
+                  onValueChange={(value: UserRole) =>
+                    setFormData({ ...formData, role: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -344,7 +387,9 @@ export default function UserManagement() {
                 <Input
                   id="edit-nip"
                   value={formData.nip}
-                  onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nip: e.target.value })
+                  }
                 />
               </div>
 
@@ -353,7 +398,9 @@ export default function UserManagement() {
                 <Input
                   id="edit-jabatan"
                   value={formData.jabatan}
-                  onChange={(e) => setFormData({ ...formData, jabatan: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, jabatan: e.target.value })
+                  }
                   placeholder="Contoh: Ketua Program Studi Informatika"
                 />
               </div>
@@ -366,10 +413,7 @@ export default function UserManagement() {
                 >
                   Batal
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={updateUser.isPending}
-                >
+                <Button type="submit" disabled={updateUser.isPending}>
                   {updateUser.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
               </div>
@@ -386,8 +430,9 @@ export default function UserManagement() {
             <AlertDialogHeader>
               <AlertDialogTitle>Hapus Pengguna</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin menghapus pengguna <strong>{userToDelete?.name}</strong>?
-                Tindakan ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus pengguna{" "}
+                <strong>{userToDelete?.name}</strong>? Tindakan ini tidak dapat
+                dibatalkan.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

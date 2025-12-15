@@ -124,9 +124,16 @@ async function generateIjazahSignedPDF(
   verificationUrl: string,
   qrCodeDataUrl: string,
 ): Promise<Uint8Array> {
+  console.log("=== GENERATING IJAZAH PDF WITH FIXED POSITIONING ===");
+  console.log("Document ID:", document.id);
+  console.log("NIM:", ijazahData.nim);
+  console.log("Nomor Seri:", ijazahData.nomor_seri);
+  
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
   const { width, height } = page.getSize();
+  
+  console.log("PDF dimensions:", width, "x", height);
   
   const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
   const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -145,22 +152,24 @@ async function generateIjazahSignedPDF(
     borderWidth: 3,
   });
   
-  // Header - NIM and Nomor Ijazah
-  let yPos = height - innerMargin;
+  // Header - NIM and Nomor Ijazah (positioned inside the golden border)
+  let yPos = height - innerMargin - 50; // Move down by 50 points to be well inside border
+  console.log(`DEBUG: Positioning NIM and Nomor at yPos: ${yPos}, border top: ${height - (innerMargin - 10)}`);
+  
   page.drawText(`NIM.${ijazahData.nim}`, {
-    x: innerMargin,
+    x: innerMargin + 20, // More padding from border
     y: yPos,
-    size: 10,
+    size: 12, // Slightly larger for visibility
     font: fontBold,
-    color: rgb(0.3, 0.3, 0.3),
+    color: rgb(0.2, 0.2, 0.2), // Darker color
   });
   
   page.drawText(`No: ${ijazahData.nomor_seri}`, {
     x: width - innerMargin - 150,
     y: yPos,
-    size: 10,
+    size: 12, // Slightly larger for visibility
     font: fontBold,
-    color: rgb(0.3, 0.3, 0.3),
+    color: rgb(0.2, 0.2, 0.2), // Darker color
   });
   
   yPos -= 40;

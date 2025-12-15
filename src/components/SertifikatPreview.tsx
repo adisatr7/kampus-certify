@@ -15,7 +15,7 @@ interface SertifikatPreviewProps {
     nama_peserta: string;
     nama_acara: string;
     tanggal_acara: string;
-    nomor_sertifikat: string;
+    nomor_sertifikat?: string;
     jenis_sertifikat: string;
     penyelenggara: string;
   };
@@ -25,6 +25,12 @@ interface SertifikatPreviewProps {
   signer2Name?: string;
   signer2Jabatan?: string;
 }
+
+// Generate preview nomor sertifikat: XXXX/CERT/UMC/YYYY
+const generatePreviewNomor = () => {
+  const year = new Date().getFullYear();
+  return `XXXX/CERT/UMC/${year}`;
+};
 
 export default function SertifikatPreview({
   isOpen,
@@ -43,7 +49,7 @@ export default function SertifikatPreview({
     nama_peserta: formData.nama_peserta,
     nama_acara: formData.nama_acara,
     tanggal_acara: formData.tanggal_acara,
-    nomor_sertifikat: formData.nomor_sertifikat,
+    nomor_sertifikat: formData.nomor_sertifikat || generatePreviewNomor(),
     penandatangan: signer1Name || "",
     template_id: null,
     created_at: new Date().toISOString(),

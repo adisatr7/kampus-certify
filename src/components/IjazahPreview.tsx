@@ -4,7 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
-import IjazahTemplate from "./IjazahTemplate";
+import IjazahRenderer from "./IjazahRenderer";
 
 interface IjazahPreviewProps {
   isOpen: boolean;
@@ -14,13 +14,17 @@ interface IjazahPreviewProps {
     nim: string;
     nama_fakultas: string;
     gelar: string;
+    jenjang: string;
     tanggal_terbit: string;
     logo_url?: string;
+    template_id?: string;
   };
   dekanName?: string;
   dekanNip?: string;
+  dekanJabatan?: string;
   rektorName?: string;
   rektorNip?: string;
+  rektorJabatan?: string;
 }
 
 export default function IjazahPreview({
@@ -29,8 +33,10 @@ export default function IjazahPreview({
   formData,
   dekanName,
   dekanNip,
+  dekanJabatan,
   rektorName,
   rektorNip,
+  rektorJabatan,
 }: IjazahPreviewProps) {
   // Generate nomor ijazah untuk preview
   const nomorIjazah = `IZH/0001/XI/${new Date().getFullYear()}`;
@@ -43,10 +49,9 @@ export default function IjazahPreview({
         </DialogHeader>
         <div className="bg-gray-100 p-4">
           <div className="transform scale-75 origin-top">
-            <IjazahTemplate
+            <IjazahRenderer
               nim={formData.nim}
               nomorIjazah={nomorIjazah}
-              logoUrl={formData.logo_url || "/logo-umc.svg"}
               namaMahasiswa={formData.nama_mahasiswa}
               programStudi="Teknik Informatika"
               fakultas={formData.nama_fakultas}
@@ -54,8 +59,12 @@ export default function IjazahPreview({
               tanggalTerbit={formData.tanggal_terbit}
               dekanName={dekanName}
               dekanNip={dekanNip}
+              dekanJabatan={dekanJabatan}
               rektorName={rektorName}
               rektorNip={rektorNip}
+              rektorJabatan={rektorJabatan}
+              templateId={formData.template_id}
+              renderMode="preview"
             />
           </div>
           <div className="mt-4 text-center text-sm text-gray-600">

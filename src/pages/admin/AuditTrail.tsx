@@ -81,8 +81,14 @@ export default function AuditTrail() {
       const { count: userCount } = await supabase
         .from("users")
         .select("*", { count: "exact", head: true });
-      const { data: sampleData } = await supabase.from("audit_trail").select("*").limit(1);
-      const { error: rlsError } = await supabase.from("audit_trail").select("id").limit(1);
+      const { data: sampleData } = await supabase
+        .from("audit_trail")
+        .select("*")
+        .limit(1);
+      const { error: rlsError } = await supabase
+        .from("audit_trail")
+        .select("id")
+        .limit(1);
 
       setDiagnostic({
         totalAuditEntries: auditCount || 0,
@@ -141,7 +147,9 @@ export default function AuditTrail() {
         throw auditError;
       }
 
-      const userIds = [...new Set(auditData.map((e) => e.user_id).filter(Boolean))];
+      const userIds = [
+        ...new Set(auditData.map((e) => e.user_id).filter(Boolean)),
+      ];
       const { data: userData } = await supabase
         .from("users")
         .select("id, name, email, role")
@@ -169,11 +177,28 @@ export default function AuditTrail() {
     switch (action) {
       case "LOGIN":
       case "TEST_LOGIN":
+      case "LOGOUT":
         return <User className="h-5 w-5 text-blue-500" />;
+      case "CREATE_USER":
+      case "UPDATE_USER":
+      case "DELETE_USER":
+        return <User className="h-5 w-5 text-purple-500" />;
       case "CREATE_DOCUMENT":
       case "SIGN_DOCUMENT":
       case "DELETE_DOCUMENT":
+      case "CREATE_IJAZAH":
+      case "CREATE_SERTIFIKAT":
         return <FileText className="h-5 w-5 text-green-500" />;
+      case "CREATE_TEMPLATE":
+      case "UPDATE_TEMPLATE":
+      case "DELETE_TEMPLATE":
+        return <FileText className="h-5 w-5 text-orange-500" />;
+      case "CREATE_CERTIFICATE":
+      case "REVOKE_CERTIFICATE":
+      case "CHANGE_PASSPHRASE":
+        return <Shield className="h-5 w-5 text-red-500" />;
+      case "VERIFY_DOCUMENT":
+        return <Shield className="h-5 w-5 text-green-500" />;
       default:
         return <Activity className="h-5 w-5 text-gray-500" />;
     }
@@ -182,13 +207,43 @@ export default function AuditTrail() {
   const getActionBadge = (action: string) => {
     const actionLabels: Record<string, string> = {
       LOGIN: "Login",
+      LOGOUT: "Logout",
       TEST_LOGIN: "Test Login",
       CREATE_DOCUMENT: "Buat Dokumen",
       SIGN_DOCUMENT: "Tanda Tangan",
       DELETE_DOCUMENT: "Hapus Dokumen",
+      CREATE_IJAZAH: "Buat Ijazah",
+      CREATE_SERTIFIKAT: "Buat Sertifikat",
+      CREATE_USER: "Buat User",
+      UPDATE_USER: "Update User",
+      DELETE_USER: "Hapus User",
+      CREATE_TEMPLATE: "Buat Template",
+      UPDATE_TEMPLATE: "Update Template",
+      DELETE_TEMPLATE: "Hapus Template",
+      CREATE_CERTIFICATE: "Buat Sertifikat CA",
+      REVOKE_CERTIFICATE: "Cabut Sertifikat CA",
+      CHANGE_PASSPHRASE: "Ubah Passphrase",
+      VERIFY_DOCUMENT: "Verifikasi Dokumen",
     };
+
+    const actionColors: Record<string, string> = {
+      LOGIN: "bg-blue-500",
+      LOGOUT: "bg-gray-500",
+      CREATE_USER: "bg-purple-500",
+      UPDATE_USER: "bg-purple-400",
+      DELETE_USER: "bg-purple-600",
+      CREATE_TEMPLATE: "bg-orange-500",
+      UPDATE_TEMPLATE: "bg-orange-400",
+      DELETE_TEMPLATE: "bg-orange-600",
+      CREATE_CERTIFICATE: "bg-red-500",
+      REVOKE_CERTIFICATE: "bg-red-600",
+      VERIFY_DOCUMENT: "bg-teal-500",
+    };
+
+    const colorClass = actionColors[action] || "bg-green-500";
+
     return (
-      <Badge className="text-xs bg-green-500 text-white px-2 py-0.5">
+      <Badge className={`text-xs ${colorClass} text-white px-2 py-0.5`}>
         {actionLabels[action] || action}
       </Badge>
     );
@@ -200,7 +255,9 @@ export default function AuditTrail() {
       entry.users?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.users?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAction =
-      filterAction === "" || filterAction === "all" || entry.action === filterAction;
+      filterAction === "" ||
+      filterAction === "all" ||
+      entry.action === filterAction;
     return matchesSearch && matchesAction;
   });
 
@@ -213,7 +270,9 @@ export default function AuditTrail() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Audit Trail</h1>
-            <p className="text-muted-foreground">Riwayat aktivitas sistem CA UMC</p>
+            <p className="text-muted-foreground">
+              Riwayat aktivitas sistem CA UMC
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -224,10 +283,7 @@ export default function AuditTrail() {
               <AlertTriangle className="mr-2 h-4 w-4" />
               Diagnostics
             </Button>
-            <Button
-              variant="outline"
-              onClick={createTestAuditEntry}
-            >
+            <Button variant="outline" onClick={createTestAuditEntry}>
               <Activity className="mr-2 h-4 w-4" />
               Test Entry
             </Button>
@@ -256,7 +312,9 @@ export default function AuditTrail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm font-medium">Log Audit</p>
-                  <p className="text-2xl font-bold">{diagnostic.totalAuditEntries}</p>
+                  <p className="text-2xl font-bold">
+                    {diagnostic.totalAuditEntries}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Total Users</p>
@@ -264,7 +322,9 @@ export default function AuditTrail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">Role Anda</p>
-                  <p className="text-lg font-bold">{diagnostic.currentUserRole}</p>
+                  <p className="text-lg font-bold">
+                    {diagnostic.currentUserRole}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">RLS Access</p>
@@ -297,20 +357,14 @@ export default function AuditTrail() {
                 />
               </div>
               <div className="w-full sm:w-48">
-                <Select
-                  value={filterAction}
-                  onValueChange={setFilterAction}
-                >
+                <Select value={filterAction} onValueChange={setFilterAction}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filter aksi..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Aksi</SelectItem>
                     {uniqueActions.map((action) => (
-                      <SelectItem
-                        key={action}
-                        value={action}
-                      >
+                      <SelectItem key={action} value={action}>
                         {action}
                       </SelectItem>
                     ))}
@@ -325,7 +379,8 @@ export default function AuditTrail() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Riwayat Aktivitas ({filteredEntries.length} dari {auditEntries.length})
+              Riwayat Aktivitas ({filteredEntries.length} dari{" "}
+              {auditEntries.length})
             </CardTitle>
           </CardHeader>
           {/* Table View (desktop) */}
@@ -360,9 +415,15 @@ export default function AuditTrail() {
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <div className="text-sm">
-                              <div>{new Date(entry.created_at).toLocaleDateString("id-ID")}</div>
+                              <div>
+                                {new Date(entry.created_at).toLocaleDateString(
+                                  "id-ID"
+                                )}
+                              </div>
                               <div className="text-muted-foreground text-xs">
-                                {new Date(entry.created_at).toLocaleTimeString("id-ID")}
+                                {new Date(entry.created_at).toLocaleTimeString(
+                                  "id-ID"
+                                )}
                               </div>
                             </div>
                           </div>
@@ -370,20 +431,21 @@ export default function AuditTrail() {
                         <TableCell>
                           {entry.users ? (
                             <div>
-                              <div className="font-medium">{entry.users.name}</div>
+                              <div className="font-medium">
+                                {entry.users.name}
+                              </div>
                               <div className="text-sm text-muted-foreground">
                                 {entry.users.email}
                               </div>
-                              <Badge
-                                variant="outline"
-                                className="text-xs mt-1"
-                              >
+                              <Badge variant="outline" className="text-xs mt-1">
                                 {entry.users.role}
                               </Badge>
                             </div>
                           ) : (
                             <div>
-                              <span className="text-muted-foreground">System User</span>
+                              <span className="text-muted-foreground">
+                                System User
+                              </span>
                               <div className="text-xs text-muted-foreground font-mono">
                                 {entry.user_id?.substring(0, 8)}...
                               </div>
@@ -397,7 +459,9 @@ export default function AuditTrail() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm">{entry.description || "Tidak ada deskripsi"}</p>
+                          <p className="text-sm">
+                            {entry.description || "Tidak ada deskripsi"}
+                          </p>
                         </TableCell>
                       </TableRow>
                     ))}

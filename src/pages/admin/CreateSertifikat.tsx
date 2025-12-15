@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 
 export default function CreateSertifikat() {
@@ -37,15 +38,22 @@ export default function CreateSertifikat() {
 
   const [formData, setFormData] = useState({
     nama_peserta: "",
+    nim: "",
     nama_acara: "",
     tanggal_acara: "",
-    nomor_sertifikat: "",
     jenis_sertifikat: "pelatihan",
     penyelenggara: "",
     signer1_id: "",
     signer2_id: "",
     template_id: "default",
   });
+
+  // Generate nomor sertifikat otomatis: XXXX/CERT/UMC/YYYY
+  const generateNomorSertifikat = () => {
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4 digit random (1000-9999)
+    const year = new Date().getFullYear();
+    return `${randomNum}/CERT/UMC/${year}`;
+  };
 
   // Fetch users for signers
   useEffect(() => {
@@ -99,20 +107,33 @@ export default function CreateSertifikat() {
 
       if (docError) throw docError;
 
+      // Generate nomor sertifikat otomatis
+      const nomorSertifikat = generateNomorSertifikat();
+
       // Create sertifikat record
       const { error: sertifikatError } = await supabase
         .from("sertifikat")
         .insert({
           document_id: document.id,
           nama_peserta: formData.nama_peserta,
+          nim: formData.nim || null,
           nama_acara: formData.nama_acara,
+          jenis_sertifikat: formData.jenis_sertifikat,
+          penyelenggara: formData.penyelenggara,
           tanggal_acara: formData.tanggal_acara,
-          nomor_sertifikat: formData.nomor_sertifikat,
+          nomor_sertifikat: nomorSertifikat,
           penandatangan: formData.signer1_id,
           template_id: formData.template_id || "default",
         });
 
       if (sertifikatError) throw sertifikatError;
+
+      // Create audit entry
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_SERTIFIKAT",
+        `Membuat sertifikat untuk ${formData.nama_peserta} - ${formData.nama_acara}`
+      );
 
       toast({
         title: "Berhasil",
@@ -135,7 +156,7 @@ export default function CreateSertifikat() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
@@ -182,6 +203,18 @@ export default function CreateSertifikat() {
                       setFormData({ ...formData, nama_peserta: e.target.value })
                     }
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nim">NIM (Opsional)</Label>
+                  <Input
+                    id="nim"
+                    placeholder="Masukkan NIM jika peserta adalah mahasiswa"
+                    value={formData.nim}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nim: e.target.value })
+                    }
                   />
                 </div>
 
@@ -270,22 +303,6 @@ export default function CreateSertifikat() {
                       setFormData({
                         ...formData,
                         tanggal_acara: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nomor_sertifikat">Nomor Sertifikat *</Label>
-                  <Input
-                    id="nomor_sertifikat"
-                    placeholder="001/CERT/UMC/2025"
-                    value={formData.nomor_sertifikat}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        nomor_sertifikat: e.target.value,
                       })
                     }
                     required

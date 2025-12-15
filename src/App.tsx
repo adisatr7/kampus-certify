@@ -24,11 +24,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem
-    >
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -36,22 +32,13 @@ const App = () => (
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
               {/* Public Routes */}
-              <Route
-                path="/"
-                element={<Index />}
-              />
-              <Route
-                path="/verify"
-                element={<VerificationPortal />}
-              />
+              <Route path="/" element={<Index />} />
+              <Route path="/verify" element={<VerificationPortal />} />
               <Route
                 path="/verification-portal"
                 element={<VerificationPortal />}
               />
-              <Route
-                path="/qr-scanner"
-                element={<QrScanner />}
-              />
+              <Route path="/qr-scanner" element={<QrScanner />} />
               {/* <Route
                 path="/document-verification"
                 element={<PublicDocumentVerification />}
@@ -85,7 +72,9 @@ const App = () => (
               <Route
                 path="/admin/create-sertifikat"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "dosen", "rektor", "dekan"]}>
+                  <ProtectedRoute
+                    allowedRoles={["admin", "dosen", "rektor", "dekan"]}
+                  >
                     <CreateSertifikat />
                   </ProtectedRoute>
                 }
@@ -135,7 +124,7 @@ const App = () => (
               <Route
                 path="/create-ijazah"
                 element={
-                  <ProtectedRoute allowedRoles={["rektor"]}>
+                  <ProtectedRoute allowedRoles={["admin", "rektor", "dekan"]}>
                     <CreateIjazah />
                   </ProtectedRoute>
                 }
@@ -157,10 +146,7 @@ const App = () => (
                 }
               />
 
-              <Route
-                path="*"
-                element={<NotFound />}
-              />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

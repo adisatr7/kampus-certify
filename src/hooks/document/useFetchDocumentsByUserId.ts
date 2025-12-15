@@ -59,24 +59,72 @@ export default function useFetchDocumentsByUserId(
             )
           )
         `)
-        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (statuses && statuses.length > 0) {
-        // Use .in() when multiple statuses provided, .eq() for a single value
-        if (statuses.length === 1) {
-          query = query.eq("status", statuses[0]);
-        } else {
-          query = query.in("status", statuses as DocumentStatus[]);
+      // For ijazah documents in workflow, show to both dekan and rektor
+      // Otherwise, only show documents owned by the user
+      const { data: allDocs, error: queryError } = await query;
+
+      if (queryError) {
+        throw queryError;
+      }
+
+      if (!allDocs) {
+        setData([]);
+        return;
+      }
+
+      // Filter documents based on ownership and workflow
+      const filteredDocs = allDocs.filter((doc: any) => {
+        const metadata = doc.metadata as any;
+
+        // For ijazah documents, check dekan_id and rektor_id from metadata
+        if (doc.document_type === "ijazah") {
+          // Show to dekan if they're the dekan_id
+          if (metadata?.dekan_id === userId) {
+            // If status filter includes "pending", only show if workflow_stage is "dekan_pending"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "dekan_pending";
+            }
+            // Otherwise show all ijazah documents owned by dekan
+            return true;
+          }
+          // Show to rektor if they're the rektor_id and workflow is in progress or completed
+          if (
+            (metadata?.workflow_stage === "rektor_pending" ||
+              metadata?.workflow_stage === "completed") &&
+            metadata?.rektor_id === userId
+          ) {
+            // If status filter includes "pending", only show if workflow_stage is "rektor_pending"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "rektor_pending";
+            }
+            // Otherwise show all ijazah documents for rektor
+            return true;
+          }
         }
+
+        // For other documents, show if user owns it
+        if (doc.user_id === userId) {
+          return true;
+        }
+
+        return false;
+      });
+
+      // Apply status filter if provided
+      let finalDocs = filteredDocs;
+      if (statuses && statuses.length > 0) {
+        finalDocs = filteredDocs.filter((doc: any) => {
+          if (statuses.length === 1) {
+            return doc.status === statuses[0];
+          } else {
+            return statuses.includes(doc.status);
+          }
+        });
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-      setData((data as unknown as UserDocument[]) || []);
+      setData((finalDocs as unknown as UserDocument[]) || []);
     } catch (error) {
       toast({
         title: "Error",

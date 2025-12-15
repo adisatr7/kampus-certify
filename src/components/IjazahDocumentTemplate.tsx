@@ -1,4 +1,3 @@
-import { QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { UserDocument } from "@/types";
@@ -6,6 +5,12 @@ import { UserDocument } from "@/types";
 interface IjazahDocumentTemplateProps {
   document: UserDocument;
   qrCodeUrl?: string;
+  dekanQrCode?: string;
+  rektorQrCode?: string;
+  dekanName?: string;
+  dekanNip?: string;
+  rektorName?: string;
+  rektorNip?: string;
   ijazahData?: {
     nama_mahasiswa: string;
     nim: string;
@@ -19,37 +24,89 @@ interface IjazahDocumentTemplateProps {
 export default function IjazahDocumentTemplate({
   document,
   qrCodeUrl,
+  dekanQrCode,
+  rektorQrCode,
+  dekanName,
+  dekanNip,
+  rektorName,
+  rektorNip,
   ijazahData,
 }: IjazahDocumentTemplateProps) {
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [dekanQrCodeDataUrl, setDekanQrCodeDataUrl] = useState<string>("");
+  const [rektorQrCodeDataUrl, setRektorQrCodeDataUrl] = useState<string>("");
 
   useEffect(() => {
-    if (qrCodeUrl) {
-      setQrCodeDataUrl(qrCodeUrl);
-      return;
-    }
-
-    const generateQRCode = async () => {
+    const generateQRCodes = async () => {
       try {
-        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${document.serial ?? document.id}`;
-        const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF",
-          },
-        });
-        setQrCodeDataUrl(qrDataUrl);
+        // Generate dekan QR code
+        if (dekanQrCode) {
+          const dekanQrDataUrl = await QRCode.toDataURL(dekanQrCode, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setDekanQrCodeDataUrl(dekanQrDataUrl);
+        } else if (qrCodeUrl) {
+          const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setDekanQrCodeDataUrl(qrDataUrl);
+        }
+
+        // Generate rektor QR code
+        if (rektorQrCode) {
+          const rektorQrDataUrl = await QRCode.toDataURL(rektorQrCode, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setRektorQrCodeDataUrl(rektorQrDataUrl);
+        } else if (qrCodeUrl) {
+          const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setRektorQrCodeDataUrl(qrDataUrl);
+        }
+
+        // Generate default QR code if none provided
+        if (!dekanQrCode && !rektorQrCode && !qrCodeUrl && document.id) {
+          const verificationUrl = `${window.location.origin}${
+            import.meta.env.BASE_URL
+          }verify?id=${document.serial ?? document.id}`;
+          const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setDekanQrCodeDataUrl(qrDataUrl);
+          setRektorQrCodeDataUrl(qrDataUrl);
+        }
       } catch (error) {
-        console.error("Error generating QR code:", error);
+        console.error("Error generating QR codes:", error);
       }
     };
 
-    if (document.id) {
-      generateQRCode();
-    }
-  }, [document.id, document.serial, qrCodeUrl]);
+    generateQRCodes();
+  }, [document.id, document.serial, qrCodeUrl, dekanQrCode, rektorQrCode]);
 
   const signedDate = document.updated_at
     ? new Date(document.updated_at).toLocaleDateString("id-ID", {
@@ -82,15 +139,21 @@ export default function IjazahDocumentTemplate({
             <h1 className="text-2xl font-bold text-black uppercase tracking-wide">
               Universitas Muhammadiyah Cirebon
             </h1>
-            <p className="text-lg text-black">Jl. Tuparev No. 70 Cirebon 45153</p>
+            <p className="text-lg text-black">
+              Jl. Tuparev No. 70 Cirebon 45153
+            </p>
           </div>
         </div>
       </header>
 
       {/* Title */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-black uppercase tracking-widest mb-2">IJAZAH</h2>
-        <p className="text-lg text-black">Nomor: {document.serial || "IZH-XXXX-UMC-2025"}</p>
+        <h2 className="text-3xl font-bold text-black uppercase tracking-widest mb-2">
+          IJAZAH
+        </h2>
+        <p className="text-lg text-black">
+          Nomor: {document.serial || "IZH-XXXX-UMC-2025"}
+        </p>
       </div>
 
       {/* Content */}
@@ -104,22 +167,29 @@ export default function IjazahDocumentTemplate({
             <tbody>
               <tr>
                 <td className="py-2 pr-4 font-semibold w-1/3">Nama</td>
-                <td className="py-2">: {ijazahData?.nama_mahasiswa || document.recipient_name}</td>
+                <td className="py-2">
+                  : {ijazahData?.nama_mahasiswa || document.recipient_name}
+                </td>
               </tr>
               <tr>
                 <td className="py-2 pr-4 font-semibold">NIM</td>
-                <td className="py-2">: {ijazahData?.nim || document.recipient_student_number}</td>
+                <td className="py-2">
+                  : {ijazahData?.nim || document.recipient_student_number}
+                </td>
               </tr>
               <tr>
                 <td className="py-2 pr-4 font-semibold">Fakultas</td>
-                <td className="py-2">: {ijazahData?.nama_fakultas || "Fakultas Teknik"}</td>
+                <td className="py-2">
+                  : {ijazahData?.nama_fakultas || "Fakultas Teknik"}
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <p className="text-base text-justify">
-          Telah menyelesaikan program pendidikan Sarjana (S1) dan berhak menyandang gelar:
+          Telah menyelesaikan program pendidikan Sarjana (S1) dan berhak
+          menyandang gelar:
         </p>
 
         <div className="text-center my-6">
@@ -149,12 +219,28 @@ export default function IjazahDocumentTemplate({
             <p className="text-sm text-black font-semibold">
               Dekan {ijazahData?.nama_fakultas || "Fakultas Teknik"}
             </p>
-            <p className="text-sm text-black font-semibold mb-20">
+            <p className="text-sm text-black font-semibold mb-12">
               Universitas Muhammadiyah Cirebon
             </p>
+
+            {/* QR Code for Dekan */}
+            {dekanQrCodeDataUrl && (
+              <div className="flex justify-center mb-4">
+                <div className="border-2 border-black p-2">
+                  <img
+                    src={dekanQrCodeDataUrl}
+                    alt="QR Code Dekan"
+                    className="w-24 h-24"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
-              <p className="text-sm text-black font-bold">{document.user?.name || "Nama Dekan"}</p>
-              <p className="text-xs text-black">NIP. {document.user?.nip || "1234567890"}</p>
+              <p className="text-sm text-black font-bold">
+                {dekanName || "Nama Dekan"}
+              </p>
+              <p className="text-xs text-black">NIP. {dekanNip || "-"}</p>
             </div>
           </div>
 
@@ -162,13 +248,28 @@ export default function IjazahDocumentTemplate({
           <div className="text-center">
             <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
             <p className="text-sm text-black font-semibold">Rektor</p>
-            <p className="text-sm text-black font-semibold mb-20">
+            <p className="text-sm text-black font-semibold mb-12">
               Universitas Muhammadiyah Cirebon
             </p>
 
+            {/* QR Code for Rektor */}
+            {rektorQrCodeDataUrl && (
+              <div className="flex justify-center mb-4">
+                <div className="border-2 border-black p-2">
+                  <img
+                    src={rektorQrCodeDataUrl}
+                    alt="QR Code Rektor"
+                    className="w-24 h-24"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="border-t-2 border-black pt-1 inline-block min-w-[200px]">
-              <p className="text-sm text-black font-bold">Prof. Dr. H. Muhammad Hidayat, M.T.</p>
-              <p className="text-xs text-black">NIP. 9876543210</p>
+              <p className="text-sm text-black font-bold">
+                {rektorName || "Nama Rektor"}
+              </p>
+              <p className="text-xs text-black">NIP. {rektorNip || "-"}</p>
             </div>
           </div>
         </div>
@@ -178,9 +279,10 @@ export default function IjazahDocumentTemplate({
       <footer className="mt-12 pt-6 border-t-2 border-black">
         <div className="bg-gray-100 border-2 border-black p-4">
           <p className="text-xs text-black text-center leading-relaxed">
-            Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat digital yang
-            diterbitkan oleh CA UMC. Keaslian dokumen ini dapat diverifikasi melalui pemindaian QR
-            Code atau portal verifikasi di:{" "}
+            Dokumen ini telah ditandatangani secara elektronik menggunakan
+            sertifikat digital yang diterbitkan oleh CA UMC. Keaslian dokumen
+            ini dapat diverifikasi melalui pemindaian QR Code atau portal
+            verifikasi di:{" "}
             <span className="font-semibold">https://ca.umc/verify</span>
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { CheckCircle, AlertCircle, QrCode } from "lucide-react";
+import { CheckCircle, AlertCircle, QrCode, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { UserDocument, Ijazah, Sertifikat } from "@/types";
+import { generateSignedPDFWithPuppeteer } from "@/lib/puppeteerPdfSigner";
 
 export default function DocumentSigningFlow() {
   const { documentId } = useParams();
@@ -25,6 +26,44 @@ export default function DocumentSigningFlow() {
   const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
   const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null);
   const [qrValue, setQrValue] = useState("");
+  const [testingPuppeteer, setTestingPuppeteer] = useState(false);
+
+  const handleTestPuppeteer = async () => {
+    if (!document) return;
+
+    setTestingPuppeteer(true);
+    try {
+      console.log("Testing Puppeteer PDF generation...");
+      const pdfBlob = await generateSignedPDFWithPuppeteer(document);
+
+      // Download the PDF
+      const url = URL.createObjectURL(pdfBlob);
+      const link = globalThis.document.createElement("a");
+      link.href = url;
+      link.download = `${document.title}_puppeteer_test.pdf`;
+      globalThis.document.body.appendChild(link);
+      link.click();
+      globalThis.document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Berhasil",
+        description: "PDF berhasil di-generate dengan Puppeteer dan didownload",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Puppeteer PDF generation error:", error);
+      toast({
+        title: "Error",
+        description: `Gagal generate PDF dengan Puppeteer: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        variant: "destructive",
+      });
+    } finally {
+      setTestingPuppeteer(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -152,71 +191,16 @@ export default function DocumentSigningFlow() {
         });
       }
 
-      // For ijazah workflow: handle multi-stage signing
+      // The edge function already handles all the database updates
+      // including QR code storage and workflow stage transitions
+
+      // Show appropriate success message based on workflow stage
       if (isIjazahWorkflow && isDekanSigning) {
-        // Create a copy for rektor to sign
-        const nextStage = "rektor_pending";
-        const { data: rektorDocument, error: rektorDocError } = await supabase
-          .from("documents")
-          .insert({
-            user_id: metadata.rektor_id,
-            title: document.title,
-            status: "pending",
-            recipient_name: document.recipient_name,
-            recipient_student_number: document.recipient_student_number,
-            metadata: {
-              ...metadata,
-              workflow_stage: nextStage,
-              original_document_id: document.id,
-              dekan_signed: true,
-              dekan_signed_at: new Date().toISOString(),
-              dekan_qr_code: qrValue,
-            },
-          })
-          .select()
-          .single();
-
-        if (rektorDocError) throw rektorDocError;
-
-        // Link ijazah to rektor's document as well
-        const { data: ijazahData } = await supabase
-          .from("ijazah")
-          .select("*")
-          .eq("document_id", document.id)
-          .single();
-
-        if (ijazahData) {
-          await supabase.from("ijazah").insert({
-            ...ijazahData,
-            id: undefined,
-            document_id: rektorDocument.id,
-            created_at: undefined,
-            updated_at: undefined,
-          });
-        }
-
         toast({
           title: "Berhasil",
           description: "Ijazah berhasil ditandatangani dan dikirim ke Rektor",
         });
       } else if (isIjazahWorkflow && isRektorSigning) {
-        // Update original dekan document to mark as completed
-        if (metadata.original_document_id) {
-          await supabase
-            .from("documents")
-            .update({
-              metadata: {
-                ...metadata,
-                workflow_stage: "completed",
-                rektor_signed: true,
-                rektor_signed_at: new Date().toISOString(),
-                rektor_qr_code: qrValue,
-              },
-              file_url: signResult.fileUrl, // Update with the same file_url
-            })
-            .eq("id", metadata.original_document_id);
-        }
-
         toast({
           title: "Berhasil",
           description:
@@ -421,6 +405,16 @@ export default function DocumentSigningFlow() {
                 onClick={() => navigate("/user/documents")}
               >
                 Batal
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTestPuppeteer}
+                disabled={testingPuppeteer}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {testingPuppeteer ? "Generating..." : "Test Puppeteer PDF"}
               </Button>
               <Button
                 onClick={handleSign}

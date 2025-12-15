@@ -40,13 +40,19 @@ export default function CreateSertifikatNew() {
     nama_peserta: "",
     nama_acara: "",
     tanggal_acara: "",
-    nomor_sertifikat: "",
     jenis_sertifikat: "pelatihan",
     penyelenggara: "",
     signer1_id: "",
     signer2_id: "",
     template_id: "default",
   });
+
+  // Generate nomor sertifikat otomatis: XXXX/CERT/UMC/YYYY
+  const generateNomorSertifikat = () => {
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4 digit random (1000-9999)
+    const year = new Date().getFullYear();
+    return `${randomNum}/CERT/UMC/${year}`;
+  };
 
   // Check access
   const hasAccess =
@@ -138,6 +144,9 @@ export default function CreateSertifikatNew() {
 
       if (docError) throw docError;
 
+      // Generate nomor sertifikat otomatis
+      const nomorSertifikat = generateNomorSertifikat();
+
       // Create sertifikat record
       const { error: sertifikatError } = await supabase
         .from("sertifikat")
@@ -145,8 +154,10 @@ export default function CreateSertifikatNew() {
           document_id: document.id,
           nama_peserta: formData.nama_peserta,
           nama_acara: formData.nama_acara,
+          jenis_sertifikat: formData.jenis_sertifikat,
+          penyelenggara: formData.penyelenggara,
           tanggal_acara: formData.tanggal_acara,
-          nomor_sertifikat: formData.nomor_sertifikat,
+          nomor_sertifikat: nomorSertifikat,
           penandatangan: formData.signer1_id,
           template_id: formData.template_id || "default",
         });
@@ -159,7 +170,10 @@ export default function CreateSertifikatNew() {
           "Sertifikat berhasil dibuat dan dikirim ke penandatangan pertama",
       });
 
-      navigate("/user/documents");
+      // Redirect berdasarkan role user
+      const redirectPath =
+        userProfile.role === "admin" ? "/admin/documents" : "/documents";
+      navigate(redirectPath);
     } catch (error) {
       console.error("Error creating sertifikat:", error);
       toast({
@@ -313,22 +327,6 @@ export default function CreateSertifikatNew() {
                       setFormData({
                         ...formData,
                         tanggal_acara: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nomor_sertifikat">Nomor Sertifikat *</Label>
-                  <Input
-                    id="nomor_sertifikat"
-                    placeholder="001/CERT/UMC/2025"
-                    value={formData.nomor_sertifikat}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        nomor_sertifikat: e.target.value,
                       })
                     }
                     required

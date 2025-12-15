@@ -34,7 +34,7 @@ export function VerificationDetails({
           </div>
           <div className="flex justify-between border-b pb-3">
             <span className="text-muted-foreground">Jenjang</span>
-            <span className="font-medium">{ijazahData.gelar}</span>
+            <span className="font-medium">{ijazahData.jenjang}</span>
           </div>
           <div className="flex justify-between border-b pb-3">
             <span className="text-muted-foreground">Tanggal Lulus</span>

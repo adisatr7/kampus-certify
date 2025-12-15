@@ -24,6 +24,8 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { canCreateDocument } from "@/lib/documentAccess";
+import { JENJANG_OPTIONS } from "@/types/IjazahTemplate";
+import useFetchDocumentTemplates from "@/hooks/template/useFetchDocumentTemplates";
 
 export default function CreateIjazahNew() {
   const navigate = useNavigate();
@@ -35,14 +37,19 @@ export default function CreateIjazahNew() {
     Array<{ id: string; name: string; nip: string }>
   >([]);
 
+  // Fetch ijazah templates from database
+  const { data: templates = [], isLoading: templatesLoading } =
+    useFetchDocumentTemplates("ijazah");
+
   const [formData, setFormData] = useState({
     nama_mahasiswa: "",
     nim: "",
     nama_fakultas: "",
     gelar: "",
+    jenjang: "S1", // Default to S1
     tanggal_terbit: new Date().toISOString().split("T")[0],
-    template_id: "",
-    logo_url: "/logo-umc.svg", // Use local logo to avoid CORS issues
+    template_id: "", // Will be set when templates load
+    logo_url: "/logo-umc.svg", // Use existing logo as default
     rektor_id: "",
   });
 
@@ -60,6 +67,16 @@ export default function CreateIjazahNew() {
       navigate("/dashboard");
     }
   }, [hasAccess, navigate, toast]);
+
+  // Set default template when templates load
+  useEffect(() => {
+    if (templates.length > 0 && !formData.template_id) {
+      setFormData((prev) => ({
+        ...prev,
+        template_id: templates[0].id,
+      }));
+    }
+  }, [templates, formData.template_id]);
 
   useEffect(() => {
     const fetchRektors = async () => {
@@ -128,6 +145,7 @@ export default function CreateIjazahNew() {
           recipient_student_number: formData.nim,
           metadata: {
             workflow_stage: "dekan_pending",
+            dekan_id: userProfile.id,
             rektor_id: formData.rektor_id,
             created_by_id: userProfile.id,
           },
@@ -144,12 +162,15 @@ export default function CreateIjazahNew() {
           nama_mahasiswa: formData.nama_mahasiswa,
           nim: formData.nim,
           gelar: formData.gelar,
+          jenjang: formData.jenjang,
           nama_fakultas: formData.nama_fakultas,
           tanggal_terbit: formData.tanggal_terbit,
           nomor_seri: "",
           logo_url: formData.logo_url,
           is_validated: false,
           template_id: formData.template_id || null,
+          dekan_id: userProfile.id,
+          rektor_id: formData.rektor_id,
         },
       ]);
 
@@ -157,12 +178,13 @@ export default function CreateIjazahNew() {
 
       toast({
         title: "Berhasil",
-        description:
-          "Ijazah berhasil dibuat. Anda akan diarahkan untuk menandatangani dokumen.",
+        description: "Ijazah berhasil dibuat dan menunggu validasi.",
       });
 
-      // Redirect to signing page
-      navigate(`/document-signing/${document.id}`);
+      // Redirect berdasarkan role user
+      const redirectPath =
+        userProfile.role === "admin" ? "/admin/documents" : "/documents";
+      navigate(redirectPath);
     } catch (error) {
       console.error("Error creating ijazah:", error);
       toast({
@@ -281,6 +303,27 @@ export default function CreateIjazahNew() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="jenjang">Jenjang *</Label>
+                  <Select
+                    value={formData.jenjang}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, jenjang: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Jenjang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JENJANG_OPTIONS.map((jenjang) => (
+                        <SelectItem key={jenjang.value} value={jenjang.value}>
+                          {jenjang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="tanggal_terbit">Tanggal Terbit *</Label>
                   <Input
                     id="tanggal_terbit"
@@ -294,6 +337,36 @@ export default function CreateIjazahNew() {
                     }
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="template">Template Ijazah *</Label>
+                  <Select
+                    value={formData.template_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, template_id: value })
+                    }
+                    disabled={templatesLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          templatesLoading
+                            ? "Memuat template..."
+                            : templates.length === 0
+                            ? "Tidak ada template tersedia"
+                            : "Pilih Template"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -316,19 +389,6 @@ export default function CreateIjazahNew() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="logo_url">Logo URL</Label>
-                  <Input
-                    id="logo_url"
-                    type="url"
-                    placeholder="https://example.com/logo.png"
-                    value={formData.logo_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, logo_url: e.target.value })
-                    }
-                  />
                 </div>
               </div>
 

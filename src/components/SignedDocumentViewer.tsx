@@ -7,10 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
-import { UserDocument, Sertifikat } from "../types";
+import { UserDocument, Sertifikat, Ijazah } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 import { SertifikatTemplate } from "./SertifikatTemplate";
+import IjazahRenderer from "./IjazahRenderer";
 
 interface SignedDocumentViewerProps {
   isOpen: boolean;
@@ -24,30 +25,53 @@ export default function SignedDocumentViewer({
   document,
 }: SignedDocumentViewerProps) {
   const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null);
+  const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
   const [userData, setUserData] = useState<{
     name: string;
     jabatan?: string;
   } | null>(null);
+  const [dekanInfo, setDekanInfo] = useState<{ name?: string; nip?: string }>(
+    {}
+  );
+  const [rektorInfo, setRektorInfo] = useState<{ name?: string; nip?: string }>(
+    {}
+  );
   const [loading, setLoading] = useState(false);
 
-  // Fetch sertifikat data and user data if document is a sertifikat
+  // Fetch sertifikat/ijazah data and user data if document is a sertifikat or ijazah
   useEffect(() => {
     const fetchData = async () => {
-      if (!document || !document.title?.toLowerCase().includes("sertifikat")) {
+      const isSertifikat = document.title?.toLowerCase().includes("sertifikat");
+      const isIjazah = document.title?.toLowerCase().includes("ijazah");
+
+      if (!document || (!isSertifikat && !isIjazah)) {
         return;
       }
 
       setLoading(true);
       try {
-        // Fetch sertifikat data
-        const { data: sertifikat } = await supabase
-          .from("sertifikat")
-          .select("*")
-          .eq("document_id", document.id)
-          .maybeSingle();
+        if (isSertifikat) {
+          // Fetch sertifikat data
+          const { data: sertifikat } = await supabase
+            .from("sertifikat")
+            .select("*")
+            .eq("document_id", document.id)
+            .maybeSingle();
 
-        if (sertifikat) {
-          setSertifikatData(sertifikat as Sertifikat);
+          if (sertifikat) {
+            setSertifikatData(sertifikat as Sertifikat);
+          }
+        } else if (isIjazah) {
+          // Fetch ijazah data
+          const { data: ijazah } = await supabase
+            .from("ijazah")
+            .select("*")
+            .eq("document_id", document.id)
+            .maybeSingle();
+
+          if (ijazah) {
+            setIjazahData(ijazah as Ijazah);
+          }
         }
 
         // Fetch user data if not already available
@@ -67,6 +91,39 @@ export default function SignedDocumentViewer({
             jabatan: document.user.jabatan || undefined,
           });
         }
+
+        // Fetch signer info for ijazah
+        if (isIjazah && ijazahData) {
+          const metadata = document.metadata || {};
+          const dekanId = ijazahData.dekan_id || metadata.dekan_id;
+          const rektorId = ijazahData.rektor_id || metadata.rektor_id;
+
+          // Fetch dekan info
+          if (dekanId) {
+            const { data: dekanData } = await supabase
+              .from("users")
+              .select("name, nip")
+              .eq("id", dekanId)
+              .maybeSingle();
+
+            if (dekanData) {
+              setDekanInfo({ name: dekanData.name, nip: dekanData.nip });
+            }
+          }
+
+          // Fetch rektor info
+          if (rektorId) {
+            const { data: rektorData } = await supabase
+              .from("users")
+              .select("name, nip")
+              .eq("id", rektorId)
+              .maybeSingle();
+
+            if (rektorData) {
+              setRektorInfo({ name: rektorData.name, nip: rektorData.nip });
+            }
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -80,6 +137,7 @@ export default function SignedDocumentViewer({
   }, [document, isOpen]);
 
   const isSertifikat = document.title?.toLowerCase().includes("sertifikat");
+  const isIjazah = document.title?.toLowerCase().includes("ijazah");
 
   const handlePrint = () => {
     if (document.file_url) {
@@ -170,6 +228,29 @@ export default function SignedDocumentViewer({
                           }
                         : undefined
                     }
+                  />
+                </div>
+              ) : isIjazah && ijazahData ? (
+                <div className="bg-gray-100 p-4 rounded-lg print:bg-white print:p-0">
+                  <IjazahRenderer
+                    nim={ijazahData.nim}
+                    nomorIjazah={document.serial || ijazahData.nomor_seri}
+                    namaMahasiswa={ijazahData.nama_mahasiswa}
+                    programStudi="Teknik Informatika"
+                    fakultas={ijazahData.nama_fakultas}
+                    gelar={ijazahData.gelar}
+                    tanggalTerbit={ijazahData.tanggal_terbit}
+                    dekanName={dekanInfo.name}
+                    dekanNip={dekanInfo.nip}
+                    rektorName={rektorInfo.name}
+                    rektorNip={rektorInfo.nip}
+                    templateId={ijazahData.template_id}
+                    qrCodeUrl={`${window.location.origin}/verify/${
+                      document.serial || ijazahData.nomor_seri
+                    }`}
+                    dekanQrCode={(document.metadata as any)?.dekan_qr_code}
+                    rektorQrCode={(document.metadata as any)?.rektor_qr_code}
+                    renderMode="preview"
                   />
                 </div>
               ) : (

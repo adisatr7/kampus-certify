@@ -34,9 +34,30 @@ export function PendingDocuments({ userId }: PendingDocumentsProps) {
           .order("created_at", { ascending: false });
 
         if (docs) {
-          // Filter documents where current user is involved
+          // Filter documents where current user is involved and needs to sign
           const filteredDocs = docs.filter((doc: any) => {
             const metadata = doc.metadata || {};
+
+            // For ijazah documents, check workflow_stage
+            if (doc.document_type === "ijazah") {
+              // Show to dekan only if workflow_stage is "dekan_pending"
+              if (
+                metadata.dekan_id === userId &&
+                metadata.workflow_stage === "dekan_pending"
+              ) {
+                return true;
+              }
+              // Show to rektor only if workflow_stage is "rektor_pending"
+              if (
+                metadata.rektor_id === userId &&
+                metadata.workflow_stage === "rektor_pending"
+              ) {
+                return true;
+              }
+              return false;
+            }
+
+            // For other documents, check if user is involved
             return (
               doc.user_id === userId ||
               metadata.signer1_id === userId ||

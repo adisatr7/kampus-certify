@@ -1,9 +1,12 @@
 import axios from "axios";
 import {
   AlertTriangle,
+  Award,
   CheckCircle,
   FileText,
+  GraduationCap,
   Menu,
+  PenTool,
   QrCode,
   Search,
   XCircle,
@@ -33,6 +36,9 @@ export default function VerificationPortal() {
     useState<UserDocument | null>(null);
   const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
   const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null);
+  const [signerData, setSignerData] = useState<
+    Array<{ name: string; jabatan: string; nip?: string }>
+  >([]);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -131,6 +137,10 @@ export default function VerificationPortal() {
       setVerificationResult(docData as unknown as UserDocument);
 
       // Fetch additional data based on document type
+      const metadata = (docData?.metadata as any) || {};
+      const signers: Array<{ name: string; jabatan: string; nip?: string }> =
+        [];
+
       if (docData?.title?.toLowerCase().includes("ijazah")) {
         const { data: ijazah } = await supabase
           .from("ijazah")
@@ -138,6 +148,35 @@ export default function VerificationPortal() {
           .eq("document_id", docData.id)
           .maybeSingle();
         setIjazahData(ijazah as Ijazah | null);
+
+        // Fetch dekan and rektor data for ijazah
+        const ijazahAny = ijazah as any;
+        if (ijazahAny?.dekan_id || metadata?.dekan_id) {
+          const { data: dekan } = await supabase
+            .from("users")
+            .select("name, jabatan, nip")
+            .eq("id", ijazahAny?.dekan_id || metadata?.dekan_id)
+            .single();
+          if (dekan)
+            signers.push({
+              name: dekan.name,
+              jabatan: dekan.jabatan || "Dekan",
+              nip: dekan.nip,
+            });
+        }
+        if (ijazahAny?.rektor_id || metadata?.rektor_id) {
+          const { data: rektor } = await supabase
+            .from("users")
+            .select("name, jabatan, nip")
+            .eq("id", ijazahAny?.rektor_id || metadata?.rektor_id)
+            .single();
+          if (rektor)
+            signers.push({
+              name: rektor.name,
+              jabatan: rektor.jabatan || "Rektor",
+              nip: rektor.nip,
+            });
+        }
       } else if (docData?.title?.toLowerCase().includes("sertifikat")) {
         const { data: sertifikat } = await supabase
           .from("sertifikat")
@@ -145,7 +184,37 @@ export default function VerificationPortal() {
           .eq("document_id", docData.id)
           .maybeSingle();
         setSertifikatData(sertifikat as Sertifikat | null);
+
+        // Fetch signer data for sertifikat
+        if (sertifikat?.penandatangan) {
+          const { data: signer } = await supabase
+            .from("users")
+            .select("name, jabatan, nip")
+            .eq("id", sertifikat.penandatangan)
+            .single();
+          if (signer)
+            signers.push({
+              name: signer.name,
+              jabatan: signer.jabatan || "Penandatangan",
+              nip: signer.nip,
+            });
+        }
+        if (metadata?.signer2_id) {
+          const { data: signer2 } = await supabase
+            .from("users")
+            .select("name, jabatan, nip")
+            .eq("id", metadata.signer2_id)
+            .single();
+          if (signer2)
+            signers.push({
+              name: signer2.name,
+              jabatan: signer2.jabatan || "Penandatangan",
+              nip: signer2.nip,
+            });
+        }
       }
+
+      setSignerData(signers);
 
       toast({
         title: "Verifikasi Berhasil",
@@ -183,6 +252,7 @@ export default function VerificationPortal() {
     setVerificationResult(null);
     setIjazahData(null);
     setSertifikatData(null);
+    setSignerData([]);
     setDocumentId("");
   };
 
@@ -426,7 +496,10 @@ export default function VerificationPortal() {
                   {/* Ijazah Details */}
                   {ijazahData && (
                     <div className="space-y-4 border-t pt-6">
-                      <h3 className="font-bold text-lg">Detail Ijazah</h3>
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5 text-primary" />
+                        Detail Ijazah
+                      </h3>
                       <div className="grid gap-4">
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">
@@ -442,9 +515,19 @@ export default function VerificationPortal() {
                             {ijazahData.nim}
                           </span>
                         </div>
+                        {ijazahData.program_studi && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">
+                              Program Studi
+                            </span>
+                            <span className="font-medium">
+                              {ijazahData.program_studi}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">
-                            Program Studi
+                            Fakultas
                           </span>
                           <span className="font-medium">
                             {ijazahData.nama_fakultas}
@@ -452,6 +535,32 @@ export default function VerificationPortal() {
                         </div>
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">Jenjang</span>
+                          <span className="font-medium">
+                            {ijazahData.jenjang || "S1"}
+                          </span>
+                        </div>
+                        {ijazahData.angkatan && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">
+                              Angkatan/Periode
+                            </span>
+                            <span className="font-medium">
+                              {ijazahData.angkatan}
+                            </span>
+                          </div>
+                        )}
+                        {ijazahData.predikat && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">
+                              Predikat
+                            </span>
+                            <span className="font-medium">
+                              {ijazahData.predikat}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-b pb-3">
+                          <span className="text-muted-foreground">Gelar</span>
                           <span className="font-medium">
                             {ijazahData.gelar}
                           </span>
@@ -462,7 +571,8 @@ export default function VerificationPortal() {
                           </span>
                           <span className="font-medium">
                             {new Date(
-                              ijazahData.tanggal_terbit
+                              ijazahData.tanggal_lulus ||
+                                ijazahData.tanggal_terbit
                             ).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "long",
@@ -491,7 +601,10 @@ export default function VerificationPortal() {
                   {/* Sertifikat Details */}
                   {sertifikatData && (
                     <div className="space-y-4 border-t pt-6">
-                      <h3 className="font-bold text-lg">Detail Sertifikat</h3>
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <Award className="h-5 w-5 text-primary" />
+                        Detail Sertifikat
+                      </h3>
                       <div className="grid gap-4">
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">
@@ -501,12 +614,25 @@ export default function VerificationPortal() {
                             {sertifikatData.nama_peserta}
                           </span>
                         </div>
+                        {sertifikatData.nim && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">NIM</span>
+                            <span className="font-medium font-mono">
+                              {sertifikatData.nim}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">
                             Jenis Sertifikat
                           </span>
-                          <span className="font-medium">
-                            Sertifikat Pelatihan
+                          <span className="font-medium capitalize">
+                            {sertifikatData.jenis_sertifikat
+                              ? sertifikatData.jenis_sertifikat.replace(
+                                  /_/g,
+                                  " "
+                                )
+                              : "Sertifikat Pelatihan"}
                           </span>
                         </div>
                         <div className="flex justify-between border-b pb-3">
@@ -517,6 +643,16 @@ export default function VerificationPortal() {
                             {sertifikatData.nama_acara}
                           </span>
                         </div>
+                        {sertifikatData.penyelenggara && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">
+                              Penyelenggara
+                            </span>
+                            <span className="font-medium">
+                              {sertifikatData.penyelenggara}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between border-b pb-3">
                           <span className="text-muted-foreground">
                             Tanggal Pelaksanaan
@@ -545,6 +681,86 @@ export default function VerificationPortal() {
                             })}
                           </span>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Surat/Generic Document Details */}
+                  {!ijazahData && !sertifikatData && verificationResult && (
+                    <div className="space-y-4 border-t pt-6">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        Detail Dokumen
+                      </h3>
+                      <div className="grid gap-4">
+                        {verificationResult.recipient_name && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">Nama</span>
+                            <span className="font-medium">
+                              {verificationResult.recipient_name}
+                            </span>
+                          </div>
+                        )}
+                        {verificationResult.recipient_student_number && (
+                          <div className="flex justify-between border-b pb-3">
+                            <span className="text-muted-foreground">
+                              NIM/NIP/NIK
+                            </span>
+                            <span className="font-medium font-mono">
+                              {verificationResult.recipient_student_number}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-b pb-3">
+                          <span className="text-muted-foreground">
+                            Jenis Dokumen
+                          </span>
+                          <span className="font-medium capitalize">
+                            {getDocumentType()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b pb-3">
+                          <span className="text-muted-foreground">
+                            Tanggal Penerbitan
+                          </span>
+                          <span className="font-medium">
+                            {new Date(
+                              verificationResult.created_at
+                            ).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Signer Information */}
+                  {signerData.length > 0 && (
+                    <div className="space-y-4 border-t pt-6">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <PenTool className="h-5 w-5 text-primary" />
+                        Penandatangan
+                      </h3>
+                      <div className="grid gap-4">
+                        {signerData.map((signer, index) => (
+                          <div
+                            key={index}
+                            className="bg-slate-50 dark:bg-slate-900/30 p-4 rounded-lg"
+                          >
+                            <p className="font-semibold">{signer.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {signer.jabatan}
+                            </p>
+                            {signer.nip && (
+                              <p className="text-xs text-muted-foreground font-mono">
+                                NIP: {signer.nip}
+                              </p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

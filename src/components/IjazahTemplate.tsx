@@ -74,8 +74,8 @@ export default function IjazahTemplate({
         <div className="absolute inset-4 border-[3px] border-amber-500">
           {/* Content */}
           <div className="relative h-full flex flex-col p-8">
-            {/* Header - NIM and Nomor Ijazah */}
-            <div className="flex justify-between items-start mb-6">
+            {/* Header - NIM and Nomor Ijazah - Positioned safely inside white area */}
+            <div className="flex justify-between items-start mb-6 mt-8 px-4">
               <div className="text-gray-700 font-semibold text-sm">
                 NIM.{nim}
               </div>
@@ -86,9 +86,9 @@ export default function IjazahTemplate({
 
             {/* Logo */}
             <div className="flex justify-center mb-4">
-              <div className="w-24 h-24 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg">
                 <img
-                  src={logoUrl}
+                  src="/logo-umc.png"
                   alt="Logo"
                   className="w-20 h-20 object-contain"
                   crossOrigin="anonymous"
