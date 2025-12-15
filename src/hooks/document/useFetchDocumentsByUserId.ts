@@ -104,6 +104,43 @@ export default function useFetchDocumentsByUserId(
           }
         }
 
+        // For sertifikat documents, check signer1_id and signer2_id from metadata
+        if (doc.document_type === "sertifikat") {
+          const isSigner1 = metadata?.signer1_id === userId;
+          const isSigner2 = metadata?.signer2_id === userId;
+
+          // If user is signer1
+          if (isSigner1) {
+            // If status filter includes "pending", only show if workflow_stage is "pending_signer1"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "pending_signer1";
+            }
+            // For signed status, show if signer1 has signed (completed or signer1_signed)
+            if (statuses.includes("signed")) {
+              return metadata?.signer1_signed === true || metadata?.workflow_stage === "completed";
+            }
+            // Otherwise show all sertifikat documents for signer1
+            return true;
+          }
+
+          // If user is signer2
+          if (isSigner2) {
+            // If status filter includes "pending", only show if workflow_stage is "pending_signer2"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "pending_signer2";
+            }
+            // For signed status, show if workflow is completed
+            if (statuses.includes("signed")) {
+              return metadata?.workflow_stage === "completed";
+            }
+            // Otherwise show all sertifikat documents for signer2 (after signer1 signed)
+            return (
+              metadata?.workflow_stage === "pending_signer2" ||
+              metadata?.workflow_stage === "completed"
+            );
+          }
+        }
+
         // For other documents, show if user owns it
         if (doc.user_id === userId) {
           return true;

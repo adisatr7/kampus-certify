@@ -45,7 +45,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
-import { uploadSignedPDF } from "@/lib/pdfSigner";
+import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 import html2canvas from "html2canvas";
 import { PDFDocument } from "pdf-lib";
 
@@ -131,128 +131,176 @@ export default function DocumentSigning() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
 
-      // Generate signed PDF using Puppeteer edge function with template support
-      console.log(
-        "🎯 Generating PDF using Puppeteer edge function with template..."
-      );
-
-      const puppeteerResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-ijazah-pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ documentId: selectedDocument.id }),
-        }
-      );
-
-      if (!puppeteerResponse.ok) {
-        const errorText = await puppeteerResponse.text();
-        console.error(
-          "Puppeteer PDF generation failed:",
-          puppeteerResponse.status,
-          errorText
-        );
-        throw new Error(
-          `Puppeteer PDF generation failed: ${puppeteerResponse.status} - ${errorText}`
-        );
-      }
-
-      // Check response content type
-      const contentType = puppeteerResponse.headers.get("content-type");
-      console.log("Response content-type:", contentType);
+      // Determine document type
+      const isIjazahDoc = selectedDocument.title
+        ?.toLowerCase()
+        .includes("ijazah");
+      const isSertifikatDoc = selectedDocument.title
+        ?.toLowerCase()
+        .includes("sertifikat");
 
       let signedPdfBlob: Blob;
 
-      if (contentType?.includes("text/html")) {
-        // Edge function returns HTML - need to convert to PDF in browser
+      if (isSertifikatDoc) {
+        // For sertifikat, use client-side PDF generation with SertifikatRenderer
         console.log(
-          "📄 Received HTML from edge function, converting to PDF..."
+          "🎯 Generating Sertifikat PDF using client-side renderer..."
         );
-        const htmlText = await puppeteerResponse.text();
 
-        // Create a temporary container to render the HTML
-        const tempContainer = document.createElement("div");
-        tempContainer.innerHTML = htmlText;
-        tempContainer.style.position = "absolute";
-        tempContainer.style.left = "-9999px";
-        tempContainer.style.top = "-9999px";
-        tempContainer.style.width = "794px";
-        tempContainer.style.height = "1123px";
-        document.body.appendChild(tempContainer);
+        // Get current metadata and workflow stage
+        const metadata = (selectedDocument.metadata as any) || {};
+        const workflowStage = metadata.workflow_stage;
+        const isSigner1Signing = workflowStage === "pending_signer1";
+        const isSigner2Signing = workflowStage === "pending_signer2";
 
-        // Wait for fonts and images to load
-        await new Promise((resolve) => {
-          setTimeout(resolve, 2500);
+        // Create updated document with signing status for PDF generation
+        // This ensures QR code appears for the current signer
+        const updatedMetadata = {
+          ...metadata,
+          ...(isSigner1Signing
+            ? { signer1_signed: true }
+            : isSigner2Signing
+            ? { signer2_signed: true }
+            : { signed: true }),
+        };
+
+        const documentForPdf = {
+          ...selectedDocument,
+          metadata: updatedMetadata,
+        };
+
+        signedPdfBlob = await generateSignedPDF(documentForPdf, {
+          accessToken,
         });
-
-        try {
-          // Convert HTML to canvas
-          console.log("🎨 Converting HTML to canvas...");
-          const canvas = await html2canvas(tempContainer, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: "#ffffff",
-            width: 794,
-            height: 1123,
-          });
-
-          // Convert canvas to image
-          const imgData = canvas.toDataURL("image/png");
-          console.log("✅ Canvas created, size:", imgData.length, "bytes");
-
-          // Create PDF from image
-          console.log("📄 Creating PDF from canvas...");
-          const pdfDoc = await PDFDocument.create();
-          const page = pdfDoc.addPage([794, 1123]);
-
-          const pngImage = await pdfDoc.embedPng(imgData);
-          page.drawImage(pngImage, {
-            x: 0,
-            y: 0,
-            width: 794,
-            height: 1123,
-          });
-
-          const pdfBytes = await pdfDoc.save();
-          const uint8Array = new Uint8Array(
-            pdfBytes.buffer as ArrayBuffer,
-            pdfBytes.byteOffset,
-            pdfBytes.byteLength
-          );
-          signedPdfBlob = new Blob([uint8Array], { type: "application/pdf" });
-          console.log(
-            "✅ PDF generated from HTML, size:",
-            signedPdfBlob.size,
-            "bytes"
-          );
-        } finally {
-          // Clean up temporary container
-          document.body.removeChild(tempContainer);
-        }
-      } else if (contentType?.includes("application/pdf")) {
-        // Direct PDF response
-        signedPdfBlob = await puppeteerResponse.blob();
         console.log(
-          "✅ PDF generated with Puppeteer, size:",
+          "✅ Sertifikat PDF generated, size:",
           signedPdfBlob.size,
           "bytes"
         );
+      } else {
+        // For ijazah and other documents, use edge function
+        console.log(
+          "🎯 Generating PDF using Puppeteer edge function with template..."
+        );
 
-        // Validate PDF size
-        if (signedPdfBlob.size < 1000) {
-          console.warn(
-            "PDF size is suspiciously small:",
+        const puppeteerResponse = await fetch(
+          `${
+            import.meta.env.VITE_SUPABASE_URL
+          }/functions/v1/generate-ijazah-pdf`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ documentId: selectedDocument.id }),
+          }
+        );
+
+        if (!puppeteerResponse.ok) {
+          const errorText = await puppeteerResponse.text();
+          console.error(
+            "Puppeteer PDF generation failed:",
+            puppeteerResponse.status,
+            errorText
+          );
+          throw new Error(
+            `Puppeteer PDF generation failed: ${puppeteerResponse.status} - ${errorText}`
+          );
+        }
+
+        // Check response content type
+        const contentType = puppeteerResponse.headers.get("content-type");
+        console.log("Response content-type:", contentType);
+
+        if (contentType?.includes("text/html")) {
+          // Edge function returns HTML - need to convert to PDF in browser
+          console.log(
+            "📄 Received HTML from edge function, converting to PDF..."
+          );
+          const htmlText = await puppeteerResponse.text();
+
+          // Create a temporary container to render the HTML
+          const tempContainer = document.createElement("div");
+          tempContainer.innerHTML = htmlText;
+          tempContainer.style.position = "absolute";
+          tempContainer.style.left = "-9999px";
+          tempContainer.style.top = "-9999px";
+          tempContainer.style.width = "794px";
+          tempContainer.style.height = "1123px";
+          document.body.appendChild(tempContainer);
+
+          // Wait for fonts and images to load
+          await new Promise((resolve) => {
+            setTimeout(resolve, 2500);
+          });
+
+          try {
+            // Convert HTML to canvas
+            console.log("🎨 Converting HTML to canvas...");
+            const canvas = await html2canvas(tempContainer, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: "#ffffff",
+              width: 794,
+              height: 1123,
+            });
+
+            // Convert canvas to image
+            const imgData = canvas.toDataURL("image/png");
+            console.log("✅ Canvas created, size:", imgData.length, "bytes");
+
+            // Create PDF from image
+            console.log("📄 Creating PDF from canvas...");
+            const pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([794, 1123]);
+
+            const pngImage = await pdfDoc.embedPng(imgData);
+            page.drawImage(pngImage, {
+              x: 0,
+              y: 0,
+              width: 794,
+              height: 1123,
+            });
+
+            const pdfBytes = await pdfDoc.save();
+            const uint8Array = new Uint8Array(
+              pdfBytes.buffer as ArrayBuffer,
+              pdfBytes.byteOffset,
+              pdfBytes.byteLength
+            );
+            signedPdfBlob = new Blob([uint8Array], { type: "application/pdf" });
+            console.log(
+              "✅ PDF generated from HTML, size:",
+              signedPdfBlob.size,
+              "bytes"
+            );
+          } finally {
+            // Clean up temporary container
+            document.body.removeChild(tempContainer);
+          }
+        } else if (contentType?.includes("application/pdf")) {
+          // Direct PDF response
+          signedPdfBlob = await puppeteerResponse.blob();
+          console.log(
+            "✅ PDF generated with Puppeteer, size:",
             signedPdfBlob.size,
             "bytes"
           );
-          throw new Error("PDF generation may have failed - file too small");
+
+          // Validate PDF size
+          if (signedPdfBlob.size < 1000) {
+            console.warn(
+              "PDF size is suspiciously small:",
+              signedPdfBlob.size,
+              "bytes"
+            );
+            throw new Error("PDF generation may have failed - file too small");
+          }
+        } else {
+          throw new Error(`Unexpected content-type: ${contentType}`);
         }
-      } else {
-        throw new Error(`Unexpected content-type: ${contentType}`);
       }
 
       // Upload the generated signed PDF to storage
@@ -391,29 +439,138 @@ export default function DocumentSigning() {
           console.log("✅ Document marked as complete (status: signed)");
         }
       } else {
-        // For non-ijazah documents: mark as signed immediately
-        console.log("📋 Non-ijazah document - marking as 'signed'");
+        // For non-ijazah documents (including sertifikat)
+        const isSertifikatWorkflow = selectedDocument.title
+          ?.toLowerCase()
+          .includes("sertifikat");
+        const isSigner1Signing = workflowStage === "pending_signer1";
+        const isSigner2Signing = workflowStage === "pending_signer2";
+        const hasSigner2 = !!metadata.signer2_id;
 
-        const { error: updateError } = await supabase
-          .from("documents")
-          .update({
-            status: "signed",
-            file_url: signedDocumentUrl,
-            metadata: {
-              ...metadata,
-              signed: true,
-              signed_at: new Date().toISOString(),
-              qr_code: passphraseInput,
-            },
-          })
-          .eq("id", selectedDocument.id);
+        console.log("📋 Sertifikat workflow info:", {
+          isSertifikatWorkflow,
+          isSigner1Signing,
+          isSigner2Signing,
+          hasSigner2,
+          signer2_id: metadata.signer2_id,
+        });
 
-        if (updateError) {
-          console.error("Failed to update document status:", updateError);
-          throw updateError;
+        if (isSertifikatWorkflow && isSigner1Signing && hasSigner2) {
+          // Sertifikat with 2 signers - signer1 signing, transfer to signer2
+          console.log(
+            "📋 Signer1 signing sertifikat - transferring to signer2 via edge function"
+          );
+
+          const signer2Id = metadata.signer2_id;
+
+          // Use edge function to bypass RLS policy for changing user_id
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData.session?.access_token;
+
+          const updateResponse = await fetch(
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/update-document-workflow`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                documentId: selectedDocument.id,
+                fileUrl: signedDocumentUrl,
+                newUserId: signer2Id,
+                metadata: {
+                  ...metadata,
+                  workflow_stage: "pending_signer2",
+                  signer1_signed: true,
+                  signer1_signed_at: new Date().toISOString(),
+                  signer1_qr_code: passphraseInput,
+                },
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.error(
+              "Failed to transfer document to signer2:",
+              updateResponse.status,
+              errorText
+            );
+            throw new Error(`Failed to transfer document: ${errorText}`);
+          }
+
+          console.log(
+            "✅ Sertifikat transferred to signer2 via edge function (status remains pending)"
+          );
+        } else if (
+          isSertifikatWorkflow &&
+          (isSigner2Signing || (isSigner1Signing && !hasSigner2))
+        ) {
+          // Sertifikat - final signer (signer2 or signer1 if no signer2)
+          console.log(
+            "📋 Final signer signing sertifikat - marking as complete"
+          );
+
+          const { error: updateError } = await supabase
+            .from("documents")
+            .update({
+              status: "signed",
+              file_url: signedDocumentUrl,
+              metadata: {
+                ...metadata,
+                workflow_stage: "completed",
+                ...(isSigner2Signing
+                  ? {
+                      signer2_signed: true,
+                      signer2_signed_at: new Date().toISOString(),
+                      signer2_qr_code: passphraseInput,
+                    }
+                  : {
+                      signer1_signed: true,
+                      signer1_signed_at: new Date().toISOString(),
+                      signer1_qr_code: passphraseInput,
+                    }),
+              },
+            })
+            .eq("id", selectedDocument.id);
+
+          if (updateError) {
+            console.error(
+              "Failed to mark sertifikat as complete:",
+              updateError
+            );
+            throw updateError;
+          }
+
+          console.log("✅ Sertifikat marked as complete (status: signed)");
+        } else {
+          // For other non-ijazah, non-sertifikat documents: mark as signed immediately
+          console.log("📋 Other document - marking as 'signed'");
+
+          const { error: updateError } = await supabase
+            .from("documents")
+            .update({
+              status: "signed",
+              file_url: signedDocumentUrl,
+              metadata: {
+                ...metadata,
+                signed: true,
+                signed_at: new Date().toISOString(),
+                qr_code: passphraseInput,
+              },
+            })
+            .eq("id", selectedDocument.id);
+
+          if (updateError) {
+            console.error("Failed to update document status:", updateError);
+            throw updateError;
+          }
+
+          console.log("✅ Document status updated to 'signed'");
         }
-
-        console.log("✅ Document status updated to 'signed'");
       }
 
       // Call create-signature-record edge function to create signature record for verification
@@ -452,11 +609,24 @@ export default function DocumentSigning() {
         `Menandatangani dokumen "${selectedDocument.title}"`
       );
 
+      // Determine toast message based on workflow
+      const isSertifikatWorkflow = selectedDocument.title
+        ?.toLowerCase()
+        .includes("sertifikat");
+      const hasSigner2 = !!metadata.signer2_id;
+      const isSigner1Signing = workflowStage === "pending_signer1";
+
       if (isIjazahWorkflow && isDekanSigning) {
         toast({
           title: "Berhasil",
           description:
             "Ijazah berhasil ditandatangani dan dikirim ke Rektor. Rektor perlu refresh halaman untuk melihat dokumen.",
+        });
+      } else if (isSertifikatWorkflow && isSigner1Signing && hasSigner2) {
+        toast({
+          title: "Berhasil",
+          description:
+            "Sertifikat berhasil ditandatangani dan dikirim ke penandatangan kedua.",
         });
       } else {
         toast({

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import SertifikatPreview from "@/components/SertifikatPreview";
-import { DEFAULT_CERTIFICATE_TEMPLATES } from "@/types/CertificateTemplate";
 import { Button } from "@/components/ui/Button";
 import {
   Card,
@@ -23,8 +22,10 @@ import {
 } from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { canCreateDocument } from "@/lib/documentAccess";
+import useFetchDocumentTemplates from "@/hooks/template/useFetchDocumentTemplates";
 
 export default function CreateSertifikatNew() {
   const navigate = useNavigate();
@@ -36,6 +37,10 @@ export default function CreateSertifikatNew() {
     Array<{ id: string; name: string; nip: string; jabatan?: string }>
   >([]);
 
+  // Fetch sertifikat templates from database
+  const { data: templates = [], isLoading: templatesLoading } =
+    useFetchDocumentTemplates("sertifikat");
+
   const [formData, setFormData] = useState({
     nama_peserta: "",
     nama_acara: "",
@@ -44,8 +49,18 @@ export default function CreateSertifikatNew() {
     penyelenggara: "",
     signer1_id: "",
     signer2_id: "",
-    template_id: "default",
+    template_id: "",
   });
+
+  // Set default template when templates load
+  useEffect(() => {
+    if (templates.length > 0 && !formData.template_id) {
+      setFormData((prev) => ({
+        ...prev,
+        template_id: templates[0].id,
+      }));
+    }
+  }, [templates, formData.template_id]);
 
   // Generate nomor sertifikat otomatis: XXXX/CERT/UMC/YYYY
   const generateNomorSertifikat = () => {
@@ -124,10 +139,11 @@ export default function CreateSertifikatNew() {
       if (!userProfile) throw new Error("User not authenticated");
 
       // Create document with workflow metadata
+      // user_id diset ke signer1_id agar sertifikat langsung masuk ke daftar dokumen penandatangan pertama
       const { data: document, error: docError } = await supabase
         .from("documents")
         .insert({
-          user_id: userProfile.id,
+          user_id: formData.signer1_id,
           title: `Sertifikat - ${formData.nama_peserta}`,
           status: "pending",
           document_type: "sertifikat",
@@ -164,6 +180,13 @@ export default function CreateSertifikatNew() {
 
       if (sertifikatError) throw sertifikatError;
 
+      // Create audit entry
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_SERTIFIKAT",
+        `Membuat sertifikat untuk ${formData.nama_peserta} - ${formData.nama_acara}`
+      );
+
       toast({
         title: "Berhasil",
         description:
@@ -192,7 +215,7 @@ export default function CreateSertifikatNew() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
@@ -249,14 +272,21 @@ export default function CreateSertifikatNew() {
                     onValueChange={(value) =>
                       setFormData({ ...formData, template_id: value })
                     }
+                    disabled={templatesLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih template" />
+                      <SelectValue
+                        placeholder={
+                          templatesLoading
+                            ? "Memuat template..."
+                            : templates.length === 0
+                            ? "Tidak ada template tersedia"
+                            : "Pilih Template"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEFAULT_CERTIFICATE_TEMPLATES.filter(
-                        (t) => t.is_active
-                      ).map((template) => (
+                      {templates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}
                         </SelectItem>
@@ -424,11 +454,11 @@ export default function CreateSertifikatNew() {
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
         formData={formData}
-        templateId={formData.template_id}
         signer1Name={userList.find((u) => u.id === formData.signer1_id)?.name}
         signer1Jabatan={
           userList.find((u) => u.id === formData.signer1_id)?.jabatan
         }
+        signer1Nip={userList.find((u) => u.id === formData.signer1_id)?.nip}
         signer2Name={
           formData.signer2_id
             ? userList.find((u) => u.id === formData.signer2_id)?.name
@@ -437,6 +467,11 @@ export default function CreateSertifikatNew() {
         signer2Jabatan={
           formData.signer2_id
             ? userList.find((u) => u.id === formData.signer2_id)?.jabatan
+            : undefined
+        }
+        signer2Nip={
+          formData.signer2_id
+            ? userList.find((u) => u.id === formData.signer2_id)?.nip
             : undefined
         }
       />

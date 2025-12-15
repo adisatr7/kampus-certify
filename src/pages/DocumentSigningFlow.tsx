@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/Card";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { UserDocument, Ijazah, Sertifikat } from "@/types";
 import { generateSignedPDFWithPuppeteer } from "@/lib/puppeteerPdfSigner";
@@ -194,6 +195,15 @@ export default function DocumentSigningFlow() {
       // The edge function already handles all the database updates
       // including QR code storage and workflow stage transitions
 
+      // Create audit entry for signing
+      if (userProfile?.id) {
+        await createAuditEntry(
+          userProfile.id,
+          "SIGN_DOCUMENT",
+          `Menandatangani dokumen "${document.title}"`
+        );
+      }
+
       // Show appropriate success message based on workflow stage
       if (isIjazahWorkflow && isDekanSigning) {
         toast({
@@ -254,7 +264,7 @@ export default function DocumentSigningFlow() {
 
   if (!document) {
     return (
-      <DashboardLayout>
+      <DashboardLayout userRole={userProfile?.role}>
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="pt-6">
@@ -273,7 +283,7 @@ export default function DocumentSigningFlow() {
   const metadata = (document.metadata as any) || {};
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>

@@ -20,70 +20,25 @@
     .certificate-container {
       position: relative;
       width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
       aspect-ratio: 1.414;
-      background-color: #f5f5f0;
+      background-image: url('/certificate-background.webp');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       overflow: hidden;
     }
 
-    /* Decorative Corner - Top Left */
-    .corner-top-left {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 180px;
-      height: 180px;
-      pointer-events: none;
-      z-index: 20;
-    }
-
-    /* Decorative Corner - Bottom Right */
-    .corner-bottom-right {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 180px;
-      height: 180px;
-      pointer-events: none;
-      z-index: 20;
-    }
-
-    /* Golden Borders */
-    .border-outer {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
-      border: 4px solid #B8860B;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .border-inner {
-      position: absolute;
-      top: 24px;
-      left: 24px;
-      right: 24px;
-      bottom: 24px;
-      border: 1px solid #B8860B;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    /* Content Container */
+    /* Content Container - padding untuk tidak menyentuh border */
     .content {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 60px;
+      left: 60px;
+      right: 60px;
+      bottom: 60px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 48px 64px;
+      padding: 40px 60px;
       z-index: 10;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -92,42 +47,45 @@
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .title {
-      font-size: 48px;
+      font-size: 42px;
       font-weight: 700;
       margin-bottom: 8px;
       color: #B8860B;
       font-family: 'Playfair Display', serif;
-      letter-spacing: 0.3em;
+      letter-spacing: 0.35em;
     }
 
     .subtitle {
-      font-size: 20px;
+      font-size: 16px;
       margin-bottom: 12px;
       color: #9CA3AF;
       font-family: 'Playfair Display', serif;
-      letter-spacing: 0.4em;
+      letter-spacing: 0.35em;
       font-weight: 500;
     }
 
     .nomor {
-      font-size: 14px;
-      color: #4B5563;
+      font-size: 12px;
+      color: #B8860B;
       font-family: 'Times New Roman', serif;
     }
 
     /* Body */
     .body {
       text-align: center;
-      max-width: 700px;
-      margin-bottom: 24px;
+      max-width: 600px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }
 
     .intro-text {
-      font-size: 15px;
+      font-size: 14px;
       margin-bottom: 4px;
       color: #4B5563;
       font-family: 'Times New Roman', serif;
@@ -135,7 +93,7 @@
     }
 
     .intro-text-2 {
-      font-size: 15px;
+      font-size: 14px;
       margin-bottom: 20px;
       color: #4B5563;
       font-family: 'Times New Roman', serif;
@@ -143,17 +101,17 @@
     }
 
     .nama-peserta {
-      font-size: 56px;
+      font-size: 48px;
       font-weight: 400;
-      margin-bottom: 24px;
-      color: #D4A84B;
+      margin-bottom: 20px;
+      color: #B8860B;
       font-family: 'Great Vibes', 'Brush Script MT', cursive;
     }
 
     .description {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.8;
-      max-width: 650px;
+      max-width: 580px;
       margin: 0 auto;
       color: #4B5563;
       font-family: 'Times New Roman', serif;
@@ -163,22 +121,18 @@
       font-weight: bold;
     }
 
-    /* Footer - Signatures */
+    /* Footer - Signature(s) positioned dynamically */
     .footer {
       width: 100%;
-      max-width: 600px;
-      margin-top: auto;
-      padding-top: 20px;
-    }
-
-    .signatures {
       display: flex;
-      justify-content: center;
-      gap: 120px;
+      justify-content: flex-end;
+      margin-top: auto;
+      gap: 80px;
     }
-
-    .signatures.single {
-      justify-content: center;
+    
+    /* Jika ada 2 signer, spread ke kiri dan kanan */
+    .footer:has(.signer:nth-child(2)) {
+      justify-content: space-between;
     }
 
     .signer {
@@ -203,33 +157,26 @@
       display: block;
     }
 
-    .signer-label {
-      font-size: 13px;
-      margin-bottom: 2px;
-      color: #6B7280;
-      font-family: 'Times New Roman', serif;
-    }
-
     .signer-name {
       font-size: 14px;
       font-weight: bold;
-      margin-top: 6px;
       text-decoration: underline;
       color: #000000;
       font-family: 'Times New Roman', serif;
+      margin-bottom: 2px;
     }
 
     .signer-role {
-      font-size: 13px;
-      font-style: italic;
+      font-size: 12px;
       color: #6B7280;
       font-family: 'Times New Roman', serif;
-      margin-top: 2px;
+      margin-bottom: 2px;
     }
 
-    /* Hide QR if not available */
-    .qr-container.hidden {
-      display: none;
+    .signer-institution {
+      font-size: 11px;
+      color: #B8860B;
+      font-family: 'Times New Roman', serif;
     }
 
     @media print {
@@ -237,9 +184,8 @@
         background: white;
       }
       .certificate-container {
-        max-width: 100%;
-        aspect-ratio: auto;
-        height: 100vh;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
     }
 
@@ -251,42 +197,6 @@
 </head>
 <body>
   <div class="certificate-container">
-    <!-- Decorative Corner - Top Left -->
-    <div class="corner-top-left">
-      <svg viewBox="0 0 200 200" width="100%" height="100%">
-        <line x1="10" y1="10" x2="150" y2="10" stroke="#B8860B" stroke-width="3"/>
-        <line x1="10" y1="10" x2="10" y2="150" stroke="#B8860B" stroke-width="3"/>
-        <line x1="10" y1="20" x2="140" y2="20" stroke="#B8860B" stroke-width="2"/>
-        <line x1="20" y1="10" x2="20" y2="140" stroke="#B8860B" stroke-width="2"/>""
-        <line x1="10" y1="30" x2="130" y2="30" stroke="#B8860B" stroke-width="2"/>
-        <line x1="30" y1="10" x2="30" y2="130" stroke="#B8860B" stroke-width="2"/>
-        <line x1="10" y1="40" x2="120" y2="40" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="40" y1="10" x2="40" y2="120" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="10" y1="50" x2="110" y2="50" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="50" y1="10" x2="50" y2="110" stroke="#B8860B" stroke-width="1.5"/>
-      </svg>
-    </div>
-
-    <!-- Decorative Corner - Bottom Right -->
-    <div class="corner-bottom-right">
-      <svg viewBox="0 0 200 200" width="100%" height="100%">
-        <line x1="190" y1="190" x2="50" y2="190" stroke="#B8860B" stroke-width="3"/>
-        <line x1="190" y1="190" x2="190" y2="50" stroke="#B8860B" stroke-width="3"/>
-        <line x1="190" y1="180" x2="60" y2="180" stroke="#B8860B" stroke-width="2"/>
-        <line x1="180" y1="190" x2="180" y2="60" stroke="#B8860B" stroke-width="2"/>
-        <line x1="190" y1="170" x2="70" y2="170" stroke="#B8860B" stroke-width="2"/>
-        <line x1="170" y1="190" x2="170" y2="70" stroke="#B8860B" stroke-width="2"/>
-        <line x1="190" y1="160" x2="80" y2="160" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="160" y1="190" x2="160" y2="80" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="190" y1="150" x2="90" y2="150" stroke="#B8860B" stroke-width="1.5"/>
-        <line x1="150" y1="190" x2="150" y2="90" stroke="#B8860B" stroke-width="1.5"/>
-      </svg>
-    </div>
-
-    <!-- Golden Borders -->
-    <div class="border-outer"></div>
-    <div class="border-inner"></div>
-
     <!-- Content -->
     <div class="content">
       <!-- Header -->
@@ -302,46 +212,22 @@
         <p class="intro-text-2">menganugerahkan penghargaan ini kepada</p>
         <h2 class="nama-peserta">{{nama_peserta}}</h2>
         <p class="description">
-          Sebagai bentuk apresiasi atas partisipasi aktif dan kontribusinya
-          dalam kegiatan Sosial dan Budaya yang diselenggarakan oleh
-          Universitas Muhammadiyah Cirebon dengan tema
-          <strong>{{nama_acara}}</strong> pada tanggal
-          <strong>{{tanggal_acara}}</strong>
-          di Cirebon. Semoga ilmu yang didapat membawa keberkahan dan menjadi
-          amal jariyah.
+          Sebagai bentuk apresiasi atas partisipasi aktif dan kontribusinya dalam kegiatan Sosial dan Budaya yang
+          diselenggarakan oleh Universitas Muhammadiyah Cirebon dengan tema <strong>{{nama_acara}}</strong> pada tanggal <strong>{{tanggal_acara}}</strong> di Cirebon. Semoga ilmu yang didapat membawa keberkahan dan menjadi amal jariyah.
         </p>
       </div>
 
-      <!-- Footer - Signatures -->
+      <!-- Footer - Signature (hanya 1 penandatangan untuk template default) -->
       <div class="footer">
-        <div class="signatures">
-          <!-- Penandatangan 1 -->
-          <div class="signer">
-            <div class="qr-container {{qr_class_1}}">
-              <div class="qr-box">
-                <img src="{{qr_code_1}}" alt="QR Code" />
-              </div>
+        <div class="signer">
+          <div class="qr-container">
+            <div class="qr-box">
+              <img src="{{qr_code}}" alt="QR Code" />
             </div>
-            <p class="signer-label">Nama Lengkap + Gelar</p>
-            <p class="signer-label">NIP</p>
-            <p class="signer-name">{{penandatangan1_name}}</p>
-            <p class="signer-role">Penandatangan 1</p>
           </div>
-
-          <!-- Penandatangan 2 (optional) -->
-          {{#if penandatangan2_name}}
-          <div class="signer">
-            <div class="qr-container {{qr_class_2}}">
-              <div class="qr-box">
-                <img src="{{qr_code_2}}" alt="QR Code" />
-              </div>
-            </div>
-            <p class="signer-label">Nama Lengkap + Gelar</p>
-            <p class="signer-label">NIP</p>
-            <p class="signer-name">{{penandatangan2_name}}</p>
-            <p class="signer-role">Penandatangan 2</p>
-          </div>
-          {{/if}}
+          <p class="signer-name">{{signer1_name}}</p>
+          <p class="signer-role">{{signer1_jabatan}}</p>
+          <p class="signer-institution">Universitas Muhammadiyah Cirebon</p>
         </div>
       </div>
     </div>

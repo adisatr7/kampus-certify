@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/Select";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { canCreateDocument } from "@/lib/documentAccess";
 import { JENJANG_OPTIONS } from "@/types/IjazahTemplate";
@@ -176,6 +177,13 @@ export default function CreateIjazahNew() {
 
       if (ijazahError) throw ijazahError;
 
+      // Create audit entry
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_IJAZAH",
+        `Membuat ijazah untuk ${formData.nama_mahasiswa} - ${formData.nim}`
+      );
+
       toast({
         title: "Berhasil",
         description: "Ijazah berhasil dibuat dan menunggu validasi.",
@@ -203,7 +211,7 @@ export default function CreateIjazahNew() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>

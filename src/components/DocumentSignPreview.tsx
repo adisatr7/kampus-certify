@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserDocument, Sertifikat } from "@/types";
 import { Ijazah } from "@/types/Ijazah";
 import IjazahRenderer from "./IjazahRenderer";
-import { SertifikatTemplate } from "./SertifikatTemplate";
+import SertifikatRenderer from "./SertifikatRenderer";
 
 interface DocumentSignPreviewProps {
   isOpen: boolean;
@@ -180,7 +180,16 @@ export default function DocumentSignPreview({
               />
             </div>
           ) : isSertifikat && sertifikatData ? (
-            <SertifikatTemplate sertifikat={sertifikatData} showQR={false} />
+            <div className="transform scale-75 origin-top">
+              <SertifikatRenderer
+                nomorSertifikat={sertifikatData.nomor_sertifikat}
+                namaPeserta={sertifikatData.nama_peserta}
+                namaAcara={sertifikatData.nama_acara}
+                tanggalAcara={sertifikatData.tanggal_acara}
+                templateId={sertifikatData.template_id}
+                renderMode="preview"
+              />
+            </div>
           ) : null}
         </div>
       </DialogContent>

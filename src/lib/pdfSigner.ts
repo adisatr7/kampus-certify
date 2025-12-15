@@ -6,7 +6,7 @@ import { generateIjazahPDF } from "./puppeteerPdfGenerator";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
-import { SertifikatTemplate } from "@/components/SertifikatTemplate";
+import SertifikatRenderer from "@/components/SertifikatRenderer";
 import IjazahRenderer from "@/components/IjazahRenderer";
 import { UserDocument, Sertifikat, DocumentTemplate } from "@/types";
 
@@ -274,7 +274,7 @@ export async function generateSignedPDF(
           
           // Fetch signer2 data if exists
           const signer2Id = metadata.signer2_id;
-          let signer2Data = null;
+          let signer2Data: { name: string; jabatan: string | null } | null = null;
           if (signer2Id) {
             const { data: signer2 } = await supabase
               .from("users")
@@ -284,7 +284,22 @@ export async function generateSignedPDF(
             signer2Data = signer2;
           }
 
-          // Render SertifikatTemplate with proper landscape layout
+          // Get signing status from metadata
+          const signer1Signed = !!metadata.signer1_signed;
+          const signer2Signed = !!metadata.signer2_signed;
+          
+          // Check if there's actually a second signer
+          const hasSigner2 = !!(signer2Id && signer2Data?.name);
+
+          console.log("Sertifikat signing status:", { 
+            signer1Signed, 
+            signer2Signed, 
+            signer2Data, 
+            hasSigner2,
+            signer2Id 
+          });
+
+          // Render SertifikatRenderer with proper landscape layout
           root.render(
             React.createElement("div", {
               style: {
@@ -298,17 +313,22 @@ export async function generateSignedPDF(
                 overflow: "hidden",
               }
             },
-              React.createElement(SertifikatTemplate, {
-                sertifikat: sertifikatData as Sertifikat,
-                qrValue: qrContent,
-                showQR: true,
-                penandatangan1: userData
-                  ? { name: userData.name, jabatan: userData.jabatan || undefined }
-                  : undefined,
-                penandatangan2: signer2Data
-                  ? { name: signer2Data.name, jabatan: signer2Data.jabatan || undefined }
-                  : undefined,
-                templateId: sertifikatData.template_id || "default",
+              React.createElement(SertifikatRenderer, {
+                nomorSertifikat: sertifikatData.nomor_sertifikat,
+                namaPeserta: sertifikatData.nama_peserta,
+                namaAcara: sertifikatData.nama_acara,
+                tanggalAcara: sertifikatData.tanggal_acara,
+                penandatanganName: userData?.name,
+                penandatanganJabatan: userData?.jabatan || undefined,
+                // Only pass signer2 data if there's actually a second signer
+                penandatangan2Name: hasSigner2 ? signer2Data?.name : undefined,
+                penandatangan2Jabatan: hasSigner2 ? (signer2Data?.jabatan || undefined) : undefined,
+                signer1Signed: signer1Signed,
+                // signer2Signed only matters if there's a second signer
+                signer2Signed: hasSigner2 ? signer2Signed : false,
+                templateId: sertifikatData.template_id || undefined,
+                qrCodeUrl: qrContent,
+                renderMode: "pdf-generation",
               })
             )
           );
@@ -508,6 +528,16 @@ export async function generateSignedPDF(
 
   const pages = pdfDoc.getPages();
   const targetPage = pages[pages.length - 1];
+
+  // Skip footer overlay for sertifikat and ijazah - they already have QR code and signature section
+  const isIjazahDoc = doc.title?.toLowerCase().includes("ijazah");
+  const isSertifikatDoc = doc.title?.toLowerCase().includes("sertifikat");
+  
+  if (isIjazahDoc || isSertifikatDoc) {
+    console.log("Skipping SignedDocumentTemplate footer overlay for", isIjazahDoc ? "ijazah" : "sertifikat");
+    const pdfBytes = await pdfDoc.save();
+    return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+  }
 
   try {
     const DPI = 300;

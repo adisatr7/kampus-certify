@@ -10,7 +10,7 @@ import {
 import { UserDocument, Sertifikat, Ijazah } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
-import { SertifikatTemplate } from "./SertifikatTemplate";
+import SertifikatRenderer from "./SertifikatRenderer";
 import IjazahRenderer from "./IjazahRenderer";
 
 interface SignedDocumentViewerProps {
@@ -214,20 +214,18 @@ export default function SignedDocumentViewer({
               </div>
               {isSertifikat && sertifikatData ? (
                 <div className="bg-gray-100 p-4 rounded-lg print:bg-white print:p-0">
-                  <SertifikatTemplate
-                    sertifikat={sertifikatData}
-                    qrValue={`${window.location.origin}/verify?id=${
+                  <SertifikatRenderer
+                    nomorSertifikat={sertifikatData.nomor_sertifikat}
+                    namaPeserta={sertifikatData.nama_peserta}
+                    namaAcara={sertifikatData.nama_acara}
+                    tanggalAcara={sertifikatData.tanggal_acara}
+                    penandatanganName={userData?.name}
+                    penandatanganJabatan={userData?.jabatan}
+                    templateId={sertifikatData.template_id}
+                    qrCodeUrl={`${window.location.origin}/verify?id=${
                       document.serial ?? document.id
                     }`}
-                    showQR={true}
-                    penandatangan1={
-                      userData
-                        ? {
-                            name: userData.name,
-                            jabatan: userData.jabatan,
-                          }
-                        : undefined
-                    }
+                    renderMode="preview"
                   />
                 </div>
               ) : isIjazah && ijazahData ? (
