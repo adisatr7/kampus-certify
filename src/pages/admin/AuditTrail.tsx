@@ -212,6 +212,9 @@ export default function AuditTrail() {
       CREATE_DOCUMENT: "Buat Dokumen",
       SIGN_DOCUMENT: "Tanda Tangan",
       DELETE_DOCUMENT: "Hapus Dokumen",
+      VIEW_DOCUMENT: "Lihat Dokumen",
+      DOWNLOAD_DOCUMENT: "Unduh Dokumen",
+      PRINT_DOCUMENT: "Cetak Dokumen",
       CREATE_IJAZAH: "Buat Ijazah",
       CREATE_SERTIFIKAT: "Buat Sertifikat",
       CREATE_USER: "Buat User",
@@ -238,6 +241,9 @@ export default function AuditTrail() {
       CREATE_CERTIFICATE: "bg-red-500",
       REVOKE_CERTIFICATE: "bg-red-600",
       VERIFY_DOCUMENT: "bg-teal-500",
+      VIEW_DOCUMENT: "bg-cyan-500",
+      DOWNLOAD_DOCUMENT: "bg-indigo-500",
+      PRINT_DOCUMENT: "bg-pink-500",
     };
 
     const colorClass = actionColors[action] || "bg-green-500";

@@ -387,7 +387,13 @@ export default function CreateSertifikat() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/admin/documents")}
+                  onClick={() =>
+                    navigate(
+                      userProfile?.role === "admin"
+                        ? "/admin/documents"
+                        : "/documents"
+                    )
+                  }
                 >
                   Batal
                 </Button>

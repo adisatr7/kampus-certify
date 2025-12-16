@@ -151,7 +151,6 @@ export async function generateSignedPDF(
           ${isSertifikatDoc ? `
             .mb-8 { margin-bottom: 2rem !important; }
             .px-16 { padding-left: 4rem !important; padding-right: 4rem !important; }
-            .justify-end { justify-content: flex-end !important; }
           ` : ''}
         `;
         container.appendChild(overrideStyle);
@@ -284,9 +283,11 @@ export async function generateSignedPDF(
             signer2Data = signer2;
           }
 
-          // Get signing status from metadata
-          const signer1Signed = !!metadata.signer1_signed;
-          const signer2Signed = !!metadata.signer2_signed;
+          // Get signing status from metadata or document status
+          // Jika dokumen sudah "signed", berarti semua penandatangan sudah menandatangani
+          const isDocumentFullySigned = doc.status === "signed";
+          const signer1Signed = isDocumentFullySigned || !!metadata.signer1_signed;
+          const signer2Signed = isDocumentFullySigned || !!metadata.signer2_signed;
           
           // Check if there's actually a second signer
           const hasSigner2 = !!(signer2Id && signer2Data?.name);
@@ -296,7 +297,9 @@ export async function generateSignedPDF(
             signer2Signed, 
             signer2Data, 
             hasSigner2,
-            signer2Id 
+            signer2Id,
+            docStatus: doc.status,
+            isDocumentFullySigned
           });
 
           // Render SertifikatRenderer with proper landscape layout

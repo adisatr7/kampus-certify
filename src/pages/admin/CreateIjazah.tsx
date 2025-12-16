@@ -194,7 +194,10 @@ export default function CreateIjazah() {
         description: "Ijazah berhasil dibuat dan menunggu validasi Dekan",
       });
 
-      navigate("/admin/documents");
+      // Redirect berdasarkan role user
+      const redirectPath =
+        userProfile?.role === "admin" ? "/admin/documents" : "/documents";
+      navigate(redirectPath);
     } catch (error) {
       console.error("Error creating ijazah:", error);
       toast({
@@ -465,7 +468,13 @@ export default function CreateIjazah() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/admin/documents")}
+                  onClick={() =>
+                    navigate(
+                      userProfile?.role === "admin"
+                        ? "/admin/documents"
+                        : "/documents"
+                    )
+                  }
                 >
                   Batal
                 </Button>

@@ -54,12 +54,18 @@ export default function MyDocuments() {
     refetch: refetchDocument,
   } = useFetchDocumentsByUserId(userProfile?.id ?? "");
 
-  const [filteredDocuments, setFilteredDocuments] = useState<UserDocument[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<UserDocument[]>(
+    []
+  );
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<DocumentStatus | "all">("all");
-  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [statusFilter, setStatusFilter] = useState<DocumentStatus | "all">(
+    "all"
+  );
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(
+    null
+  );
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   // Form state
@@ -79,7 +85,7 @@ export default function MyDocuments() {
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter((doc) =>
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase()),
+        doc.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -92,7 +98,13 @@ export default function MyDocuments() {
   };
 
   const uploadDocument = async () => {
-    if (!title || !content.trim() || !recipientName || !recipientStudentNumber || !userProfile) {
+    if (
+      !title ||
+      !content.trim() ||
+      !recipientName ||
+      !recipientStudentNumber ||
+      !userProfile
+    ) {
       toast({
         title: "Error",
         description: "Judul, isi, nama penerima, dan NIM harus diisi",
@@ -109,7 +121,9 @@ export default function MyDocuments() {
       // Upload file to Supabase Storage if file is provided
       if (file) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}.${fileExt}`;
         const filePath = `${userProfile.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -146,7 +160,9 @@ export default function MyDocuments() {
         throw insertError;
       }
 
-      const inserted = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
+      const inserted = Array.isArray(insertedRows)
+        ? insertedRows[0]
+        : insertedRows;
       if (!inserted || !inserted.id) {
         throw new Error("Failed to retrieve inserted document id");
       }
@@ -160,7 +176,11 @@ export default function MyDocuments() {
         throw updateErr;
       }
 
-      await createAuditEntry(userProfile.id, "CREATE_DOCUMENT", `Mengupload dokumen "${title}"`);
+      await createAuditEntry(
+        userProfile.id,
+        "CREATE_DOCUMENT",
+        `Mengupload dokumen "${title}"`
+      );
 
       toast({
         title: "Berhasil",
@@ -201,7 +221,7 @@ export default function MyDocuments() {
       await createAuditEntry(
         userProfile.id,
         "DELETE_DOCUMENT",
-        `Menghapus dokumen "${documentTitle}"`,
+        `Menghapus dokumen "${documentTitle}"`
       );
 
       toast({
@@ -256,7 +276,9 @@ export default function MyDocuments() {
               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
                 Memuat Dokumen
               </h3>
-              <p className="text-slate-500 dark:text-slate-400">Mengambil daftar dokumen Anda...</p>
+              <p className="text-slate-500 dark:text-slate-400">
+                Mengambil daftar dokumen Anda...
+              </p>
             </div>
           </div>
         </div>
@@ -345,7 +367,8 @@ export default function MyDocuments() {
                         rows={10}
                       />
                       <p className="text-xs text-slate-500 dark:text-zinc-300 mt-2 bg-slate-50 dark:bg-zinc-800 p-2 rounded">
-                        Isi dokumen ini akan ditampilkan pada dokumen yang telah ditandatangani
+                        Isi dokumen ini akan ditampilkan pada dokumen yang telah
+                        ditandatangani
                       </p>
                     </div>
 
@@ -375,7 +398,9 @@ export default function MyDocuments() {
                       <Input
                         id="recipientStudentNumber"
                         value={recipientStudentNumber}
-                        onChange={(e) => setRecipientStudentNumber(e.target.value)}
+                        onChange={(e) =>
+                          setRecipientStudentNumber(e.target.value)
+                        }
                         placeholder="Masukkan NIM"
                         className="mt-1 border-slate-300"
                       />
@@ -495,7 +520,9 @@ export default function MyDocuments() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-zinc-300">Dicabut</p>
+                    <p className="text-sm font-medium text-slate-600 dark:text-zinc-300">
+                      Dicabut
+                    </p>
                     <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                       {stats.revoked}
                     </p>
@@ -526,7 +553,9 @@ export default function MyDocuments() {
                 <div className="w-full sm:w-48">
                   <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as DocumentStatus | "all")}
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as DocumentStatus | "all")
+                    }
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm dark:bg-zinc-700/50 dark:border-zinc-600"
                   >
                     <option value="all">Semua Status</option>
@@ -557,8 +586,8 @@ export default function MyDocuments() {
                     Belum Ada Dokumen
                   </h3>
                   <p className="text-slate-500 dark:text-slate-300 mb-6 max-w-md mx-auto">
-                    Mulai dengan mengupload dokumen pertama Anda untuk memulai proses
-                    penandatanganan digital
+                    Mulai dengan mengupload dokumen pertama Anda untuk memulai
+                    proses penandatanganan digital
                   </p>
                   <div className="flex justify-center">
                     <Button
@@ -599,11 +628,21 @@ export default function MyDocuments() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-slate-50/50 dark:bg-zinc-800/50">
-                          <TableHead className="font-semibold">Dokumen</TableHead>
-                          <TableHead className="font-semibold">Status</TableHead>
-                          <TableHead className="font-semibold">Dibuat</TableHead>
-                          <TableHead className="font-semibold">Ditandatangani</TableHead>
-                          <TableHead className="font-semibold text-right">Aksi</TableHead>
+                          <TableHead className="font-semibold">
+                            Dokumen
+                          </TableHead>
+                          <TableHead className="font-semibold">
+                            Status
+                          </TableHead>
+                          <TableHead className="font-semibold">
+                            Dibuat
+                          </TableHead>
+                          <TableHead className="font-semibold">
+                            Ditandatangani
+                          </TableHead>
+                          <TableHead className="font-semibold text-right">
+                            Aksi
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -619,8 +658,8 @@ export default function MyDocuments() {
                                     doc.status === "signed"
                                       ? "bg-emerald-100 dark:bg-emerald-900/20"
                                       : doc.status === "pending"
-                                        ? "bg-amber-100 dark:bg-amber-900/20"
-                                        : "bg-red-100 dark:bg-red-900/20"
+                                      ? "bg-amber-100 dark:bg-amber-900/20"
+                                      : "bg-red-100 dark:bg-red-900/20"
                                   }`}
                                 >
                                   <FileText
@@ -628,8 +667,8 @@ export default function MyDocuments() {
                                       doc.status === "signed"
                                         ? "text-emerald-600 dark:text-emerald-300"
                                         : doc.status === "pending"
-                                          ? "text-amber-600 dark:text-amber-300"
-                                          : "text-red-600 dark:text-red-300"
+                                        ? "text-amber-600 dark:text-amber-300"
+                                        : "text-red-600 dark:text-red-300"
                                     }`}
                                   />
                                 </div>
@@ -638,19 +677,24 @@ export default function MyDocuments() {
                                     {doc.title}
                                   </span>
                                   <p className="text-sm text-slate-500 dark:text-zinc-300">
-                                    {doc.recipient_name} &bull; {doc.recipient_student_number}
+                                    {doc.recipient_name} &bull;{" "}
+                                    {doc.recipient_student_number}
                                   </p>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <StatusBadge status={doc.status as DocumentStatus} />
+                              <StatusBadge
+                                status={doc.status as DocumentStatus}
+                              />
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-slate-400 dark:text-zinc-400" />
                                 <span className="text-sm text-slate-600 dark:text-zinc-300">
-                                  {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                                  {new Date(doc.created_at).toLocaleDateString(
+                                    "id-ID"
+                                  )}
                                 </span>
                               </div>
                             </TableCell>
@@ -664,7 +708,9 @@ export default function MyDocuments() {
                                     <X className="h-4 w-4 text-red-500 dark:text-red-300" />
                                   )}
                                   <span className="text-sm text-slate-600 dark:text-zinc-300">
-                                    {new Date(doc.updated_at).toLocaleDateString("id-ID")}
+                                    {new Date(
+                                      doc.updated_at
+                                    ).toLocaleDateString("id-ID")}
                                   </span>
                                 </div>
                               ) : (
@@ -689,10 +735,21 @@ export default function MyDocuments() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => {
-                                        const link = document.createElement("a");
+                                      onClick={async () => {
+                                        // Audit log for download
+                                        if (userProfile?.id) {
+                                          await createAuditEntry(
+                                            userProfile.id,
+                                            "DOWNLOAD_DOCUMENT",
+                                            `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                          );
+                                        }
+                                        const link =
+                                          document.createElement("a");
                                         link.href = doc.file_url!;
-                                        link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
+                                        link.download = `${doc.title}.${doc
+                                          .file_url!.split(".")
+                                          .pop()}`;
                                         document.body.appendChild(link);
                                         link.click();
                                         document.body.removeChild(link);
@@ -708,7 +765,9 @@ export default function MyDocuments() {
                                   <Button
                                     variant="destructive"
                                     size="sm"
-                                    onClick={() => deleteDocument(doc.id, doc.title)}
+                                    onClick={() =>
+                                      deleteDocument(doc.id, doc.title)
+                                    }
                                     title="Hapus dokumen"
                                     className="hover:bg-red-600 dark:hover:bg-red-700"
                                   >
@@ -748,7 +807,9 @@ export default function MyDocuments() {
                                 </p>
                               </div>
                               <div className="flex-shrink-0">
-                                <StatusBadge status={doc.status as DocumentStatus} />
+                                <StatusBadge
+                                  status={doc.status as DocumentStatus}
+                                />
                               </div>
                             </div>
                           </CardHeader>
@@ -765,7 +826,11 @@ export default function MyDocuments() {
                             <div className="flex flex-col text-xs text-slate-500 dark:text-zinc-400 mb-4 mr-auto">
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-slate-400 dark:text-zinc-400" />
-                                <span>{new Date(doc.created_at).toLocaleDateString("id-ID")}</span>
+                                <span>
+                                  {new Date(doc.created_at).toLocaleDateString(
+                                    "id-ID"
+                                  )}
+                                </span>
                               </div>
                               {/* Note: Looks ugly but kept here in case it's needed sometime */}
                               {/* <div className="flex items-center gap-2">
@@ -793,10 +858,20 @@ export default function MyDocuments() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
+                                    onClick={async () => {
+                                      // Audit log for download
+                                      if (userProfile?.id) {
+                                        await createAuditEntry(
+                                          userProfile.id,
+                                          "DOWNLOAD_DOCUMENT",
+                                          `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                        );
+                                      }
                                       const link = document.createElement("a");
                                       link.href = doc.file_url!;
-                                      link.download = `${doc.title}.${doc.file_url!.split(".").pop()}`;
+                                      link.download = `${doc.title}.${doc
+                                        .file_url!.split(".")
+                                        .pop()}`;
                                       document.body.appendChild(link);
                                       link.click();
                                       document.body.removeChild(link);
@@ -813,7 +888,9 @@ export default function MyDocuments() {
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  onClick={() => deleteDocument(doc.id, doc.title)}
+                                  onClick={() =>
+                                    deleteDocument(doc.id, doc.title)
+                                  }
                                   className="flex-1 hover:bg-red-600 dark:hover:bg-red-700"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />

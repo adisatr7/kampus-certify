@@ -28,7 +28,6 @@
       overflow: hidden;
     }
 
-    /* Content Container - padding untuk tidak menyentuh border */
     .content {
       position: absolute;
       top: 60px;
@@ -44,7 +43,6 @@
       print-color-adjust: exact;
     }
 
-    /* Header */
     .header {
       text-align: center;
       margin-bottom: 20px;
@@ -74,7 +72,6 @@
       font-family: 'Times New Roman', serif;
     }
 
-    /* Body */
     .body {
       text-align: center;
       max-width: 600px;
@@ -121,7 +118,7 @@
       font-weight: bold;
     }
 
-    /* Footer - Signature(s) positioned dynamically */
+    /* Footer - Default: 1 penandatangan di kanan */
     .footer {
       width: 100%;
       display: flex;
@@ -130,8 +127,8 @@
       gap: 80px;
     }
     
-    /* Jika ada 2 signer, spread ke kiri dan kanan */
-    .footer:has(.signer:nth-child(2)) {
+    /* Jika ada 2 signer (class ditambahkan via JS) */
+    .footer.two-signers {
       justify-content: space-between;
     }
 
@@ -217,8 +214,9 @@
         </p>
       </div>
 
-      <!-- Footer - Signature (hanya 1 penandatangan untuk template default) -->
+      <!-- Footer - Signature(s) -->
       <div class="footer">
+        <!-- Penandatangan 1 -->
         <div class="signer">
           <div class="qr-container">
             <div class="qr-box">
@@ -227,6 +225,17 @@
           </div>
           <p class="signer-name">{{signer1_name}}</p>
           <p class="signer-role">{{signer1_jabatan}}</p>
+          <p class="signer-institution">Universitas Muhammadiyah Cirebon</p>
+        </div>
+        <!-- Penandatangan 2 (opsional - akan dihapus via JS jika hanya 1 penandatangan) -->
+        <div class="signer">
+          <div class="qr-container">
+            <div class="qr-box">
+              <img src="{{qr_code}}" alt="QR Code" />
+            </div>
+          </div>
+          <p class="signer-name">{{signer2_name}}</p>
+          <p class="signer-role">{{signer2_jabatan}}</p>
           <p class="signer-institution">Universitas Muhammadiyah Cirebon</p>
         </div>
       </div>

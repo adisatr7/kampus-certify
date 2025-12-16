@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  // Use root during development so localhost paths work, but use the repo subpath
-  // for production builds (GitHub Pages).
-  base: mode === "development" ? "/" : "/kampus-certify/",
+  // Use root path for both development and production (Vercel deployment)
+  // Note: If deploying to GitHub Pages with subpath, change this to "/kampus-certify/"
+  base: "/",
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {

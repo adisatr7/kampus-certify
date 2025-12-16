@@ -137,35 +137,54 @@ export default function SertifikatRenderer({
       "{{signer2_jabatan}}": penandatangan2Jabatan || "",
     };
 
+    // PENTING: Handle signer blocks SEBELUM mengganti placeholder
+    // Ini memastikan kita bisa mendeteksi blok signer2 berdasarkan placeholder
+    if (!penandatangan2Name) {
+      // Hanya 1 penandatangan - hapus blok signer2 yang mengandung {{signer2_name}}
+      // Cari semua blok <div class="signer"> dan hapus yang mengandung signer2
+
+      // Pattern: blok signer yang mengandung signer2_name placeholder
+      // Struktur: <div class="signer">...<p class="signer-name">{{signer2_name}}</p>...</div>
+      const signer2BlockPattern =
+        /<div\s+class="signer"[^>]*>[\s\S]*?\{\{signer2_name\}\}[\s\S]*?<\/div>\s*(?=<\/div>|<div\s+class)/gi;
+      html = html.replace(signer2BlockPattern, "");
+
+      // Fallback: jika pattern di atas tidak match, coba hapus blok signer kedua
+      if (html.includes("{{signer2_name}}")) {
+        // Hitung dan hapus blok signer kedua
+        let signerCount = 0;
+        html = html.replace(
+          /<div\s+class="signer"[^>]*>[\s\S]*?<\/div>(?=\s*<\/div>|\s*<div)/gi,
+          (match) => {
+            signerCount++;
+            // Jika ini blok kedua dan mengandung signer2, hapus
+            if (signerCount === 2 && match.includes("{{signer2_name}}")) {
+              return "";
+            }
+            return match;
+          }
+        );
+      }
+
+      // Bersihkan placeholder signer2 yang tersisa
+      html = html.replace(/\{\{signer2_name\}\}/g, "");
+      html = html.replace(/\{\{signer2_jabatan\}\}/g, "");
+      html = html.replace(/\{\{signer2_nip\}\}/g, "");
+      html = html.replace(/\{\{penandatangan2_name\}\}/g, "");
+      html = html.replace(/\{\{penandatangan2_jabatan\}\}/g, "");
+      html = html.replace(/\{\{penandatangan2_nip\}\}/g, "");
+    } else {
+      // Ada 2 penandatangan - tambahkan class two-signers ke footer
+      html = html.replace(
+        /<div\s+class="footer"([^>]*)>/gi,
+        '<div class="footer two-signers"$1>'
+      );
+    }
+
+    // Sekarang ganti placeholder dengan nilai
     Object.entries(replacements).forEach(([placeholder, value]) => {
       html = html.replace(new RegExp(placeholder, "g"), value);
     });
-
-    // PENTING: Hapus blok signer2 SEBELUM mengganti QR code
-    // karena template menggunakan {{qr_code}} yang sama untuk kedua signer
-    if (!penandatangan2Name) {
-      // Pattern untuk mencocokkan blok signer dengan struktur:
-      // <div class="signer">
-      //   <div class="qr-container">...</div>
-      //   <p class="signer-name">...</p>
-      //   <p class="signer-role">...</p>
-      //   <p class="signer-institution">...</p>
-      // </div>
-      const signerBlockRegex =
-        /<div\s+class="signer"[^>]*>[\s\S]*?<p\s+class="signer-institution"[^>]*>[^<]*<\/p>\s*<\/div>/gi;
-      const signerBlocks = html.match(signerBlockRegex);
-
-      if (signerBlocks && signerBlocks.length > 1) {
-        // Hapus blok signer kedua (yang berisi signer2)
-        html = html.replace(signerBlocks[1], "");
-      }
-
-      // Juga coba pattern alternatif untuk class signer2
-      html = html.replace(
-        /<div[^>]*class="[^"]*signer2[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
-        ""
-      );
-    }
 
     // Handle QR codes based on signing status
     const qrUrl =
@@ -231,6 +250,51 @@ export default function SertifikatRenderer({
       ""
     );
 
+    // CSS override untuk posisi penandatangan
+    // 1 penandatangan = kanan (flex-end)
+    // 2 penandatangan = kiri dan kanan (space-between)
+    const footerOverrideCSS = `
+      .footer {
+        justify-content: ${
+          penandatangan2Name ? "space-between" : "flex-end"
+        } !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+        gap: 20px !important;
+      }
+      .footer > .signer,
+      .footer > div {
+        flex: 0 0 auto !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+      }
+      .signer {
+        text-align: center !important;
+      }
+      .signer-name, .signer-role, .signer-institution {
+        display: block !important;
+        width: 100% !important;
+      }
+      ${
+        !penandatangan2Name
+          ? `
+        /* Sembunyikan blok signer kedua jika tidak ada penandatangan 2 */
+        .footer .signer:nth-child(2),
+        .footer > div:nth-child(2),
+        .footer .signer:last-child:not(:first-child),
+        .footer > div:last-child:not(:first-child) {
+          display: none !important;
+        }
+      `
+          : ""
+      }
+    `;
+
     // Create isolated container
     const isolatedHtml = `
       <div class="sertifikat-custom-template">
@@ -239,6 +303,7 @@ export default function SertifikatRenderer({
             ? `<style scoped>${template.css_content}</style>`
             : ""
         }
+        <style>${footerOverrideCSS}</style>
         ${html}
       </div>
     `;
@@ -260,6 +325,18 @@ export default function SertifikatRenderer({
   const renderDefaultTemplate = () => {
     const verificationUrl =
       qrCodeUrl || `${window.location.origin}/verify/${nomorSertifikat}`;
+
+    // Debug: log signing status
+    console.log(
+      "renderDefaultTemplate - signer1Signed:",
+      signer1Signed,
+      "signer2Signed:",
+      signer2Signed,
+      "penandatangan2Name:",
+      penandatangan2Name,
+      "renderMode:",
+      renderMode
+    );
 
     return (
       <div
@@ -375,7 +452,7 @@ export default function SertifikatRenderer({
               justifyContent: penandatangan2Name ? "space-between" : "flex-end",
             }}
           >
-            {/* Penandatangan 1 - tampil di kiri jika ada signer2, di kanan jika hanya 1 */}
+            {/* Penandatangan 1 - tampil di kiri */}
             <div className="text-center">
               {/* QR code untuk signer1:
                   - Jika hanya 1 penandatangan: tampilkan QR jika signer1Signed
@@ -420,14 +497,19 @@ export default function SertifikatRenderer({
             {/* Penandatangan 2 - hanya tampil jika ada nama penandatangan 2 */}
             {penandatangan2Name && (
               <div className="text-center">
-                {/* QR code untuk signer2: tampilkan hanya jika signer2Signed */}
-                {renderMode !== "preview" && signer2Signed && (
-                  <div className="flex justify-center mb-2">
-                    <div className="border-2 border-gray-800 p-1 bg-white">
-                      <QRCodeSVG value={verificationUrl} size={70} level="H" />
+                {/* QR code untuk signer2: tampilkan jika signer2Signed ATAU jika signer1Signed (dokumen sudah selesai) */}
+                {renderMode !== "preview" &&
+                  (signer2Signed || signer1Signed) && (
+                    <div className="flex justify-center mb-2">
+                      <div className="border-2 border-gray-800 p-1 bg-white">
+                        <QRCodeSVG
+                          value={verificationUrl}
+                          size={70}
+                          level="H"
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 <p
                   className="text-sm font-bold underline"
                   style={{
@@ -471,11 +553,20 @@ export default function SertifikatRenderer({
     );
   }
 
-  // If template exists, render custom template
-  if (template) {
-    return renderCustomTemplate();
-  }
+  // Debug: log template status
+  console.log(
+    "SertifikatRenderer - templateId:",
+    templateId,
+    "template:",
+    template ? "loaded" : "null",
+    "penandatangan2Name:",
+    penandatangan2Name,
+    "renderMode:",
+    renderMode
+  );
 
-  // Otherwise, render default template
+  // Selalu gunakan default template React yang sudah benar untuk semua mode
+  // Custom template dari database memiliki struktur yang tidak konsisten
+  // sehingga kita gunakan default template untuk memastikan layout yang benar
   return renderDefaultTemplate();
 }

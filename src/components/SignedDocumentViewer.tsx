@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import SignedDocumentTemplate from "./SignedDocumentTemplate";
 import SertifikatRenderer from "./SertifikatRenderer";
 import IjazahRenderer from "./IjazahRenderer";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 
 interface SignedDocumentViewerProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ export default function SignedDocumentViewer({
   onClose,
   document,
 }: SignedDocumentViewerProps) {
+  const { userProfile } = useAuth();
   const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null);
   const [ijazahData, setIjazahData] = useState<Ijazah | null>(null);
   const [userData, setUserData] = useState<{
@@ -37,6 +40,7 @@ export default function SignedDocumentViewer({
     {}
   );
   const [loading, setLoading] = useState(false);
+  const [viewAuditLogged, setViewAuditLogged] = useState(false);
 
   // Fetch sertifikat/ijazah data and user data if document is a sertifikat or ijazah
   useEffect(() => {
@@ -139,7 +143,31 @@ export default function SignedDocumentViewer({
   const isSertifikat = document.title?.toLowerCase().includes("sertifikat");
   const isIjazah = document.title?.toLowerCase().includes("ijazah");
 
-  const handlePrint = () => {
+  // Log view audit when dialog opens
+  useEffect(() => {
+    if (isOpen && userProfile?.id && !viewAuditLogged) {
+      createAuditEntry(
+        userProfile.id,
+        "VIEW_DOCUMENT",
+        `Melihat dokumen "${document.title}" (ID: ${document.id})`
+      );
+      setViewAuditLogged(true);
+    }
+    if (!isOpen) {
+      setViewAuditLogged(false);
+    }
+  }, [isOpen, userProfile?.id, document.id, document.title, viewAuditLogged]);
+
+  const handlePrint = async () => {
+    // Audit log for print
+    if (userProfile?.id) {
+      await createAuditEntry(
+        userProfile.id,
+        "PRINT_DOCUMENT",
+        `Mencetak dokumen "${document.title}" (ID: ${document.id})`
+      );
+    }
+
     if (document.file_url) {
       // Open PDF in new window for printing
       window.open(document.file_url, "_blank");
@@ -148,7 +176,16 @@ export default function SignedDocumentViewer({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    // Audit log for download
+    if (userProfile?.id) {
+      await createAuditEntry(
+        userProfile.id,
+        "DOWNLOAD_DOCUMENT",
+        `Mengunduh dokumen "${document.title}" (ID: ${document.id})`
+      );
+    }
+
     if (document.file_url) {
       // Download the actual signed PDF file
       const link = window.document.createElement("a");

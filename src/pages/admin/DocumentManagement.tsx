@@ -62,7 +62,9 @@ export default function DocumentManagement() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(
+    null
+  );
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -73,10 +75,17 @@ export default function DocumentManagement() {
   const [file, setFile] = useState<File | null>(null);
 
   const uploadDocument = async () => {
-    if (!title || !content.trim() || !recipientName || !recipientStudentNumber || !userId) {
+    if (
+      !title ||
+      !content.trim() ||
+      !recipientName ||
+      !recipientStudentNumber ||
+      !userId
+    ) {
       toast({
         title: "Error",
-        description: "Judul, isi, penandatangan, nama penerima, dan NIM wajib diisi",
+        description:
+          "Judul, isi, penandatangan, nama penerima, dan NIM wajib diisi",
         variant: "destructive",
       });
       return;
@@ -90,7 +99,9 @@ export default function DocumentManagement() {
       // Upload file to Supabase Storage if file is provided
       if (file) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}.${fileExt}`;
         const filePath = `${userProfile.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -127,7 +138,9 @@ export default function DocumentManagement() {
         throw insertError;
       }
 
-      const inserted = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
+      const inserted = Array.isArray(insertedRows)
+        ? insertedRows[0]
+        : insertedRows;
       if (!inserted || !inserted.id) {
         throw new Error("Failed to retrieve inserted document id");
       }
@@ -147,7 +160,7 @@ export default function DocumentManagement() {
       await createAuditEntry(
         userProfile.id,
         "CREATE_DOCUMENT",
-        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`,
+        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`
       );
 
       toast({
@@ -171,12 +184,19 @@ export default function DocumentManagement() {
 
   const deleteDocument = async (documentId: string, title: string) => {
     try {
-      const { error } = await supabase.from("documents").delete().eq("id", documentId);
+      const { error } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", documentId);
       if (error) {
         throw error;
       }
 
-      await createAuditEntry(userProfile.id, "DELETE_DOCUMENT", `Menghapus dokumen "${title}"`);
+      await createAuditEntry(
+        userProfile.id,
+        "DELETE_DOCUMENT",
+        `Menghapus dokumen "${title}"`
+      );
 
       toast({
         title: "Berhasil",
@@ -228,7 +248,9 @@ export default function DocumentManagement() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Manajemen Dokumen</h1>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Manajemen Dokumen
+            </h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Kelola dokumen untuk semua pengguna sistem
             </p>
@@ -278,19 +300,13 @@ export default function DocumentManagement() {
 
                 <div>
                   <Label htmlFor="user">Pilih Penandatangan</Label>
-                  <Select
-                    value={userId}
-                    onValueChange={setUserId}
-                  >
+                  <Select value={userId} onValueChange={setUserId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
                       {listOfUsers.map((user) => (
-                        <SelectItem
-                          key={user.id}
-                          value={user.id}
-                        >
+                        <SelectItem key={user.id} value={user.id}>
                           {user.name} ({user.email})
                         </SelectItem>
                       ))}
@@ -341,10 +357,7 @@ export default function DocumentManagement() {
                   >
                     Batal
                   </Button>
-                  <Button
-                    onClick={uploadDocument}
-                    disabled={isUploading}
-                  >
+                  <Button onClick={uploadDocument} disabled={isUploading}>
                     {isUploading ? (
                       <>
                         <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -397,7 +410,9 @@ export default function DocumentManagement() {
                       {/* Penandatangan */}
                       <TableCell>
                         <div className="font-semibold">{doc.user.name}</div>
-                        <div className="text-sm text-muted-foreground">{doc.user.email}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {doc.user.email}
+                        </div>
                       </TableCell>
 
                       {/* Status */}
@@ -406,7 +421,9 @@ export default function DocumentManagement() {
                       </TableCell>
 
                       {/* Dibuat */}
-                      <TableCell>{new Date(doc.created_at).toLocaleDateString("id-ID")}</TableCell>
+                      <TableCell>
+                        {new Date(doc.created_at).toLocaleDateString("id-ID")}
+                      </TableCell>
 
                       {/* Aksi */}
                       <TableCell>
@@ -423,7 +440,15 @@ export default function DocumentManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
+                                onClick={async () => {
+                                  // Audit log for download
+                                  if (userProfile?.id) {
+                                    await createAuditEntry(
+                                      userProfile.id,
+                                      "DOWNLOAD_DOCUMENT",
+                                      `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                    );
+                                  }
                                   const link = document.createElement("a");
                                   link.href = doc.file_url!;
                                   link.download = `${doc.title}`;
@@ -455,7 +480,9 @@ export default function DocumentManagement() {
           {/* Mobile View - Scrollable Cards */}
           <CardContent className="visible lg:hidden max-h-[70vh] overflow-y-auto space-y-4 p-4">
             {documents.length === 0 ? (
-              <div className="text-center py-6 text-slate-500">Belum ada dokumen yang diupload</div>
+              <div className="text-center py-6 text-slate-500">
+                Belum ada dokumen yang diupload
+              </div>
             ) : (
               documents.map((doc) => (
                 <Card
@@ -475,7 +502,9 @@ export default function DocumentManagement() {
                     <p className="text-sm text-slate-600 dark:text-slate-200 mt-1">
                       {doc.user.name}
                     </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-200">{doc.user.email}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-200">
+                      {doc.user.email}
+                    </p>
                     <p className="text-xs text-slate-400 dark:text-slate-300 mt-2">
                       <Calendar1 className="h-3 w-3 inline-block mr-1 text-muted-foreground" />
                       {new Date(doc.created_at).toLocaleDateString("id-ID")}
@@ -493,7 +522,15 @@ export default function DocumentManagement() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
+                            onClick={async () => {
+                              // Audit log for download
+                              if (userProfile?.id) {
+                                await createAuditEntry(
+                                  userProfile.id,
+                                  "DOWNLOAD_DOCUMENT",
+                                  `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                );
+                              }
                               const link = document.createElement("a");
                               link.href = doc.file_url!;
                               link.download = `${doc.title}`;
