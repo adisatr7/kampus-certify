@@ -13,6 +13,7 @@ interface IjazahPreviewProps {
     nama_mahasiswa: string;
     nim: string;
     nama_fakultas: string;
+    program_studi?: string;
     gelar: string;
     jenjang: string;
     tanggal_terbit: string;
@@ -53,7 +54,7 @@ export default function IjazahPreview({
               nim={formData.nim}
               nomorIjazah={nomorIjazah}
               namaMahasiswa={formData.nama_mahasiswa}
-              programStudi="Teknik Informatika"
+              programStudi={formData.program_studi || "Teknik Informatika"}
               fakultas={formData.nama_fakultas}
               gelar={formData.gelar}
               tanggalTerbit={formData.tanggal_terbit}

@@ -271,7 +271,9 @@ export default function SignedDocumentViewer({
                     nim={ijazahData.nim}
                     nomorIjazah={document.serial || ijazahData.nomor_seri}
                     namaMahasiswa={ijazahData.nama_mahasiswa}
-                    programStudi="Teknik Informatika"
+                    programStudi={
+                      ijazahData.program_studi || "Teknik Informatika"
+                    }
                     fakultas={ijazahData.nama_fakultas}
                     gelar={ijazahData.gelar}
                     tanggalTerbit={ijazahData.tanggal_terbit}

@@ -42,15 +42,16 @@ export async function generateSignedPDFWithPuppeteer(
     }
     
     // Fetch dekan and rektor data
-    const metadata = doc.metadata || {};
-    const dekanId = ijazah.dekan_id || metadata.dekan_id;
+    const metadata = (doc.metadata as any) || {};
+    const ijazahAny = ijazah as any;
+    const dekanId = ijazahAny.dekan_id || metadata.dekan_id;
     const { data: dekanData } = await supabase
       .from("users")
       .select("name, nip")
       .eq("id", dekanId)
       .maybeSingle();
     
-    const rektorId = ijazah.rektor_id || metadata.rektor_id;
+    const rektorId = ijazahAny.rektor_id || metadata.rektor_id;
     const { data: rektorData } = await supabase
       .from("users")
       .select("name, nip")
@@ -62,7 +63,7 @@ export async function generateSignedPDFWithPuppeteer(
       nim: ijazah.nim,
       nomorIjazah: ijazah.nomor_seri || doc.serial || doc.id,
       namaMahasiswa: ijazah.nama_mahasiswa,
-      programStudi: "Teknik Informatika",
+      programStudi: ijazahAny.program_studi || "Teknik Informatika",
       fakultas: ijazah.nama_fakultas,
       gelar: ijazah.gelar,
       tanggalTerbit: ijazah.tanggal_terbit,
@@ -74,7 +75,7 @@ export async function generateSignedPDFWithPuppeteer(
     
     // Generate PDF with Puppeteer
     const pdfBytes = await generateIjazahPDF(ijazahData, qrContent);
-    return new Blob([pdfBytes], { type: "application/pdf" });
+    return new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
     
   } else if (isSertifikatDoc) {
     throw new Error("Sertifikat PDF generation with Puppeteer not implemented yet");

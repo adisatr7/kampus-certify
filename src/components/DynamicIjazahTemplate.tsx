@@ -39,7 +39,7 @@ export default function DynamicIjazahTemplate({
       nim={ijazahData.nim}
       nomorIjazah={document.serial || document.id}
       namaMahasiswa={ijazahData.nama_mahasiswa}
-      programStudi="Teknik Informatika"
+      programStudi={ijazahData.program_studi || "Teknik Informatika"}
       fakultas={ijazahData.nama_fakultas}
       gelar={ijazahData.gelar}
       tanggalTerbit={ijazahData.tanggal_terbit}

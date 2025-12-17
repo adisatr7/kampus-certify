@@ -46,6 +46,7 @@ export default function CreateIjazahNew() {
     nama_mahasiswa: "",
     nim: "",
     nama_fakultas: "",
+    program_studi: "",
     gelar: "",
     jenjang: "S1", // Default to S1
     tanggal_terbit: new Date().toISOString().split("T")[0],
@@ -165,6 +166,7 @@ export default function CreateIjazahNew() {
           gelar: formData.gelar,
           jenjang: formData.jenjang,
           nama_fakultas: formData.nama_fakultas,
+          program_studi: formData.program_studi,
           tanggal_terbit: formData.tanggal_terbit,
           nomor_seri: "",
           logo_url: formData.logo_url,
@@ -285,12 +287,28 @@ export default function CreateIjazahNew() {
                   <Label htmlFor="nama_fakultas">Nama Fakultas *</Label>
                   <Input
                     id="nama_fakultas"
-                    placeholder="Contoh: Teknik Informatika"
+                    placeholder="Contoh: Fakultas Teknik"
                     value={formData.nama_fakultas}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         nama_fakultas: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="program_studi">Program Studi *</Label>
+                  <Input
+                    id="program_studi"
+                    placeholder="Contoh: Teknik Informatika"
+                    value={formData.program_studi}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        program_studi: e.target.value,
                       })
                     }
                     required

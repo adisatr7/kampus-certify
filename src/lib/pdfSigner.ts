@@ -219,7 +219,7 @@ export async function generateSignedPDF(
               nim: ijazah.nim,
               nomorIjazah: ijazah.nomor_seri || doc.serial || doc.id,
               namaMahasiswa: ijazah.nama_mahasiswa,
-              programStudi: "Teknik Informatika",
+              programStudi: ijazah.program_studi || "Teknik Informatika",
               fakultas: ijazah.nama_fakultas,
               gelar: ijazah.gelar,
               tanggalTerbit: ijazah.tanggal_terbit,
