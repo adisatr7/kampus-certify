@@ -138,7 +138,7 @@ export default function CreateSertifikat() {
           tanggal_acara: formData.tanggal_acara,
           nomor_sertifikat: nomorSertifikat,
           penandatangan: formData.signer1_id,
-          template_id: formData.template_id || "default",
+          template_id: formData.template_id || null,
         });
 
       if (sertifikatError) throw sertifikatError;

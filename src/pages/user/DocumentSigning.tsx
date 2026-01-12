@@ -8,6 +8,7 @@ import {
   Loader2,
   PenTool,
   QrCode,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import IjazahSignPreview from "@/components/IjazahSignPreview";
@@ -47,7 +48,8 @@ import { createAuditEntry } from "@/lib/audit";
 import { useAuth } from "@/lib/auth";
 import { generateSignedPDF, uploadSignedPDF } from "@/lib/pdfSigner";
 import html2canvas from "html2canvas";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import QRCode from "qrcode";
 
 import { UserDocument } from "@/types";
 import { Label } from "../../components/ui/Label";
@@ -63,14 +65,14 @@ export default function DocumentSigning() {
 
   const docsByUserHook = useFetchDocumentsByUserId(
     userProfile?.id ?? "",
-    ["pending", "revoked"],
+    ["pending"],
     {
       enabled: userProfile?.role !== "admin",
     }
   );
   const allDocsHook = useFetchAllDocuments({
     enabled: userProfile?.role === "admin",
-    status: ["pending", "revoked"],
+    status: ["pending"],
   });
 
   // Hook to fetch completed ijazah documents (status = "signed")
@@ -84,6 +86,27 @@ export default function DocumentSigning() {
   const allCompletedDocsHook = useFetchAllDocuments({
     enabled: userProfile?.role === "admin",
     status: ["signed"],
+  });
+
+  // Dokumen yang sudah benar-benar final
+  // - Untuk ijazah/sertifikat dengan workflow: workflow_stage = "completed"
+  // - Untuk dokumen lain yang sudah ditandatangani: status = "signed"
+  const rawCompletedDocs =
+    (userProfile?.role === "admin"
+      ? allCompletedDocsHook.data
+      : completedDocsHook.data) || [];
+
+  const completedFinalDocuments = rawCompletedDocs.filter((doc) => {
+    const metadata = (doc.metadata || {}) as any;
+    const workflowStage = metadata.workflow_stage;
+
+    // Document with workflow (ijazah/sertifikat): must be completed
+    if (workflowStage) {
+      return workflowStage === "completed";
+    }
+
+    // Document without workflow (generic uploads): show if signed
+    return doc.status === "signed";
   });
 
   const documents =
@@ -103,15 +126,46 @@ export default function DocumentSigning() {
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isCompletedPreviewOpen, setIsCompletedPreviewOpen] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(
     null
   );
+  const [selectedCompletedDocument, setSelectedCompletedDocument] =
+    useState<UserDocument | null>(null);
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
   const openSignDialog = (document: UserDocument) => {
     setSelectedDocument(document);
-    setSelectedKeyId(latestKey || signingKeys?.[0]?.kid || null);
+
+    // For admin: automatically select the certificate that belongs to the document owner
+    if (
+      userProfile?.role === "admin" &&
+      signingKeys &&
+      signingKeys.length > 0
+    ) {
+      // Find certificate that belongs to the document's user_id
+      const documentOwnerCert = signingKeys.find(
+        (k) => k.assigned_to === document.user_id
+      );
+
+      if (documentOwnerCert) {
+        setSelectedKeyId(documentOwnerCert.kid);
+        console.log(
+          `Admin: Auto-selected certificate for document owner: ${documentOwnerCert.kid}`
+        );
+      } else {
+        // Fallback to first available key if no match found
+        setSelectedKeyId(latestKey || signingKeys[0]?.kid || null);
+        console.warn(
+          `Admin: No certificate found for document owner (user_id: ${document.user_id}), using fallback`
+        );
+      }
+    } else {
+      // For non-admin: use latest or first key
+      setSelectedKeyId(latestKey || signingKeys?.[0]?.kid || null);
+    }
+
     setIsSignDialogOpen(true);
   };
 
@@ -120,6 +174,27 @@ export default function DocumentSigning() {
       toast({
         title: "Error",
         description: "Pilih dokumen dan sertifikat terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // CRITICAL: Validate user has an active signing key/certificate
+    if (!selectedKeyId || signingKeys.length === 0) {
+      toast({
+        title: "Error",
+        description:
+          "Anda tidak memiliki sertifikat digital aktif. Silakan buat sertifikat terlebih dahulu sebelum menandatangani dokumen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate passphrase was provided
+    if (!passphraseInput || !passphraseInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Passphrase wajib diisi",
         variant: "destructive",
       });
       return;
@@ -138,6 +213,8 @@ export default function DocumentSigning() {
       const isSertifikatDoc = selectedDocument.title
         ?.toLowerCase()
         .includes("sertifikat");
+      const isUploadedDoc =
+        !isIjazahDoc && !isSertifikatDoc && selectedDocument.file_url;
 
       let signedPdfBlob: Blob;
 
@@ -177,11 +254,52 @@ export default function DocumentSigning() {
           signedPdfBlob.size,
           "bytes"
         );
+      } else if (isUploadedDoc) {
+        // For uploaded documents, use generateSignedPDF to add proper signature section
+        console.log(
+          "🎯 Generating signed PDF with full signature section for uploaded document..."
+        );
+
+        try {
+          // Use generateSignedPDF which will:
+          // 1. Fetch the original PDF
+          // 2. Overlay SignedDocumentTemplate with QR code, name, NIK, and disclaimer
+          signedPdfBlob = await generateSignedPDF(selectedDocument, {
+            accessToken,
+          });
+
+          console.log(
+            "✅ Uploaded PDF with signature section ready, size:",
+            signedPdfBlob.size,
+            "bytes"
+          );
+        } catch (err) {
+          console.error("Failed to process uploaded document:", err);
+          throw new Error(
+            "Gagal memproses dokumen yang di-upload: " +
+              (err instanceof Error ? err.message : String(err))
+          );
+        }
       } else {
         // For ijazah and other documents, use edge function
         console.log(
           "🎯 Generating PDF using Puppeteer edge function with template..."
         );
+
+        // Determine current signer for ijazah workflow
+        const metadata = (selectedDocument.metadata as any) || {};
+        const workflowStage = metadata.workflow_stage;
+        let currentSigner = undefined;
+
+        if (selectedDocument.title?.toLowerCase().includes("ijazah")) {
+          if (workflowStage === "dekan_pending") {
+            currentSigner = "dekan";
+          } else if (workflowStage === "rektor_pending") {
+            currentSigner = "rektor";
+          }
+        }
+
+        console.log("📋 Current signer for PDF generation:", currentSigner);
 
         const puppeteerResponse = await fetch(
           `${
@@ -193,7 +311,10 @@ export default function DocumentSigning() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({ documentId: selectedDocument.id }),
+            body: JSON.stringify({
+              documentId: selectedDocument.id,
+              currentSigner: currentSigner,
+            }),
           }
         );
 
@@ -303,25 +424,177 @@ export default function DocumentSigning() {
         }
       }
 
-      // Upload the generated signed PDF to storage
-      console.log("📤 Uploading signed PDF to storage...");
-      const signedDocumentUrl = await uploadSignedPDF(
-        signedPdfBlob,
-        userProfile.id,
-        selectedDocument.id,
-        supabase
+      // REQUEST SERVER-SIDE SIGNING VIA DIRECT SIGNING SERVER API
+      console.log(
+        "🔐 Calling signing server directly to digitally sign PDF..."
       );
+      let signedPdf = signedPdfBlob;
+      try {
+        // Convert PDF blob to base64
+        const reader = new FileReader();
+        const pdfBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]); // Get base64 part only
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(signedPdfBlob);
+        });
 
-      // If upload fails, throw error
-      if (!signedDocumentUrl) {
-        console.error(
-          "uploadSignedPDF returned null for document",
-          selectedDocument.id
+        const signingServerUrl =
+          import.meta.env.VITE_SIGNING_SERVER_URL ||
+          `${window.location.origin}/api`;
+        console.log("   Signing server URL:", signingServerUrl);
+
+        // Determine signing position based on user role and document type
+        let signingPosition = "default"; // default = centered bottom
+        const isIjazahDoc = selectedDocument.title
+          ?.toLowerCase()
+          .includes("ijazah");
+        const isSertifikatDoc = selectedDocument.title
+          ?.toLowerCase()
+          .includes("sertifikat");
+
+        if (isIjazahDoc) {
+          // Ijazah: Dekan (left) or Rektor (right)
+          if (userProfile?.role === "dekan") {
+            signingPosition = "dekan"; // Left signature area
+          } else if (userProfile?.role === "rektor") {
+            signingPosition = "rektor"; // Right signature area
+          }
+        } else if (isSertifikatDoc) {
+          // Sertifikat: Check workflow stage to determine signer position
+          const metadata = (selectedDocument.metadata as any) || {};
+          const workflowStage = metadata.workflow_stage;
+          if (workflowStage === "pending_signer1") {
+            signingPosition = "signer1"; // Left signature area
+          } else if (workflowStage === "pending_signer2") {
+            signingPosition = "signer2"; // Right signature area
+          }
+        }
+        // else: use default for other document types
+
+        console.log("   Signing position:", signingPosition);
+
+        const signingResponse = await fetch(`${signingServerUrl}/sign`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pdfBase64: pdfBase64,
+            userId: userProfile.id,
+            userName: userProfile.name || userProfile.email,
+            documentId: selectedDocument.id,
+            qrContent: `https://kampus-certify.vercel.app/verify/${selectedDocument.id}`,
+            signingPosition: signingPosition,
+            kid: selectedKeyId,
+            passphrase: passphraseInput,
+          }),
+        });
+
+        if (!signingResponse.ok) {
+          let errorMessage = `HTTP ${signingResponse.status}`;
+
+          try {
+            // Try to parse JSON error response
+            const errorData = await signingResponse.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch {
+            // If not JSON, try to get text
+            try {
+              const errorText = await signingResponse.text();
+              errorMessage = errorText || errorMessage;
+            } catch {
+              // Fall back to status message
+              errorMessage = signingResponse.statusText || errorMessage;
+            }
+          }
+
+          console.error(
+            "❌ Signing server error:",
+            signingResponse.status,
+            errorMessage
+          );
+          throw new Error(errorMessage);
+        }
+
+        const signingResult = await signingResponse.json();
+        console.log("✅ PDF digitally signed by signing server");
+
+        // Decode signed PDF from base64
+        const signedPdfBase64 = signingResult.signedPdfBase64;
+        const binaryString = atob(signedPdfBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        signedPdf = new Blob([bytes], { type: "application/pdf" });
+        console.log("✅ Decoded signed PDF, size:", signedPdf.size, "bytes");
+      } catch (signingErr) {
+        console.warn(
+          "⚠️ Direct signing server call failed, will proceed without digital signature:",
+          signingErr instanceof Error ? signingErr.message : String(signingErr)
         );
-        throw new Error("Failed to upload signed PDF");
+        // Continue without digital signature
       }
 
-      console.log("✅ PDF uploaded successfully:", signedDocumentUrl);
+      // Upload signed PDF to storage
+      console.log("📤 Uploading signed PDF to storage...");
+      let uploadedFileUrl: string | null = null;
+      try {
+        const fileName = `${selectedDocument.id}-signed-${Date.now()}.pdf`;
+        const filePath = `${userProfile.id}/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("signed-documents")
+          .upload(filePath, signedPdf, {
+            contentType: "application/pdf",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("❌ Failed to upload PDF:", uploadError);
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from("signed-documents")
+          .getPublicUrl(filePath);
+
+        uploadedFileUrl = publicUrlData.publicUrl;
+        console.log("✅ PDF uploaded to storage:", uploadedFileUrl);
+      } catch (uploadErr) {
+        console.error(
+          "❌ Upload failed:",
+          uploadErr instanceof Error ? uploadErr.message : String(uploadErr)
+        );
+        throw new Error("Failed to upload signed PDF to storage");
+      }
+
+      // Request server-side signing via Supabase Edge Function
+      console.log(
+        "📤 Requesting server-side signing via Supabase function 'sign-document'..."
+      );
+      const { data: signResult, error: signError } =
+        await supabase.functions.invoke("sign-document", {
+          body: {
+            documentId: selectedDocument.id,
+            signerUserId: userProfile.id,
+            passphrase: passphraseInput,
+            kid: selectedKeyId,
+          },
+        });
+
+      if (signError) {
+        console.error("Sign-document function error:", signError);
+        throw new Error("Server-side signing failed");
+      }
+
+      const signedDocumentUrl =
+        uploadedFileUrl || signResult?.fileUrl || signResult?.file_url || null;
+      console.log("✅ Server-side signing result:", signResult);
+      console.log("✅ Final PDF URL:", signedDocumentUrl);
 
       // Get document metadata for workflow handling
       const metadata = (selectedDocument.metadata as any) || {};
@@ -393,6 +666,7 @@ export default function DocumentSigning() {
                   workflow_stage: "rektor_pending",
                   dekan_signed: true,
                   dekan_signed_at: new Date().toISOString(),
+                  dekan_signed_by: userProfile.name,
                   dekan_qr_code: passphraseInput,
                 },
               }),
@@ -426,6 +700,7 @@ export default function DocumentSigning() {
                 workflow_stage: "completed",
                 rektor_signed: true,
                 rektor_signed_at: new Date().toISOString(),
+                rektor_signed_by: userProfile.name,
                 rektor_qr_code: passphraseInput,
               },
             })
@@ -486,6 +761,7 @@ export default function DocumentSigning() {
                   workflow_stage: "pending_signer2",
                   signer1_signed: true,
                   signer1_signed_at: new Date().toISOString(),
+                  signer1_signed_by: userProfile.name,
                   signer1_qr_code: passphraseInput,
                 },
               }),
@@ -526,11 +802,13 @@ export default function DocumentSigning() {
                   ? {
                       signer2_signed: true,
                       signer2_signed_at: new Date().toISOString(),
+                      signer2_signed_by: userProfile.name,
                       signer2_qr_code: passphraseInput,
                     }
                   : {
                       signer1_signed: true,
                       signer1_signed_at: new Date().toISOString(),
+                      signer1_signed_by: userProfile.name,
                       signer1_qr_code: passphraseInput,
                     }),
               },
@@ -603,10 +881,22 @@ export default function DocumentSigning() {
       }
 
       // Audit and success toast only after full success
+      const docType = selectedDocument.title?.toLowerCase().includes("ijazah")
+        ? "ijazah"
+        : selectedDocument.title?.toLowerCase().includes("sertifikat")
+        ? "sertifikat"
+        : "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_SIGN"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_SIGN"
+          : "DOCUMENT_SIGN";
+
       await createAuditEntry(
         userProfile.id,
-        "SIGN_DOCUMENT",
-        `Menandatangani dokumen "${selectedDocument.title}"`
+        auditAction as any,
+        `Menandatangani dokumen "${selectedDocument.title}" (Tipe: ${docType})`
       );
 
       // Determine toast message based on workflow
@@ -640,10 +930,22 @@ export default function DocumentSigning() {
     } catch (err) {
       console.error("Gagal menandatangani dokumen:", err);
 
+      // Extract error message from various sources
+      let errorMessage = "Gagal menandatangani dokumen";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      } else if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.data?.error) {
+        errorMessage = err.data.error;
+      }
+
       toast({
-        title: "Error",
-        description:
-          err?.response?.data?.error || "Gagal menandatangani dokumen",
+        title: "❌ Tanda Tangan Gagal",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -660,6 +962,122 @@ export default function DocumentSigning() {
   const handlePreview = (document: UserDocument) => {
     setSelectedDocument(document);
     setIsPreviewOpen(true);
+  };
+
+  const handleCompletedPreview = (document: UserDocument) => {
+    setSelectedCompletedDocument(document);
+    setIsCompletedPreviewOpen(true);
+  };
+
+  const handleRejectSignature = async (
+    documentId: string,
+    documentTitle: string
+  ) => {
+    if (!userProfile) return;
+
+    console.log(
+      "🔍 Starting reject - User:",
+      userProfile.id,
+      "Role:",
+      userProfile.role,
+      "Doc:",
+      documentId
+    );
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Apakah Anda yakin ingin menolak penandatanganan dokumen "${documentTitle}"?`
+    );
+    if (!confirmed) return;
+
+    try {
+      // CRITICAL: Verify user has an active signing certificate
+      // Both admin and regular users need a certificate to reject signing
+      if (!signingKeys || signingKeys.length === 0) {
+        throw new Error(
+          "Anda tidak memiliki sertifikat digital aktif. Silakan buat sertifikat digital terlebih dahulu sebelum menolak penandatanganan."
+        );
+      }
+
+      // Step 2: Verify document exists
+      console.log("📄 Fetching document...");
+      const { data: doc, error: fetchError } = await supabase
+        .from("documents")
+        .select("id, document_type, status, user_id")
+        .eq("id", documentId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching document:", fetchError);
+        throw new Error(`Dokumen tidak ditemukan: ${fetchError.message}`);
+      }
+
+      if (!doc) {
+        throw new Error("Dokumen tidak ditemukan");
+      }
+
+      console.log("✅ Document found:", doc);
+
+      // Step 3: Update document status - should work now with relaxed RLS
+      console.log("✏️ Updating document status to revoked...");
+      const { error: updateError, count } = await supabase
+        .from("documents")
+        .update({
+          status: "revoked",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", documentId);
+
+      console.log("Update result - Count:", count, "Error:", updateError);
+
+      if (updateError) {
+        console.error("Update error:", updateError);
+        throw new Error(`Gagal update dokumen: ${updateError.message}`);
+      }
+
+      if (count === 0) {
+        throw new Error(
+          "Dokumen tidak dapat diubah - dokumen tidak ditemukan atau akses ditolak"
+        );
+      }
+
+      console.log("✅ Document rejected successfully");
+
+      // Step 4: Create audit entry
+      const docType = doc?.document_type || "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_REJECT"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_REJECT"
+          : "DOCUMENT_REJECT";
+
+      await createAuditEntry(
+        userProfile.id,
+        auditAction as any,
+        `Menolak penandatanganan dokumen "${documentTitle}"`
+      );
+
+      toast({
+        title: "✅ Berhasil",
+        description:
+          "Dokumen telah ditolak dan dihapus dari daftar penandatanganan",
+      });
+
+      // Refetch after delay
+      setTimeout(() => {
+        refetchDocuments();
+      }, 800);
+    } catch (error) {
+      console.error("❌ Error:", error);
+      const msg =
+        error instanceof Error ? error.message : "Gagal menolak dokumen";
+      toast({
+        title: "❌ Error",
+        description: msg,
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoadingDocuments) {
@@ -770,6 +1188,7 @@ export default function DocumentSigning() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handlePreview(doc)}
+                                title="Preview dokumen"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 Preview
@@ -781,6 +1200,17 @@ export default function DocumentSigning() {
                               >
                                 <PenTool className="mr-2 h-4 w-4" />
                                 Tanda Tangan
+                              </Button>
+
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() =>
+                                  handleRejectSignature(doc.id, doc.title)
+                                }
+                                title="Tolak penandatanganan"
+                              >
+                                <X className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -831,6 +1261,7 @@ export default function DocumentSigning() {
                             variant="outline"
                             size="sm"
                             onClick={() => handlePreview(doc)}
+                            title="Preview dokumen"
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             Preview
@@ -839,6 +1270,17 @@ export default function DocumentSigning() {
                           <Button size="sm" onClick={() => openSignDialog(doc)}>
                             <PenTool className="mr-2 h-4 w-4" />
                             Tanda Tangan
+                          </Button>
+
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              handleRejectSignature(doc.id, doc.title)
+                            }
+                            title="Tolak penandatanganan"
+                          >
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </CardContent>
@@ -855,20 +1297,11 @@ export default function DocumentSigning() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Dokumen Selesai Ditandatangani (
-              {(userProfile?.role === "admin"
-                ? allCompletedDocsHook.data
-                : completedDocsHook.data
-              )?.length || 0}
-              )
+              Dokumen Selesai Ditandatangani ({completedFinalDocuments.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {(
-              (userProfile?.role === "admin"
-                ? allCompletedDocsHook.data
-                : completedDocsHook.data) || []
-            ).length === 0 ? (
+            {completedFinalDocuments.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">
@@ -896,11 +1329,7 @@ export default function DocumentSigning() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(
-                        (userProfile?.role === "admin"
-                          ? allCompletedDocsHook.data
-                          : completedDocsHook.data) || []
-                      ).map((doc) => (
+                      {completedFinalDocuments.map((doc) => (
                         <TableRow key={doc.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -939,7 +1368,8 @@ export default function DocumentSigning() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handlePreview(doc)}
+                              onClick={() => handleCompletedPreview(doc)}
+                              title="Preview dokumen"
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               Lihat
@@ -953,11 +1383,7 @@ export default function DocumentSigning() {
 
                 {/* Mobile Cards */}
                 <div className="block md:hidden space-y-4">
-                  {(
-                    (userProfile?.role === "admin"
-                      ? allCompletedDocsHook.data
-                      : completedDocsHook.data) || []
-                  ).map((doc) => (
+                  {completedFinalDocuments.map((doc) => (
                     <Card
                       key={doc.id}
                       className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white/80 dark:bg-zinc-800 backdrop-blur-sm"
@@ -995,7 +1421,8 @@ export default function DocumentSigning() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handlePreview(doc)}
+                            onClick={() => handleCompletedPreview(doc)}
+                            title="Preview dokumen"
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             Lihat
@@ -1031,30 +1458,81 @@ export default function DocumentSigning() {
                       Pilih kunci digital untuk menandatangani:
                     </Label>
                     {signingKeys && signingKeys.length > 0 ? (
-                      <Select
-                        value={selectedKeyId ?? ""}
-                        onValueChange={(v) => setSelectedKeyId(v || null)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue
-                            placeholder={
-                              isLoadingKeys
-                                ? "Memuat kunci digital..."
-                                : "Pilih kunci digital..."
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {signingKeys.map((k) => (
-                            <SelectItem key={k.kid} value={k.kid}>
-                              {k.kid}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <>
+                        <Select
+                          value={selectedKeyId ?? ""}
+                          onValueChange={(v) => setSelectedKeyId(v || null)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue
+                              placeholder={
+                                isLoadingKeys
+                                  ? "Memuat kunci digital..."
+                                  : "Pilih kunci digital..."
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="max-w-md">
+                            {signingKeys.map((k) => (
+                              <SelectItem
+                                key={k.kid}
+                                value={k.kid}
+                                className="cursor-pointer text-left"
+                              >
+                                {userProfile?.role === "admin" &&
+                                k.assigned_to_user ? (
+                                  <div className="flex flex-col py-1 text-left">
+                                    <span className="font-medium text-sm text-left">
+                                      {k.kid}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground text-left">
+                                      {k.assigned_to_user.name} •{" "}
+                                      {k.assigned_to_user.email}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="font-medium text-sm text-left">
+                                    {k.kid}
+                                  </span>
+                                )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Warning if admin selects wrong certificate */}
+                        {userProfile?.role === "admin" &&
+                          selectedKeyId &&
+                          selectedDocument &&
+                          signingKeys.find((k) => k.kid === selectedKeyId)
+                            ?.assigned_to !== selectedDocument.user_id && (
+                            <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded border border-yellow-200 dark:border-yellow-800">
+                              <p className="text-xs text-yellow-700 dark:text-yellow-200">
+                                ⚠️ Perhatian: Sertifikat yang dipilih bukan
+                                milik pemilik dokumen. Dokumen sebaiknya
+                                ditandatangani dengan sertifikat milik{" "}
+                                <span className="font-semibold">
+                                  {selectedDocument.user?.name ||
+                                    selectedDocument.user?.email}
+                                </span>
+                                .
+                              </p>
+                            </div>
+                          )}
+                      </>
                     ) : (
-                      <div className="text-sm text-muted-foreground">
-                        (Tidak ada kunci digital tersedia)
+                      <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                        <p className="text-sm text-red-700 dark:text-red-200 font-medium">
+                          ❌{" "}
+                          {userProfile?.role === "admin"
+                            ? "Tidak ada sertifikat digital aktif untuk user ini"
+                            : "Anda tidak memiliki sertifikat digital aktif"}
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                          {userProfile?.role === "admin"
+                            ? "User yang memiliki dokumen ini belum memiliki sertifikat digital. Silakan buat sertifikat untuk user tersebut terlebih dahulu."
+                            : "Silakan buat sertifikat digital terlebih dahulu di menu 'Manajemen Sertifikat' sebelum menandatangani dokumen."}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1109,7 +1587,17 @@ export default function DocumentSigning() {
                 <Button variant="outline" onClick={closeDialog}>
                   Batal
                 </Button>
-                <Button onClick={signDocument} disabled={isSigning}>
+                <Button
+                  onClick={signDocument}
+                  disabled={
+                    isSigning || !selectedKeyId || signingKeys.length === 0
+                  }
+                  title={
+                    signingKeys.length === 0
+                      ? "Anda tidak memiliki sertifikat digital aktif"
+                      : ""
+                  }
+                >
                   {isSigning ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1127,13 +1615,91 @@ export default function DocumentSigning() {
           </DialogContent>
         </Dialog>
 
-        {/* Preview Dialog */}
+        {/* Preview Dialog for Documents to Sign - Using IjazahSignPreview for ijazah/sertifikat */}
         {selectedDocument && (
-          <IjazahSignPreview
-            isOpen={isPreviewOpen}
-            onClose={() => setIsPreviewOpen(false)}
-            document={selectedDocument}
-          />
+          <>
+            {selectedDocument.title?.toLowerCase().includes("ijazah") ||
+            selectedDocument.title?.toLowerCase().includes("sertifikat") ? (
+              <IjazahSignPreview
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                document={selectedDocument}
+              />
+            ) : (
+              <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>{selectedDocument.title}</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-auto">
+                    {selectedDocument.file_url ? (
+                      <>
+                        {selectedDocument.file_url
+                          .toLowerCase()
+                          .endsWith(".pdf") ? (
+                          <iframe
+                            src={selectedDocument.file_url}
+                            className="w-full h-full min-h-[500px]"
+                            title="PDF Preview"
+                          />
+                        ) : (
+                          <div className="p-8 text-center">
+                            <p className="text-muted-foreground mb-4">
+                              Dokumen ini tidak dapat ditampilkan di preview.
+                              Klik tombol Download untuk melihat file.
+                            </p>
+                            <Button
+                              onClick={() => {
+                                const link = document.createElement("a");
+                                link.href = selectedDocument.file_url!;
+                                link.download = selectedDocument.title;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                            >
+                              Download {selectedDocument.title}
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground">
+                        Tidak ada file untuk ditampilkan.
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </>
+        )}
+
+        {/* Preview Dialog for Completed Documents - PDF only */}
+        {selectedCompletedDocument && (
+          <Dialog
+            open={isCompletedPreviewOpen}
+            onOpenChange={setIsCompletedPreviewOpen}
+          >
+            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{selectedCompletedDocument.title}</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto">
+                {selectedCompletedDocument.file_url ? (
+                  <iframe
+                    src={selectedCompletedDocument.file_url}
+                    className="w-full h-full min-h-[500px]"
+                    title="PDF Preview"
+                  />
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">
+                    PDF belum tersedia untuk ditampilkan.
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </DashboardLayout>

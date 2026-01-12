@@ -24,6 +24,10 @@ interface UniversalIjazahTemplateProps {
   qrCodeUrl?: string;
   dekanQrCode?: string;
   rektorQrCode?: string;
+  
+  // Signing status
+  dekanSigned?: boolean;
+  rektorSigned?: boolean;
 }
 
 export default function UniversalIjazahTemplate({
@@ -42,6 +46,8 @@ export default function UniversalIjazahTemplate({
   qrCodeUrl,
   dekanQrCode,
   rektorQrCode,
+  dekanSigned,
+  rektorSigned,
 }: UniversalIjazahTemplateProps) {
   // Use the primary QR code URL or fallback to dekan/rektor QR codes
   const primaryQrCode = qrCodeUrl || dekanQrCode || rektorQrCode;
@@ -59,6 +65,8 @@ export default function UniversalIjazahTemplate({
       dekanNip={dekanNip}
       rektorName={rektorName}
       rektorNip={rektorNip}
+      dekanSigned={dekanSigned}
+      rektorSigned={rektorSigned}
       templateId={templateId}
       qrCodeUrl={primaryQrCode}
     />

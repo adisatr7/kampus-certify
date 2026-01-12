@@ -54,7 +54,7 @@ export default function useFetchSigningKeys(userId: string) {
         isAdmin = false;
       }
 
-      // Build base query
+      // Build base query - include user info for admin
       const baseQuery = supabase
         .from("signing_keys")
         .select(`
@@ -64,7 +64,13 @@ export default function useFetchSigningKeys(userId: string) {
           x,
           created_at,
           expires_at,
-          assigned_to
+          assigned_to,
+          assigned_to_user:users!signing_keys_assigned_to_fkey (
+            id,
+            name,
+            email,
+            role
+          )
         `)
         .is("deleted_at", null)
         .is("revoked_at", null)
@@ -90,6 +96,7 @@ export default function useFetchSigningKeys(userId: string) {
           expires_at: (k.expires_at as string) ?? null,
           revoked_at: (k.revoked_at as string) ?? null,
           assigned_to: (k.assigned_to as string) ?? null,
+          assigned_to_user: k.assigned_to_user ? (k.assigned_to_user as any) : undefined,
         };
         key.status = getStatus(key);
         return key;

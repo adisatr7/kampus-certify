@@ -24,7 +24,9 @@ export default function SignedDocumentTemplate({
 
     const generateQRCode = async () => {
       try {
-        const verificationUrl = `${window.location.origin}${import.meta.env.BASE_URL}verify?id=${document.serial ?? document.id}`;
+        const verificationUrl = `${window.location.origin}${
+          import.meta.env.BASE_URL
+        }verify?id=${document.serial ?? document.id}`;
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
           width: 200,
           margin: 2,
@@ -64,96 +66,86 @@ export default function SignedDocumentTemplate({
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       {/* Spacer to force content to bottom */}
-      <div
-        aria-hidden
-        className="h-[720px] print:h-[720px]"
-      />
+      <div aria-hidden className="h-[720px] print:h-[720px]" />
 
       <article
         data-signed-footer-area
         className="flex flex-col flex-1 px-10 pb-8 print:relative print:px-0 print:pb-0 print:py-0"
       >
         <section>
-          <div className="grid grid-cols-[1fr_240px] print:grid-cols-[1fr_224px] gap-4 sm:gap-6 items-start h-full">
+          <div className="grid grid-cols-[1fr_240px] print:grid-cols-[1fr_224px] gap-4 sm:gap-6 items-center h-full">
             {/* Spacer */}
             <div />
 
-            {/* QR Code Container */}
+            {/* QR Code + Signer Info Container */}
             <div
-              className="justify-self-end self-end w-[240px] print:w-[224px] text-center flex flex-col items-center min-h-[260px] print:min-h-[240px]"
+              className="justify-self-end self-center w-[240px] print:w-[224px] text-center flex flex-col items-center"
               style={{ breakInside: "avoid" }} // prevent print engines from overlapping/splitting
             >
-              {/* QR Code Date */}
-              <div className="mb-2 w-full">
-                <p className="text-sm text-black mb-1">Cirebon, {signedDate}</p>
-                <p className="text-sm text-black leading-tight">
-                  {document.user?.jabatan || "Ketua Program Studi Informatika"}
-                  <br />
+              {/* Header Info */}
+              <div className="mb-3 w-full flex flex-col items-center text-center">
+                <p className="text-xs text-black mb-1">Cirebon, {signedDate}</p>
+                {document.user?.jabatan && (
+                  <p className="text-xs text-black leading-tight">
+                    {document.user.jabatan}
+                  </p>
+                )}
+                <p className="text-xs text-black leading-tight">
                   Universitas Muhammadiyah Cirebon
                 </p>
               </div>
 
-              {/* QR Code */}
-              <div className="my-2 p-1 border-2 border-black print:my-0 print:p-0">
+              {/* QR Code Box */}
+              <div className="my-3 p-4 border-2 border-black bg-white inline-block">
                 {qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
                     alt="QR Code untuk verifikasi dokumen"
-                    className="block w-24 h-24 print:w-24 print:h-24 object-contain"
+                    className="block w-24 h-24 object-contain"
                   />
                 ) : (
                   <div className="w-24 h-24 flex items-center justify-center bg-white">
-                    <QrCode className="w-20 h-20 text-black" />
+                    <span className="text-xs text-black font-semibold text-center">
+                      QR-CODE
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Option A: Show recipient name */}
-              {/* Recipient Name */}
-              {/* {document.recipient_name && (
-                <p className="text-sm text-black inline-block font-extrabold underline">
-                  {document.recipient_name}
-                </p>
-              )} */}
-
-              {/* Recipient Student Number */}
-              {/* {document.recipient_student_number && (
-                <p className="text-sm text-black inline-block pb-1">
-                  NIK. {document.recipient_student_number}
-                </p>
-              )} */}
-
-              {/* Option B: Show assigner name */}
               {/* Assigner Name */}
               {document.user?.name && (
-                <p className="text-sm text-black inline-block font-extrabold underline">
-                  {document.user?.name}
+                <p className="text-sm text-black font-bold underline mt-3">
+                  {document.user?.name.toUpperCase()}
                 </p>
               )}
 
               {/* Assigner NIP */}
               {document.user?.nip && (
-                <p className="text-sm text-black inline-block pb-1">NIP. {document.user?.nip}</p>
+                <p className="text-xs text-black mt-1">
+                  NIP. {document.user?.nip}
+                </p>
               )}
             </div>
           </div>
         </section>
 
-        {/* Print Date */}
-        <section className="mb-4">
-          <p className="text-sm text-black">ID Dokumen: {document.serial}</p>
+        {/* ID Dokumen Section */}
+        <section className="mb-4 mt-4">
+          <p className="text-sm text-black mb-2">
+            <span className="font-semibold">ID Dokumen:</span>{" "}
+            {document.serial || document.id}
+          </p>
         </section>
 
         {/* Footer Disclaimer Box */}
-        <footer className="border-2 sm:border-3 border-black px-3 pt-3 pb-7 relative">
-          <p className="text-black text-center text-sm">
-            Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat digital yang
-            diterbitkan oleh CA UMC.
-            <br />
-            Keaslian dokumen ini dapat diverifikasi melalui pemindaian QR Code atau portal
+        <footer className="border-2 border-black px-4 py-3 bg-white">
+          <p className="text-black text-xs leading-relaxed text-center">
+            Dokumen ini telah ditandatangani secara elektronik menggunakan
+            sertifikat digital yang diterbitkan oleh CA UMC. Keaslian dokumen
+            ini dapat diverifikasi melalui pemindaian QR Code atau portal
             verifikasi di:
             <br />
-            https://ca.umc/verify
+            <span className="font-semibold">https://ca.umc/verifikasi</span>
           </p>
         </footer>
       </article>

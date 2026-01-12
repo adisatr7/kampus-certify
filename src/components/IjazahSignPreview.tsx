@@ -202,6 +202,8 @@ export default function IjazahSignPreview({
                 dekanNip={dekanInfo.nip}
                 rektorName={rektorInfo.name}
                 rektorNip={rektorInfo.nip}
+                dekanSigned={!!(document.metadata as any)?.dekan_signed}
+                rektorSigned={!!(document.metadata as any)?.rektor_signed}
                 templateId={ijazahData.template_id}
                 renderMode="preview"
               />

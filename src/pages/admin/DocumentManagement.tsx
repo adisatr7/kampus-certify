@@ -39,7 +39,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { Textarea } from "@/components/ui/Textarea";
 import useFetchAllDocuments from "@/hooks/document/useFetchAllDocuments";
 import useFetchAllUsers from "@/hooks/user/useFetchAllUsers";
 import { useToast } from "@/hooks/useToast";
@@ -68,24 +67,16 @@ export default function DocumentManagement() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientStudentNumber, setRecipientStudentNumber] = useState("");
   const [userId, setUserId] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const uploadDocument = async () => {
-    if (
-      !title ||
-      !content.trim() ||
-      !recipientName ||
-      !recipientStudentNumber ||
-      !userId
-    ) {
+    if (!title || !recipientName || !recipientStudentNumber || !userId) {
       toast({
         title: "Error",
-        description:
-          "Judul, isi, penandatangan, nama penerima, dan NIM wajib diisi",
+        description: "Judul, penandatangan, nama penerima, dan NIM wajib diisi",
         variant: "destructive",
       });
       return;
@@ -120,12 +111,12 @@ export default function DocumentManagement() {
         publicUrl = url;
       }
 
-      // Create document record with content from textarea
+      // Create document record
       const { data: insertedRows, error: insertError } = await supabase
         .from("documents")
         .insert({
           title,
-          content: content.trim(),
+          content: "",
           user_id: userId,
           recipient_name: recipientName,
           recipient_student_number: recipientStudentNumber,
@@ -157,10 +148,22 @@ export default function DocumentManagement() {
 
       const targetUser = listOfUsers?.find((u) => u.id === userId);
       const targetUserName = targetUser ? targetUser.name : userId;
+      const docType = title.toLowerCase().includes("ijazah")
+        ? "ijazah"
+        : title.toLowerCase().includes("sertifikat")
+        ? "sertifikat"
+        : "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_CREATE"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_CREATE"
+          : "DOCUMENT_UPLOAD";
+
       await createAuditEntry(
         userProfile.id,
-        "CREATE_DOCUMENT",
-        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}"`
+        auditAction as any,
+        `Mengupload dokumen "${title}" untuk pengguna "${targetUserName}" (Tipe: ${docType})`
       );
 
       toast({
@@ -184,6 +187,13 @@ export default function DocumentManagement() {
 
   const deleteDocument = async (documentId: string, title: string) => {
     try {
+      // Get document details for audit logging
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("user_id, document_type")
+        .eq("id", documentId)
+        .single();
+
       const { error } = await supabase
         .from("documents")
         .delete()
@@ -192,10 +202,19 @@ export default function DocumentManagement() {
         throw error;
       }
 
+      // Create appropriate audit entry based on document type
+      const docType = doc?.document_type || "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_DELETE"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_DELETE"
+          : "DOCUMENT_DELETE";
+
       await createAuditEntry(
         userProfile.id,
-        "DELETE_DOCUMENT",
-        `Menghapus dokumen "${title}"`
+        auditAction as any,
+        `Menghapus dokumen "${title}" (Tipe: ${docType})`
       );
 
       toast({
@@ -215,19 +234,37 @@ export default function DocumentManagement() {
 
   const resetForm = () => {
     setTitle("");
-    setContent("");
     setUserId("");
     setRecipientName("");
     setRecipientStudentNumber("");
     setFile(null);
   };
 
-  const handleViewDocument = (doc: UserDocument) => {
+  const handleViewDocument = async (doc: UserDocument) => {
     if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
     } else if (doc.file_url) {
-      window.open(doc.file_url, "_blank");
+      // Force download by fetching blob and creating object URL
+      try {
+        const response = await fetch(doc.file_url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = doc.title || "document.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading file:", error);
+        toast({
+          title: "Error",
+          description: "Gagal mengunduh dokumen",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -281,21 +318,6 @@ export default function DocumentManagement() {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Masukkan judul dokumen"
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="content">Konten Dokumen</Label>
-                  <Textarea
-                    id="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Masukkan isi konten dokumen..."
-                    rows={6}
-                    className="resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Isi konten dokumen yang akan ditampilkan saat ditandatangani
-                  </p>
                 </div>
 
                 <div>
@@ -449,12 +471,29 @@ export default function DocumentManagement() {
                                       `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
                                     );
                                   }
-                                  const link = document.createElement("a");
-                                  link.href = doc.file_url!;
-                                  link.download = `${doc.title}`;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
+                                  // Force download via blob
+                                  try {
+                                    const response = await fetch(doc.file_url!);
+                                    const blob = await response.blob();
+                                    const url =
+                                      window.URL.createObjectURL(blob);
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = `${doc.title}.${doc
+                                      .file_url!.split(".")
+                                      .pop()}`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(url);
+                                  } catch (error) {
+                                    console.error("Error downloading:", error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Gagal mengunduh dokumen",
+                                      variant: "destructive",
+                                    });
+                                  }
                                 }}
                               >
                                 <Download className="h-4 w-4" />
@@ -531,12 +570,28 @@ export default function DocumentManagement() {
                                   `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
                                 );
                               }
-                              const link = document.createElement("a");
-                              link.href = doc.file_url!;
-                              link.download = `${doc.title}`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
+                              // Force download via blob
+                              try {
+                                const response = await fetch(doc.file_url!);
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const link = document.createElement("a");
+                                link.href = url;
+                                link.download = `${doc.title}.${doc
+                                  .file_url!.split(".")
+                                  .pop()}`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                              } catch (error) {
+                                console.error("Error downloading:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Gagal mengunduh dokumen",
+                                  variant: "destructive",
+                                });
+                              }
                             }}
                           >
                             <Download className="h-4 w-4" />

@@ -9,6 +9,7 @@ import SignedDocumentTemplate from "@/components/SignedDocumentTemplate";
 import SertifikatRenderer from "@/components/SertifikatRenderer";
 import IjazahRenderer from "@/components/IjazahRenderer";
 import { UserDocument, Sertifikat, DocumentTemplate } from "@/types";
+import { createAuditEntry } from "@/lib/audit";
 
 /**
  * Generate a signed PDF with QR code and cryptographic signature
@@ -210,6 +211,22 @@ export async function generateSignedPDF(
           
           console.log("Dekan data:", dekanData);
           console.log("Rektor data:", rektorData);
+          
+          // Get signing status from metadata
+          // IMPORTANT: Only check explicit signing flags in metadata
+          // Do NOT fallback to doc.status because it becomes "signed" only after BOTH sign
+          // which would incorrectly show both QR codes when only one has signed
+          const dekanSigned = !!metadata.dekan_signed;
+          const rektorSigned = !!metadata.rektor_signed;
+          
+          console.log("Signing status:", {
+            dekanSigned,
+            rektorSigned,
+            workflow_stage: metadata.workflow_stage,
+            doc_status: doc.status,
+            metadata_dekan_signed: metadata.dekan_signed,
+            metadata_rektor_signed: metadata.rektor_signed,
+          });
 
           // Always render IjazahRenderer component to ensure consistency with preview
           console.log("Rendering IjazahRenderer component for ijazah");
@@ -227,6 +244,8 @@ export async function generateSignedPDF(
               dekanNip: dekanData?.nip,
               rektorName: rektorData?.name,
               rektorNip: rektorData?.nip,
+              dekanSigned, // Pass signing status
+              rektorSigned, // Pass signing status
               templateId: ijazah.template_id,
               qrCodeUrl: qrContent,
               renderMode: 'pdf-generation',
@@ -283,11 +302,12 @@ export async function generateSignedPDF(
             signer2Data = signer2;
           }
 
-          // Get signing status from metadata or document status
-          // Jika dokumen sudah "signed", berarti semua penandatangan sudah menandatangani
-          const isDocumentFullySigned = doc.status === "signed";
-          const signer1Signed = isDocumentFullySigned || !!metadata.signer1_signed;
-          const signer2Signed = isDocumentFullySigned || !!metadata.signer2_signed;
+          // Get signing status from metadata
+          // IMPORTANT: Only check explicit signing flags in metadata
+          // Do NOT fallback to doc.status because it becomes "signed" only after BOTH sign
+          // which would incorrectly show both QR codes when only one has signed
+          const signer1Signed = !!metadata.signer1_signed;
+          const signer2Signed = !!metadata.signer2_signed;
           
           // Check if there's actually a second signer
           const hasSigner2 = !!(signer2Id && signer2Data?.name);
@@ -298,8 +318,10 @@ export async function generateSignedPDF(
             signer2Data, 
             hasSigner2,
             signer2Id,
-            docStatus: doc.status,
-            isDocumentFullySigned
+            workflow_stage: metadata.workflow_stage,
+            doc_status: doc.status,
+            metadata_signer1_signed: metadata.signer1_signed,
+            metadata_signer2_signed: metadata.signer2_signed,
           });
 
           // Render SertifikatRenderer with proper landscape layout
@@ -336,8 +358,36 @@ export async function generateSignedPDF(
             )
           );
         } else {
-          // Pass qr_code_url so the template renders the same QR we expect
-          const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+          // Generic document upload - fetch user data for signature
+          console.log("Rendering generic document template for document:", doc.id);
+          
+          const metadata = (doc.metadata as any) || {};
+          const signerId = metadata.signer1_id || doc.user_id;
+          
+          console.log("Fetching user data for signer:", signerId);
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("name, nip, jabatan")
+            .eq("id", signerId)
+            .maybeSingle();
+          
+          if (userError) {
+            console.warn("Error fetching user data:", userError);
+          }
+          
+          console.log("User data fetched for generic document:", userData);
+          
+          // Pass qr_code_url and user data so the template renders properly
+          const renderDoc = { 
+            ...doc, 
+            qr_code_url: qrCodeDataUrl,
+            user: userData ? {
+              name: userData.name,
+              nip: userData.nip,
+              jabatan: userData.jabatan
+            } : doc.user
+          } as UserDocument;
+          
           // Use React.createElement instead of JSX since this is a .ts file
           root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
         }
@@ -355,6 +405,37 @@ export async function generateSignedPDF(
         const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
         console.log(`Waiting for ${imgs.length} images to load...`);
         
+        // Helper function to convert image URL to data URL
+        const imageUrlToDataUrl = async (url: string): Promise<string> => {
+          try {
+            const response = await fetch(url, { mode: 'no-cors' });
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          } catch (err) {
+            console.warn('Failed to convert image to data URL:', url, err);
+            return url; // Return original URL if conversion fails
+          }
+        };
+
+        // Convert external QR code images from api.qrserver.com to data URLs
+        // This ensures they're embedded directly and not blocked by CORS
+        for (const img of imgs) {
+          if (img.src && img.src.includes('api.qrserver.com')) {
+            try {
+              console.log('Converting QR image to data URL:', img.src.substring(0, 80));
+              const dataUrl = await imageUrlToDataUrl(img.src);
+              img.src = dataUrl;
+              console.log('QR image converted to data URL (length:', dataUrl.length, ')');
+            } catch (err) {
+              console.warn('Failed to convert QR image:', err);
+            }
+          }
+        }
+
         // Force images to load by setting crossOrigin
         imgs.forEach((img) => {
           if (!img.crossOrigin) {
@@ -395,6 +476,25 @@ export async function generateSignedPDF(
         console.log("Waiting for layout to settle...");
         await new Promise((res) => setTimeout(res, 1000));
 
+        // Debug: log canvas elements present in the rendered container before
+        // calling html2canvas. This helps determine if the QR canvas exists
+        // in the source DOM (it should be present when renderMode === 'pdf-generation').
+        try {
+          const canvasesInContainer = Array.from(container.querySelectorAll('canvas')) as HTMLCanvasElement[];
+          console.log('Canvases found inside container before capture:', canvasesInContainer.length);
+          canvasesInContainer.forEach((c, i) => {
+            console.log(`canvas[${i}] width/height:`, c.width, c.height, 'clientW/H:', c.clientWidth, c.clientHeight);
+            try {
+              const ctx = c.getContext('2d');
+              console.log(`canvas[${i}] has context:`, !!ctx);
+            } catch (e) {
+              console.warn(`canvas[${i}] context check failed:`, e);
+            }
+          });
+        } catch (e) {
+          console.warn('Error enumerating canvases in container:', e);
+        }
+
         // Measure the actual rendered height of the template (in CSS px)
         const renderedHeightCss = Math.max(container.scrollHeight, heightCssPx);
 
@@ -421,6 +521,36 @@ export async function generateSignedPDF(
               clonedContainer.style.fontFamily = "'Times New Roman', serif";
               (clonedContainer.style as any).webkitPrintColorAdjust = "exact";
               clonedContainer.style.printColorAdjust = "exact";
+            }
+
+            // Copy canvas contents from the original document into the cloned
+            // document. html2canvas clones nodes but doesn't automatically copy
+            // the bitmap content of <canvas> elements, so QR canvases can be
+            // blank in the clone unless we copy them here.
+            try {
+              const origCanvases = Array.from(document.querySelectorAll('canvas')) as HTMLCanvasElement[];
+              const cloneCanvases = Array.from(clonedDoc.querySelectorAll('canvas')) as HTMLCanvasElement[];
+
+              if (origCanvases.length && cloneCanvases.length) {
+                for (let i = 0; i < cloneCanvases.length; i++) {
+                  const src = origCanvases[i];
+                  const dst = cloneCanvases[i];
+                  if (!src || !dst) continue;
+                  try {
+                    const dstCtx = dst.getContext('2d');
+                    if (!dstCtx) continue;
+                    // Resize cloned canvas to match source dimensions
+                    dst.width = src.width;
+                    dst.height = src.height;
+                    dstCtx.drawImage(src, 0, 0);
+                  } catch (cErr) {
+                    // Non-fatal: continue copying other canvases
+                    console.warn('Failed to copy canvas content in onclone:', cErr);
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn('Canvas copy in onclone failed:', err);
             }
           }
         });
@@ -568,7 +698,35 @@ export async function generateSignedPDF(
     document.body.appendChild(container);
     const root = createRoot(container);
 
-    const renderDoc = { ...doc, qr_code_url: qrCodeDataUrl } as UserDocument;
+    // Import supabase client
+    const { supabase } = await import("@/integrations/supabase/client");
+
+    // Fetch user data for signature overlay
+    const metadata = (doc.metadata as any) || {};
+    const signerId = metadata.signer1_id || doc.user_id;
+    
+    console.log("Fetching user data for footer overlay, signer:", signerId);
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("name, nip, jabatan")
+      .eq("id", signerId)
+      .maybeSingle();
+    
+    if (userError) {
+      console.warn("Error fetching user data for footer:", userError);
+    }
+    
+    console.log("User data fetched for footer overlay:", userData);
+
+    const renderDoc = { 
+      ...doc, 
+      qr_code_url: qrCodeDataUrl,
+      user: userData ? {
+        name: userData.name,
+        nip: userData.nip,
+        jabatan: userData.jabatan
+      } : doc.user
+    } as UserDocument;
     root.render(React.createElement(SignedDocumentTemplate, { document: renderDoc }));
 
     // Wait for React to complete the render by checking for content
@@ -740,6 +898,7 @@ export async function uploadSignedPDF(
   userId: string,
   documentId: string,
   supabase: SupabaseClient,
+  options?: { serverSign?: boolean },
 ): Promise<string | null> {
   try {
     console.log("=== Upload Signed PDF ===");
@@ -748,6 +907,71 @@ export async function uploadSignedPDF(
     console.log("PDF Blob size:", pdfBlob.size, "bytes");
     console.log("PDF Blob type:", pdfBlob.type);
     
+    // Only call the signing server when explicitly requested via options
+    const signingServer = import.meta.env.VITE_SIGNING_SERVER_URL as string | undefined;
+    const shouldServerSign = options?.serverSign === true;
+    if (shouldServerSign && signingServer) {
+      try {
+        // Audit: sign request
+        try {
+          await createAuditEntry(userId, "SIGN_DOCUMENT_REQUEST", `Requesting server-side signature for document ${documentId}`);
+        } catch (auditErr) {
+          console.warn("Failed to create audit entry for sign request:", auditErr);
+        }
+        console.log("Sending PDF to signing server:", signingServer);
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        // convert to base64 safely in chunks
+        const bytes = new Uint8Array(arrayBuffer);
+        const chunkSize = 0x8000;
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+        }
+        const b64 = btoa(binary);
+
+        const qrContent = `${window.location.origin}${(import.meta.env.BASE_URL || '/') }verify?id=${documentId}`;
+        const resp = await fetch(`${signingServer.replace(/\/$/, "")}/sign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdfBase64: b64, userId, documentId, qrContent }),
+        });
+        if (!resp.ok) {
+          const txt = await resp.text();
+          console.error("Signing server returned error:", resp.status, txt);
+          try {
+            await createAuditEntry(userId, "SIGN_DOCUMENT_FAILURE", `Signing server error for document ${documentId}: ${resp.status} ${txt}`);
+          } catch (auditErr) {
+            console.warn("Failed to create audit entry for sign failure:", auditErr);
+          }
+          // Fall back to uploading unsigned PDF
+        } else {
+          const json = await resp.json();
+          if (json?.signedPdfBase64) {
+            const signedB64 = json.signedPdfBase64 as string;
+            const signedBinary = atob(signedB64);
+            const signedLen = signedBinary.length;
+            const signedBytes = new Uint8Array(signedLen);
+            for (let i = 0; i < signedLen; i++) signedBytes[i] = signedBinary.charCodeAt(i);
+            pdfBlob = new Blob([signedBytes], { type: "application/pdf" });
+            console.log("Received signed PDF from signing server, size:", pdfBlob.size);
+            try {
+              await createAuditEntry(userId, "SIGN_DOCUMENT_SUCCESS", `Server-side signature applied for document ${documentId}, size ${pdfBlob.size} bytes`);
+            } catch (auditErr) {
+              console.warn("Failed to create audit entry for sign success:", auditErr);
+            }
+          }
+        }
+      } catch (signErr) {
+        console.error("Error contacting signing server:", signErr);
+        try {
+          await createAuditEntry(userId, "SIGN_DOCUMENT_FAILURE", `Signing server contact error for document ${documentId}: ${String(signErr)}`);
+        } catch (auditErr) {
+          console.warn("Failed to create audit entry for sign contact error:", auditErr);
+        }
+        // proceed to upload unsigned PDF but record in audit later
+      }
+    }
+
     const signedFileName = `${userId}/${documentId}-signed-${Date.now()}.pdf`;
     console.log("Upload path:", signedFileName);
 
@@ -763,10 +987,20 @@ export async function uploadSignedPDF(
       console.error("=== Upload Error ===");
       console.error("Error code:", uploadError.message);
       console.error("Error details:", uploadError);
+      try {
+        await createAuditEntry(userId, "UPLOAD_SIGNED_DOCUMENT_FAILURE", `Upload failed for document ${documentId}: ${uploadError.message}`);
+      } catch (auditErr) {
+        console.warn("Failed to create audit entry for upload failure:", auditErr);
+      }
       return null;
     }
 
     console.log("Upload successful:", uploadData);
+    try {
+      await createAuditEntry(userId, "UPLOAD_SIGNED_DOCUMENT", `Signed document uploaded for ${documentId} at ${signedFileName}`);
+    } catch (auditErr) {
+      console.warn("Failed to create audit entry for upload success:", auditErr);
+    }
 
     // Get public URL
     const {
@@ -774,14 +1008,14 @@ export async function uploadSignedPDF(
     } = supabase.storage.from("signed-documents").getPublicUrl(signedFileName);
 
     console.log("Public URL generated:", publicUrl);
-    
+
     // Verify the file exists by checking if we can get it
     const { data: fileData, error: fileError } = await supabase.storage
       .from("signed-documents")
       .list(userId, {
         search: `${documentId}-signed`,
       });
-    
+
     if (fileError) {
       console.warn("Warning: Could not verify file upload:", fileError);
     } else {

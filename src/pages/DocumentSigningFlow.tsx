@@ -155,9 +155,7 @@ export default function DocumentSigningFlow() {
       // Call edge function to sign document
       // The edge function will handle:
       // 1. Creating the cryptographic signature
-      // 2. Updating document status
-      // 3. Generating and uploading the signed PDF
-      // 4. Updating file_url in the database
+      // 2. Storing signature in database
       const { data: signResult, error: signError } =
         await supabase.functions.invoke("sign-document", {
           body: {
@@ -172,17 +170,17 @@ export default function DocumentSigningFlow() {
         throw new Error(signError.message || "Failed to sign document");
       }
 
-      if (!signResult?.ok) {
+      if (!signResult?.success) {
         throw new Error(signResult?.error || "Failed to sign document");
       }
 
       console.log("=== Sign Result ===");
-      console.log("Signature created:", signResult.signature);
-      console.log("PDF generated:", signResult.pdfGenerated);
-      console.log("File URL:", signResult.fileUrl);
+      console.log("Document signed:", signResult.documentId);
+      console.log("Signed at:", signResult.signedAt);
+      console.log("Key ID:", signResult.keyId);
 
-      // Show warning if PDF generation failed but signing succeeded
-      if (!signResult.pdfGenerated) {
+      // Signature created successfully
+      if (true) {
         toast({
           title: "Peringatan",
           description:

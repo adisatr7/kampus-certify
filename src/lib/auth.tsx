@@ -4,6 +4,7 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useToast } from "@/hooks/useToast";
@@ -126,12 +127,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log("Auth: Successfully fetched profile:", profile);
               setUserProfile(profile);
 
-              // Audit log for login
-              await createAuditEntry(
-                profile.id,
-                "LOGIN",
-                `Login berhasil: ${profile.name} (${profile.email})`
-              );
+              // Audit log for login - only once per browser session
+              // Use sessionStorage to track if we've already logged this session
+              const sessionKey = `login_logged_${profile.id}`;
+              const alreadyLogged = sessionStorage.getItem(sessionKey);
+
+              if (!alreadyLogged) {
+                sessionStorage.setItem(sessionKey, "true");
+                await createAuditEntry(
+                  profile.id,
+                  "LOGIN",
+                  `Login berhasil: ${profile.name} (${profile.email})`
+                );
+              }
             }
           } catch (err) {
             console.error("Auth: Profile fetch error:", err);
@@ -186,14 +194,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Audit log for logout before clearing profile
+      // Audit log for logout before clearing profile (only once)
       if (userProfile?.id) {
-        await createAuditEntry(
-          userProfile.id,
-          "LOGOUT",
-          `Logout: ${userProfile.name} (${userProfile.email})`
-        );
+        const logoutKey = `logout_logged_${userProfile.id}`;
+        const alreadyLogged = sessionStorage.getItem(logoutKey);
+
+        if (!alreadyLogged) {
+          sessionStorage.setItem(logoutKey, "true");
+          await createAuditEntry(
+            userProfile.id,
+            "LOGOUT",
+            `Logout: ${userProfile.name} (${userProfile.email})`
+          );
+        }
       }
+
+      // Clear all session tracking
+      sessionStorage.clear();
 
       await supabase.auth.signOut();
       setUser(null);

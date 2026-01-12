@@ -32,6 +32,16 @@ export default function DocumentSignPreview({
   const [rektorInfo, setRektorInfo] = useState<{ name?: string; nip?: string }>(
     {}
   );
+  const [signerInfo, setSignerInfo] = useState<{
+    name?: string;
+    nip?: string;
+    jabatan?: string;
+  }>({});
+  const [signer2Info, setSigner2Info] = useState<{
+    name?: string;
+    nip?: string;
+    jabatan?: string;
+  }>({});
 
   useEffect(() => {
     const fetchDocumentData = async () => {
@@ -122,6 +132,45 @@ export default function DocumentSignPreview({
         }
 
         setSertifikatData(data as Sertifikat);
+
+        // Fetch signer info
+        const metadata = (document.metadata as any) || {};
+        const signerId = data.penandatangan || metadata.signer1_id;
+        const signer2Id = metadata.signer2_id;
+
+        // Fetch signer 1 info
+        if (signerId) {
+          const { data: signerData } = await supabase
+            .from("users")
+            .select("name, nip, jabatan")
+            .eq("id", signerId)
+            .maybeSingle();
+
+          if (signerData) {
+            setSignerInfo({
+              name: signerData.name,
+              nip: signerData.nip,
+              jabatan: signerData.jabatan,
+            });
+          }
+        }
+
+        // Fetch signer 2 info (jika ada)
+        if (signer2Id) {
+          const { data: signer2Data } = await supabase
+            .from("users")
+            .select("name, nip, jabatan")
+            .eq("id", signer2Id)
+            .maybeSingle();
+
+          if (signer2Data) {
+            setSigner2Info({
+              name: signer2Data.name,
+              nip: signer2Data.nip,
+              jabatan: signer2Data.jabatan,
+            });
+          }
+        }
       } else {
         setError("Tipe dokumen tidak dikenali");
       }
@@ -141,6 +190,9 @@ export default function DocumentSignPreview({
 
   const isIjazah = ijazahData !== null;
   const isSertifikat = sertifikatData !== null;
+  const meta: any = document.metadata || {};
+  const signingStatus = meta.signing_status || null; // e.g., 'pending', 'in_progress', 'error', 'done'
+  const signingError = meta.signing_error || null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -153,6 +205,22 @@ export default function DocumentSignPreview({
           <DialogTitle>Preview - {document.title}</DialogTitle>
         </DialogHeader>
         <div className="bg-gray-100 p-4 rounded-lg">
+          {/* Non-invasive signing status banner: controlled by metadata keys to avoid changing flows */}
+          {signingStatus ? (
+            <div className="mb-4 p-2 rounded text-sm flex items-center justify-between border">
+              <div>
+                <strong>Status:</strong> {signingStatus}
+                {signingError ? (
+                  <span className="text-destructive"> — {signingError}</span>
+                ) : null}
+              </div>
+              <div>
+                {signingStatus === "in_progress" ? (
+                  <div className="animate-spin h-4 w-4 border-2 rounded-full border-current" />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           {loading ? (
             <div className="p-8 text-center">
               <p className="text-muted-foreground">Memuat data...</p>
@@ -175,6 +243,8 @@ export default function DocumentSignPreview({
                 dekanNip={dekanInfo.nip}
                 rektorName={rektorInfo.name}
                 rektorNip={rektorInfo.nip}
+                dekanSigned={!!(document.metadata as any)?.dekan_signed}
+                rektorSigned={!!(document.metadata as any)?.rektor_signed}
                 templateId={ijazahData.template_id}
                 renderMode="preview"
               />
@@ -186,6 +256,14 @@ export default function DocumentSignPreview({
                 namaPeserta={sertifikatData.nama_peserta}
                 namaAcara={sertifikatData.nama_acara}
                 tanggalAcara={sertifikatData.tanggal_acara}
+                penandatanganName={signerInfo.name}
+                penandatanganNip={signerInfo.nip}
+                penandatanganJabatan={signerInfo.jabatan}
+                penandatangan2Name={signer2Info.name}
+                penandatangan2Nip={signer2Info.nip}
+                penandatangan2Jabatan={signer2Info.jabatan}
+                signer1Signed={!!(document.metadata as any)?.signer1_signed}
+                signer2Signed={!!(document.metadata as any)?.signer2_signed}
                 templateId={sertifikatData.template_id}
                 renderMode="preview"
               />

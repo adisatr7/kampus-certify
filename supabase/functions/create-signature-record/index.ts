@@ -85,66 +85,54 @@ Deno.serve(async (req: Request) => {
       console.log("🗑️ Cleared existing signatures for document");
     }
 
-    // Generate a fresh Ed25519 key pair for this signature
-    console.log("🔑 Generating fresh Ed25519 key pair...");
+    // Fetch the user's existing signing key (created via create-certificate)
+    console.log("🔑 Fetching user's signing key from database...");
     
-    const keyPair = await crypto.subtle.generateKey(
-      { name: "Ed25519" },
-      true,
-      ["sign", "verify"]
-    );
+    // Check if signer is an admin
+    const { data: signerUser, error: signerErr } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", signerUserId)
+      .maybeSingle();
 
-    // Export public key in SPKI format
-    const publicKeyBuffer = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-    const publicKeyBase64 = base64Encode(new Uint8Array(publicKeyBuffer));
+    const isAdmin = !signerErr && signerUser?.role === "admin";
+    console.log("🔑 Signer role check: isAdmin =", isAdmin);
 
-    // Export private key in PKCS8 format  
-    const privateKeyBuffer = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-    const privateKeyBytes = new Uint8Array(privateKeyBuffer);
-
-    // Generate unique key ID
-    const dateStr = new Date().toISOString().split('T')[0];
-    const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(4)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    const newKeyId = `v1-${dateStr}-${randomPart}`;
-
-    // Store private key with simple base64 encoding (for demo purposes)
-    // In production, use proper AES-GCM encryption with the passphrase
-    const encryptedPrivateKey = base64Encode(privateKeyBytes);
-    const iv = base64Encode(crypto.getRandomValues(new Uint8Array(12)));
-
-    // Calculate expiry date (1 year from now)
-    const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-    // Insert new signing key
-    const { error: insertKeyError } = await supabase
+    // Admin can use any key, non-admin only their own
+    let keyQuery = supabase
       .from("signing_keys")
-      .insert({
-        kid: newKeyId,
-        kty: "OKP",
-        crv: "Ed25519",
-        x: publicKeyBase64,
-        enc_private_key: encryptedPrivateKey,
-        enc_private_key_iv: iv,
-        enc_algo: "SIMPLE-B64",
-        active: true,
-        assigned_to: signerUserId,
-        created_by: signerUserId,
-        created_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString()
-      });
+      .select("*")
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-    if (insertKeyError) {
-      console.error("Failed to create signing key:", insertKeyError);
+    // If not admin, restrict to user's own keys
+    if (!isAdmin) {
+      keyQuery = keyQuery.eq("assigned_to", signerUserId);
+    } else {
+      // For admin, get the key for the document owner
+      keyQuery = keyQuery.eq("assigned_to", document.user_id);
+    }
+    
+    const { data: existingKey, error: keyError } = await keyQuery.maybeSingle();
+
+    if (keyError || !existingKey) {
+      console.error("❌ No signing key found:", keyError);
+      const errorMsg = isAdmin 
+        ? "No signing key found for document owner. Please create a certificate for the document owner first."
+        : "No signing key found for user. Please create a certificate first via the Certificate Management page.";
+      
       return new Response(
-        JSON.stringify({ error: "Failed to create signing key", details: insertKeyError.message }), 
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: errorMsg,
+          details: keyError?.message 
+        }), 
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("✅ Created new signing key:", newKeyId);
+    const newKeyId = existingKey.kid;
+    console.log("✅ Using existing signing key:", newKeyId);
 
     // Create document payload for hashing (MUST match verify-document format)
     const payload = JSON.stringify({
@@ -163,41 +151,17 @@ Deno.serve(async (req: Request) => {
 
     console.log("📝 Payload hash:", payloadHash.substring(0, 20) + "...");
 
-    // Create REAL Ed25519 signature using the freshly generated private key
-    const signatureBuffer = await crypto.subtle.sign(
-      "Ed25519",
-      keyPair.privateKey,
-      enc.encode(payloadHash)
-    );
+    // NOTE: Signature will be created by sign-document-v2 when user actually signs the document
+    // Do NOT create a placeholder signature here as it will be random and invalid!
     
-    const signature = base64Encode(new Uint8Array(signatureBuffer));
-    console.log("✅ Created Ed25519 signature, length:", signature.length);
-
-    // Verify the signature immediately to ensure it's valid
-    const isValid = await crypto.subtle.verify(
-      "Ed25519",
-      keyPair.publicKey,
-      signatureBuffer,
-      enc.encode(payloadHash)
-    );
-    
-    if (!isValid) {
-      console.error("❌ Signature verification failed immediately after creation");
-      return new Response(
-        JSON.stringify({ error: "Signature verification failed" }), 
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    console.log("✅ Signature verified successfully");
-
-    // Insert signature record
+    // Insert empty signature record - will be filled in by sign-document-v2
     const { error: sigError } = await supabase
       .from("document_signatures")
       .insert({
         document_id: documentId,
         key_id: newKeyId,
         payload_hash: payloadHash,
-        signature: signature,
+        signature: "", // Empty signature - will be updated by sign-document-v2
         signer_user_id: signerUserId,
         signed_at: new Date().toISOString()
       });
@@ -210,14 +174,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("✅ Signature record created successfully");
+    console.log("✅ Signature record created (placeholder - will be filled by sign-document-v2)");
 
     // Create audit entry for signing
     try {
       await supabase.rpc("create_audit_entry", {
         p_user_id: signerUserId,
         p_action: "SIGN_DOCUMENT",
-        p_description: `Menandatangani dokumen "${document.title}" dengan key ${newKeyId}`
+        p_description: `Memulai proses penandatanganan dokumen "${document.title}" dengan key ${newKeyId}`
       });
       console.log("✅ Audit entry created");
     } catch (auditErr) {
@@ -227,10 +191,10 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         ok: true,
-        message: "Signature record created successfully with real Ed25519 signature",
+        message: "Signature record created (ready for signing via sign-document-v2)",
         keyId: newKeyId,
         payloadHash: payloadHash.substring(0, 20) + "...",
-        signatureVerified: true
+        documentId: documentId
       }), 
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

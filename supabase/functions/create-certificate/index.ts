@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @deno-types="npm:@types/node-forge@1"
+import forge from "npm:node-forge@1.3.1";
 
 // CORS headers
 const corsHeaders = {
@@ -153,6 +155,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch user data to get name for certificate CN
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("name, email")
+      .eq("id", assignedTo)
+      .single();
+    
+    if (userError || !userData) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Gagal mengambil data user untuk certificate",
+          data: null,
+        }),
+        {
+          status: 500,
+          headers,
+        },
+      );
+    }
+
+    const userName = userData.name || "Unknown User";
+    const userEmail = userData.email || "no-email@example.com";
+
     // Ensure master key exists
     const MASTER_KEY_B64 = Deno.env.get("MASTER_KEY_B64")!;
     if (!MASTER_KEY_B64) {
@@ -190,21 +216,167 @@ Deno.serve(async (req) => {
       "decrypt",
     ]);
 
-    // Generate Ed25519 keypair
-    const { publicKey, privateKey } = await crypto.subtle.generateKey(
-      { name: "Ed25519" } as EcKeyGenParams,
-      true,
-      ["sign", "verify"],
-    );
+    // Fetch CA certificate from database
+    console.log("🔍 Fetching CA certificate...");
+    const { data: caRow, error: caError } = await supabase
+      .from("ca_certificates")
+      .select("id, certificate_pem, certificate_subject, enc_private_key, enc_private_key_iv, enc_algo")
+      .eq("name", "CA UMC")
+      .is("revoked_at", null)
+      .single();
 
-    // Export keys
-    const spki = new Uint8Array(await crypto.subtle.exportKey("spki", publicKey));
-    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", privateKey));
+    if (caError || !caRow) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "CA certificate tidak ditemukan. Silakan hubungi administrator untuk setup CA.",
+          data: null,
+        }),
+        {
+          status: 500,
+          headers,
+        },
+      );
+    }
 
-    // Encrypt private key with AES-GCM
+    console.log("✅ CA certificate found");
+
+    // Decrypt CA private key
+    let caPrivateKeyPem: string;
+    try {
+      const masterKeyBytes = base64Decode(MASTER_KEY_B64);
+      const masterKey = await crypto.subtle.importKey("raw", masterKeyBytes, "AES-GCM", false, [
+        "decrypt",
+      ]);
+
+      const encryptedData = base64Decode(caRow.enc_private_key);
+      const iv = base64Decode(caRow.enc_private_key_iv);
+
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        masterKey,
+        encryptedData
+      );
+
+      caPrivateKeyPem = new TextDecoder().decode(decryptedBuffer);
+      console.log("✅ CA private key decrypted");
+    } catch (decryptErr) {
+      console.error("❌ Failed to decrypt CA private key:", decryptErr);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Gagal decrypt CA private key",
+          data: null,
+        }),
+        {
+          status: 500,
+          headers,
+        },
+      );
+    }
+
+    // Generate RSA keypair for user certificate
+    const pki = forge.pki;
+    const keypair = pki.rsa.generateKeyPair({ bits: 2048, e: 0x10001 });
+
+    // Parse CA certificate and private key
+    const caCert = pki.certificateFromPem(caRow.certificate_pem);
+    const caPrivateKey = pki.privateKeyFromPem(caPrivateKeyPem);
+
+    // Create user certificate (to be signed by CA)
+    const cert = pki.createCertificate();
+    cert.publicKey = keypair.publicKey;
+    cert.serialNumber = "01" + Math.floor(Math.random() * 1e16).toString(16);
+
+    // Set validity period
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date(expiresAt);
+
+    // Set subject = User (Issued To)
+    const attrs = [
+      { name: "commonName", value: userName },
+      { name: "countryName", value: "ID" },
+      { name: "stateOrProvinceName", value: "Jawa Barat" },
+      { name: "localityName", value: "Cirebon" },
+      { name: "organizationName", value: "Universitas Muhammadiyah Cirebon" },
+      { shortName: "OU", value: "Digital Signature" },
+      { name: "emailAddress", value: userEmail },
+    ];
+    cert.setSubject(attrs);
+
+    // Set issuer = CA (Issued By)
+    // Extract CA subject attributes for issuer
+    const issuerAttrs = caCert.subject.attributes;
+    cert.setIssuer(issuerAttrs);
+    
+    // Add extensions for PDF digital signatures
+    // Adobe Reader expects: digitalSignature + nonRepudiation in keyUsage
+    // and emailProtection in extKeyUsage (for document signing)
+    cert.setExtensions([
+      {
+        name: "basicConstraints",
+        cA: false, // Not a CA certificate
+        critical: true,
+      },
+      {
+        name: "keyUsage",
+        digitalSignature: true,  // Required for PDF signatures
+        nonRepudiation: true,    // Required for PDF signatures (content commitment)
+        keyEncipherment: false,
+        dataEncipherment: false,
+        critical: true, // Mark as critical
+      },
+      {
+        name: "extKeyUsage",
+        serverAuth: false,
+        clientAuth: false,
+        codeSigning: false,
+        emailProtection: true,  // S/MIME and document signing
+        timeStamping: false,
+        // Note: emailProtection covers document signing use case
+      },
+      {
+        name: "subjectKeyIdentifier",
+        // Automatically calculated from public key
+      },
+      {
+        name: "authorityKeyIdentifier",
+        // Links to CA certificate's subjectKeyIdentifier
+        // This helps PDF readers validate the chain
+      },
+      {
+        name: "subjectAltName",
+        altNames: [{
+          type: 1, // email
+          value: userEmail,
+        }],
+      },
+    ]);
+    
+    // Sign the certificate with CA private key
+    cert.sign(caPrivateKey, forge.md.sha256.create());
+    
+    // Convert to PEM format
+    const privateKeyPem = pki.privateKeyToPem(keypair.privateKey);
+    const certificatePem = pki.certificateToPem(cert);
+    
+    // Extract certificate subject and issuer strings
+    const certSubject = cert.subject.attributes
+      .map((attr: any) => `${attr.shortName || attr.name}=${attr.value}`)
+      .join(", ");
+    const certIssuer = cert.issuer.attributes
+      .map((attr: any) => `${attr.shortName || attr.name}=${attr.value}`)
+      .join(", ");
+    
+    console.log("📜 Certificate Details:");
+    console.log(`   Issued To: ${certSubject}`);
+    console.log(`   Issued By: ${certIssuer}`);
+    
+    // Encrypt private key PEM with AES-GCM
+    const privateKeyBytes = new TextEncoder().encode(privateKeyPem);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const ciphertext = new Uint8Array(
-      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, masterKey, pkcs8),
+      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, masterKey, privateKeyBytes),
     );
 
     const passphrase_hash = await pbkdf2Hash(passphrase);
@@ -214,18 +386,22 @@ Deno.serve(async (req) => {
     const suffix = crypto.randomUUID().slice(0, 8);
     const kid = `v1-${datePart}-${suffix}`;
 
-    // Insert row
+    // Insert row with X.509 certificate signed by CA
     const { error: insertErr } = await supabase.from("signing_keys").insert({
       kid,
-      kty: "OKP",
-      crv: "Ed25519",
+      kty: "RSA",
+      crv: null,
       created_by: createdBy,
       assigned_to: assignedTo,
-      x: base64Encode(spki), // Public key (SPKI DER → b64)
-      enc_private_key: base64Encode(ciphertext), // AES-GCM ciphertext (b64)
+      private_key_pem: null, // We don't store plain private key
+      certificate_pem: certificatePem,
+      certificate_subject: certSubject,
+      certificate_issuer: certIssuer,
+      enc_private_key: base64Encode(ciphertext), // Encrypted private key PEM
       enc_private_key_iv: base64Encode(iv), // IV (b64)
       enc_algo: "AES-GCM",
       passphrase_hash,
+      ca_id: caRow.id, // Link to the CA that signed this certificate
       expires_at: new Date(expiresAt).toISOString(),
       revoked_at: null,
       deleted_at: null,

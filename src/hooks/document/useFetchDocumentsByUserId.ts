@@ -14,12 +14,16 @@ export default function useFetchDocumentsByUserId(
   const enabled = options?.enabled !== undefined ? options.enabled : true;
   const [isLoading, setLoading] = useState(enabled);
 
+  // Convert status to JSON string to avoid object reference issues in dependency array
+  const statusString = JSON.stringify(status);
+
   useEffect(() => {
     if (!enabled) {
+      setData([]);
       return;
     }
     fetchData(userId, status);
-  }, [userId, enabled]);
+  }, [userId, enabled, statusString]); // Include statusString so it re-fetches when status changes
 
   const fetchData = async (userId: string, statusParam?: DocumentStatus | DocumentStatus[]) => {
     if (!userId || !enabled) {

@@ -34,6 +34,11 @@ export default function DynamicIjazahTemplate({
     return null;
   }
 
+  // Get signing status from document metadata
+  const metadata = (document.metadata as any) || {};
+  const dekanSigned = !!metadata.dekan_signed;
+  const rektorSigned = !!metadata.rektor_signed;
+
   return (
     <IjazahRenderer
       nim={ijazahData.nim}
@@ -47,6 +52,8 @@ export default function DynamicIjazahTemplate({
       dekanNip={ijazahData.dekan?.nip}
       rektorName={ijazahData.rektor?.name}
       rektorNip={ijazahData.rektor?.nip}
+      dekanSigned={dekanSigned}
+      rektorSigned={rektorSigned}
       templateId={ijazahData.template_id}
       qrCodeUrl={qrCodeUrl}
     />

@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   AlertTriangle,
   Award,
@@ -9,6 +8,7 @@ import {
   PenTool,
   QrCode,
   Search,
+  Shield,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -70,43 +70,8 @@ export default function VerificationPortal() {
     setVerifying(true);
 
     try {
-      // Call the new Edge Function
-      const url = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/functions/v1/verify-document`;
-      const session = await supabase.auth.getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (session.data.session?.access_token) {
-        headers[
-          "Authorization"
-        ] = `Bearer ${session.data.session.access_token}`;
-      }
-      const response = await axios.post(
-        url,
-        { documentId: docId.trim() },
-        { headers }
-      );
-
-      const result = response.data; // result = { valid, keyId, signedAt, reason }
-
-      if (!result.valid) {
-        toast({
-          title: "Dokumen Tidak Valid",
-          description:
-            result.reason === "PAYLOAD_HASH_MISMATCH"
-              ? "Isi dokumen telah berubah atau tidak sesuai tanda tangan."
-              : result.reason === "SIGNATURE_INVALID"
-              ? "Tanda tangan digital tidak cocok."
-              : "Tanda tangan tidak valid.",
-          variant: "destructive",
-        });
-        setVerificationResult(null);
-        return;
-      }
-
-      // Fetch the document for display
+      // Simple verification: just check if document exists in database
+      // No cryptographic signature validation for QR code verification
       const isUuid = (id: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
           id.trim()
@@ -117,12 +82,13 @@ export default function VerificationPortal() {
       const baseSelect = `
           *,
           document_signatures (
-            key_id
+            key_id,
+            payload_hash
           )
         `;
 
       // Query by `id` when the input is a UUID, otherwise query by `serial`
-      const { data: docData } = isUuid(trimmedId)
+      const { data: docData, error: docError } = isUuid(trimmedId)
         ? await supabase
             .from("documents")
             .select(baseSelect)
@@ -133,6 +99,21 @@ export default function VerificationPortal() {
             .select(baseSelect)
             .eq("serial", trimmedId)
             .maybeSingle();
+
+      if (docError) {
+        throw docError;
+      }
+
+      if (!docData) {
+        toast({
+          title: "Dokumen Tidak Ditemukan",
+          description:
+            "ID dokumen tidak valid atau tidak terdaftar dalam sistem",
+          variant: "destructive",
+        });
+        setVerificationResult(null);
+        return;
+      }
 
       setVerificationResult(docData as unknown as UserDocument);
 
@@ -218,21 +199,23 @@ export default function VerificationPortal() {
 
       toast({
         title: "Verifikasi Berhasil",
-        description: `Dokumen valid (key: ${result.keyId})`,
+        description: `Dokumen ditemukan dan terdaftar dalam sistem`,
       });
 
       // Optional audit entry
-      await supabase.rpc("create_audit_entry", {
-        p_user_id: null,
-        p_action: "VERIFY_DOCUMENT",
-        p_description: `Verifikasi dokumen "${docData?.title}" dari portal publik`,
-      });
+      try {
+        await supabase.rpc("create_audit_entry", {
+          p_user_id: null,
+          p_action: "VERIFY_DOCUMENT",
+          p_description: `Verifikasi dokumen "${docData?.title}" dari portal publik`,
+        });
+      } catch (auditError) {
+        console.warn("Failed to create audit entry:", auditError);
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const message =
-        err.response?.data?.error ??
-        err.message ??
-        "Terjadi kesalahan saat memverifikasi dokumen";
+        err.message ?? "Terjadi kesalahan saat memverifikasi dokumen";
       console.error("Verification error:", err);
 
       toast({
@@ -479,18 +462,46 @@ export default function VerificationPortal() {
                     </div>
                   </div>
 
-                  {/* Tanggal Verifikasi */}
-                  <div className="bg-slate-50 dark:bg-slate-900/30 p-4 rounded-lg">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                      Tanggal Verifikasi
-                    </p>
-                    <p className="text-lg font-semibold">
-                      {new Date().toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
+                  {/* Hash & Tanggal Verifikasi */}
+                  <div className="grid grid-cols-1 gap-4">
+                    {verificationResult.document_signatures &&
+                      verificationResult.document_signatures.length > 0 &&
+                      verificationResult.document_signatures[0]
+                        .payload_hash && (
+                        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 p-4 rounded-lg border-2 border-primary/30">
+                          <div className="flex items-start gap-3 mb-2">
+                            <Shield className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-primary uppercase tracking-wide mb-1">
+                                Hash Dokumen Tertanda Tangan
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Sidik jari digital dokumen (SHA-256)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="bg-card/80 backdrop-blur p-3 rounded-lg border border-border/50">
+                            <p className="font-mono text-xs font-bold text-foreground break-all leading-relaxed">
+                              {
+                                verificationResult.document_signatures[0]
+                                  .payload_hash
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    <div className="bg-slate-50 dark:bg-slate-900/30 p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                        Tanggal Verifikasi
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {new Date().toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Ijazah Details */}

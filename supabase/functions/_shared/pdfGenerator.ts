@@ -303,6 +303,13 @@ async function generateIjazahSignedPDF(
   // Footer - Signatures
   const footerY = innerMargin + 80;
   
+  // Get metadata to check signing status
+  const metadata = document.metadata || {};
+  const dekanSigned = !!(metadata.dekan_signed);
+  const rektorSigned = !!(metadata.rektor_signed);
+  
+  console.log("PDF Generator - Signing status:", { dekanSigned, rektorSigned });
+  
   // Find Dekan and Rektor signatures
   const dekanSig = signatures.find(s => s.signer_role?.toLowerCase().includes('dekan'));
   const rektorSig = signatures.find(s => s.signer_role?.toLowerCase().includes('rektor'));
@@ -328,21 +335,33 @@ async function generateIjazahSignedPDF(
       color: rgb(0.4, 0.4, 0.4),
     });
     
-    // QR Code for Dekan
-    try {
-      const dekanQrDataUrl = await generateQRCode(`${verificationUrl}&signer=dekan`);
-      const qrBase64 = dekanQrDataUrl.split(',')[1];
-      const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
-      const qrImage = await pdfDoc.embedPng(qrBytes);
-      
-      page.drawImage(qrImage, {
+    // QR Code for Dekan - only if signed
+    if (dekanSigned) {
+      try {
+        const dekanQrDataUrl = await generateQRCode(`${verificationUrl}&signer=dekan`);
+        const qrBase64 = dekanQrDataUrl.split(',')[1];
+        const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
+        const qrImage = await pdfDoc.embedPng(qrBytes);
+        
+        page.drawImage(qrImage, {
+          x: innerMargin + 40,
+          y: footerY - 10,
+          width: 60,
+          height: 60,
+        });
+      } catch (error) {
+        console.error("Error embedding Dekan QR code:", error);
+      }
+    } else {
+      // Draw empty box placeholder if not signed
+      page.drawRectangle({
         x: innerMargin + 40,
         y: footerY - 10,
         width: 60,
         height: 60,
+        borderColor: rgb(0.8, 0.8, 0.8),
+        borderWidth: 1,
       });
-    } catch (error) {
-      console.error("Error embedding Dekan QR code:", error);
     }
     
     page.drawText(dekanUser.name, {
@@ -382,21 +401,33 @@ async function generateIjazahSignedPDF(
       color: rgb(0.4, 0.4, 0.4),
     });
     
-    // QR Code for Rektor
-    try {
-      const rektorQrDataUrl = await generateQRCode(`${verificationUrl}&signer=rektor`);
-      const qrBase64 = rektorQrDataUrl.split(',')[1];
-      const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
-      const qrImage = await pdfDoc.embedPng(qrBytes);
-      
-      page.drawImage(qrImage, {
+    // QR Code for Rektor - only if signed
+    if (rektorSigned) {
+      try {
+        const rektorQrDataUrl = await generateQRCode(`${verificationUrl}&signer=rektor`);
+        const qrBase64 = rektorQrDataUrl.split(',')[1];
+        const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
+        const qrImage = await pdfDoc.embedPng(qrBytes);
+        
+        page.drawImage(qrImage, {
+          x: width - innerMargin - 90,
+          y: footerY - 10,
+          width: 60,
+          height: 60,
+        });
+      } catch (error) {
+        console.error("Error embedding Rektor QR code:", error);
+      }
+    } else {
+      // Draw empty box placeholder if not signed
+      page.drawRectangle({
         x: width - innerMargin - 90,
         y: footerY - 10,
         width: 60,
         height: 60,
+        borderColor: rgb(0.8, 0.8, 0.8),
+        borderWidth: 1,
       });
-    } catch (error) {
-      console.error("Error embedding Rektor QR code:", error);
     }
     
     page.drawText(rektorUser.name, {
@@ -575,18 +606,37 @@ async function generateSertifikatSignedPDF(
   // Footer - Signatures
   const footerY = margin + 100;
   
-  // Get first two signers
-  const signer1 = signatures[0] ? users.get(signatures[0].signer_user_id) : null;
-  const signer2 = signatures[1] ? users.get(signatures[1].signer_user_id) : null;
+  // Get first two signers from signatures or from metadata
+  const metadata = document.metadata || {};
+  const signer1Id = signatures[0]?.signer_user_id || metadata.signer1_id;
+  const signer2Id = signatures[1]?.signer_user_id || metadata.signer2_id;
   
-  // Signer 1 (left)
-  if (signer1) {
-    // QR Code
+  console.log("=== SIGNER DEBUG ===");
+  console.log("Signatures array:", signatures.length);
+  console.log("Metadata:", JSON.stringify(metadata));
+  console.log("Signer1 ID:", signer1Id);
+  console.log("Signer2 ID:", signer2Id);
+  console.log("Users map size:", users.size);
+  console.log("Verification URL:", verificationUrl);
+  
+  const signer1 = signer1Id ? users.get(signer1Id) : null;
+  const signer2 = signer2Id ? users.get(signer2Id) : null;
+  
+  console.log("Signer1 object:", signer1);
+  console.log("Signer2 object:", signer2);
+  
+  // ALWAYS generate QR codes for verification
+  // Signer 1 QR Code
+  if (true) {
+    // QR Code - always generate
     try {
+      console.log("Generating Signer 1 QR code...");
       const signer1QrDataUrl = await generateQRCode(`${verificationUrl}&signer=1`);
+      console.log("Signer 1 QR data URL length:", signer1QrDataUrl.length);
       const qrBase64 = signer1QrDataUrl.split(',')[1];
       const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
       const qrImage = await pdfDoc.embedPng(qrBytes);
+      console.log("Signer 1 QR image embedded successfully");
       
       page.drawImage(qrImage, {
         x: margin + 80,
@@ -594,51 +644,56 @@ async function generateSertifikatSignedPDF(
         width: 60,
         height: 60,
       });
+      console.log("Signer 1 QR code drawn at:", margin + 80, footerY + 40);
     } catch (error) {
       console.error("Error embedding Signer 1 QR code:", error);
     }
     
-    page.drawText("Nama Lengkap + Gelar", {
+    // Show signer info if available
+    const signerName = signer1?.name || "Penandatangan 1";
+    const signerNip = signer1?.nip || "";
+    const signerJabatan = signer1?.jabatan || "";
+    
+    page.drawText(signerName, {
       x: margin + 70,
-      y: footerY + 30,
-      size: 9,
-      font: font,
-      color: rgb(0.29, 0.33, 0.39),
-    });
-    
-    page.drawText("NIP", {
-      x: margin + 100,
-      y: footerY + 20,
-      size: 9,
-      font: font,
-      color: rgb(0.29, 0.33, 0.39),
-    });
-    
-    page.drawText(signer1.name, {
-      x: margin + 80,
-      y: footerY + 5,
+      y: footerY + 25,
       size: 10,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
     
-    page.drawText("Penandatangan 1", {
-      x: margin + 70,
-      y: footerY - 10,
-      size: 9,
-      font: fontItalic,
-      color: rgb(0.29, 0.33, 0.39),
-    });
+    if (signerJabatan) {
+      page.drawText(signerJabatan, {
+        x: margin + 70,
+        y: footerY + 12,
+        size: 9,
+        font: font,
+        color: rgb(0.42, 0.45, 0.5),
+      });
+    }
+    
+    if (signerNip) {
+      page.drawText(`NIP: ${signerNip}`, {
+        x: margin + 70,
+        y: footerY,
+        size: 8,
+        font: font,
+        color: rgb(0.42, 0.45, 0.5),
+      });
+    }
   }
   
-  // Signer 2 (right)
-  if (signer2) {
-    // QR Code
+  // Signer 2 QR Code - if exists
+  if (signer2Id) {
+    // QR Code - always generate
     try {
+      console.log("Generating Signer 2 QR code...");
       const signer2QrDataUrl = await generateQRCode(`${verificationUrl}&signer=2`);
+      console.log("Signer 2 QR data URL length:", signer2QrDataUrl.length);
       const qrBase64 = signer2QrDataUrl.split(',')[1];
       const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
       const qrImage = await pdfDoc.embedPng(qrBytes);
+      console.log("Signer 2 QR image embedded successfully");
       
       page.drawImage(qrImage, {
         x: width - margin - 140,
@@ -646,41 +701,43 @@ async function generateSertifikatSignedPDF(
         width: 60,
         height: 60,
       });
+      console.log("Signer 2 QR code drawn at:", width - margin - 140, footerY + 40);
     } catch (error) {
       console.error("Error embedding Signer 2 QR code:", error);
     }
     
-    page.drawText("Nama Lengkap + Gelar", {
+    // Show signer info if available
+    const signerName = signer2?.name || "Penandatangan 2";
+    const signerNip = signer2?.nip || "";
+    const signerJabatan = signer2?.jabatan || "";
+    
+    page.drawText(signerName, {
       x: width - margin - 150,
-      y: footerY + 30,
-      size: 9,
-      font: font,
-      color: rgb(0.29, 0.33, 0.39),
-    });
-    
-    page.drawText("NIP", {
-      x: width - margin - 120,
-      y: footerY + 20,
-      size: 9,
-      font: font,
-      color: rgb(0.29, 0.33, 0.39),
-    });
-    
-    page.drawText(signer2.name, {
-      x: width - margin - 140,
-      y: footerY + 5,
+      y: footerY + 25,
       size: 10,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
     
-    page.drawText("Penandatangan 2", {
-      x: width - margin - 150,
-      y: footerY - 10,
-      size: 9,
-      font: fontItalic,
-      color: rgb(0.29, 0.33, 0.39),
-    });
+    if (signerJabatan) {
+      page.drawText(signerJabatan, {
+        x: width - margin - 150,
+        y: footerY + 12,
+        size: 9,
+        font: font,
+        color: rgb(0.42, 0.45, 0.5),
+      });
+    }
+    
+    if (signerNip) {
+      page.drawText(`NIP: ${signerNip}`, {
+        x: width - margin - 150,
+        y: footerY,
+        size: 8,
+        font: font,
+        color: rgb(0.42, 0.45, 0.5),
+      });
+    }
   }
   
   return await pdfDoc.save();
@@ -737,34 +794,71 @@ async function generateGenericSignedPDF(
   
   // Footer section with QR code and signature
   const footerY = 200;
-  
+
   // Date and position
   const signedDate = formatDateIndonesian(document.updated_at);
   const jabatan = user?.jabatan || "Ketua Program Studi Informatika";
-  
-  page.drawText(`Cirebon, ${signedDate}`, {
-    x: width - margin - 200,
-    y: footerY + 80,
-    size: 10,
-    font: font,
-    color: rgb(0, 0, 0),
-  });
-  
-  page.drawText(jabatan, {
-    x: width - margin - 200,
-    y: footerY + 65,
-    size: 10,
-    font: font,
-    color: rgb(0, 0, 0),
-  });
-  
-  page.drawText("Universitas Muhammadiyah Cirebon", {
-    x: width - margin - 200,
-    y: footerY + 50,
-    size: 10,
-    font: font,
-    color: rgb(0, 0, 0),
-  });
+
+  // Area lebar 200pt di sisi kanan untuk blok tanda tangan
+  const rightBlockWidth = 200;
+  const rightBlockLeft = width - margin - rightBlockWidth;
+  const rightBlockCenterX = rightBlockLeft + rightBlockWidth / 2;
+
+  // Helper untuk men-center-kan teks di blok kanan
+  const drawCenteredText = (
+    text: string,
+    y: number,
+    size: number,
+    useBold = false,
+  ) => {
+    const usedFont = useBold ? fontBold : font;
+    const textWidth = usedFont.widthOfTextAtSize(text, size);
+    page.drawText(text, {
+      x: rightBlockCenterX - textWidth / 2,
+      y,
+      size,
+      font: usedFont,
+      color: rgb(0, 0, 0),
+    });
+  };
+
+  // Helper untuk text panjang (mis. jabatan) supaya tidak overlap
+  const drawCenteredWrappedText = (
+    text: string,
+    startY: number,
+    size: number,
+  ): number => {
+    const maxWidth = rightBlockWidth - 10; // beri sedikit padding
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = font.widthOfTextAtSize(testLine, size);
+      if (testWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    let y = startY;
+    for (const line of lines) {
+      drawCenteredText(line, y, size);
+      y -= size + 2; // spasi antar baris
+    }
+    return y;
+  };
+
+  // Tanggal di atas
+  drawCenteredText(`Cirebon, ${signedDate}`, footerY + 80, 10);
+  // Jabatan bisa panjang, gunakan wrapping
+  const afterJabatanY = drawCenteredWrappedText(jabatan, footerY + 65, 10);
+  // Universitas di bawah jabatan, pakai posisi terakhir - sedikit jarak
+  drawCenteredText("Universitas Muhammadiyah Cirebon", afterJabatanY - 2, 10);
   
   // Embed QR code
   try {
@@ -774,7 +868,7 @@ async function generateGenericSignedPDF(
     
     const qrSize = 80;
     page.drawImage(qrImage, {
-      x: width - margin - 200 + 60,
+      x: rightBlockCenterX - qrSize / 2,
       y: footerY - 20,
       width: qrSize,
       height: qrSize,
@@ -785,23 +879,11 @@ async function generateGenericSignedPDF(
   
   // Signer name and NIP
   if (user?.name) {
-    page.drawText(user.name, {
-      x: width - margin - 200 + 40,
-      y: footerY - 110,
-      size: 10,
-      font: fontBold,
-      color: rgb(0, 0, 0),
-    });
+    drawCenteredText(user.name, footerY - 110, 10, true);
   }
   
   if (user?.nip) {
-    page.drawText(`NIP. ${user.nip}`, {
-      x: width - margin - 200 + 40,
-      y: footerY - 125,
-      size: 10,
-      font: font,
-      color: rgb(0, 0, 0),
-    });
+    drawCenteredText(`NIP. ${user.nip}`, footerY - 125, 10);
   }
   
   // Document ID

@@ -24,7 +24,7 @@ interface IjazahData {
   id?: string;
 }
 
-async function generateIjazahHTML(ijazahData: IjazahData, templateData?: any, documentMetadata?: any): Promise<string> {
+async function generateIjazahHTML(ijazahData: IjazahData, templateData?: any, documentMetadata?: any, currentSigner?: string): Promise<string> {
   // Parse gelar
   const parseGelar = (gelarInput: string) => {
     const match = gelarInput.match(/^(.+?)\s*\(([^)]+)\)$/);
@@ -47,6 +47,34 @@ async function generateIjazahHTML(ijazahData: IjazahData, templateData?: any, do
   let dekanQrCodeHtml = "";
   let rektorQrCodeHtml = "";
   
+  // Check signing status from metadata to conditionally show QR codes
+  const metadata = documentMetadata || {};
+  
+  // If currentSigner is provided (during signing), explicitly control QR visibility
+  let dekanSigned: boolean;
+  let rektorSigned: boolean;
+  
+  if (currentSigner === "dekan") {
+    // Only dekan is signing - show only dekan QR
+    dekanSigned = true;
+    rektorSigned = false;  // Explicitly hide rektor QR
+  } else if (currentSigner === "rektor") {
+    // Rektor is signing - show both QRs (dekan already signed)
+    dekanSigned = true;
+    rektorSigned = true;
+  } else {
+    // No currentSigner provided - use metadata to determine visibility
+    dekanSigned = !!metadata.dekan_signed;
+    rektorSigned = !!metadata.rektor_signed;
+  }
+  
+  console.log("📝 Signing status:", { 
+    dekanSigned, 
+    rektorSigned, 
+    workflow_stage: metadata.workflow_stage,
+    currentSigner 
+  });
+  
   try {
     // Use verification URL as QR content
     const baseUrl = Deno.env.get("WEBSITE_DOMAIN");
@@ -56,10 +84,22 @@ async function generateIjazahHTML(ijazahData: IjazahData, templateData?: any, do
     const qrSize = 70;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=`;
     
-    dekanQrCodeHtml = `<img src="${qrApiUrl}${encodeURIComponent(verificationUrl)}" alt="QR Code Dekan" width="${qrSize}" height="${qrSize}" style="border: 1px solid #ccc; background: white;" crossorigin="anonymous" />`;
-    rektorQrCodeHtml = `<img src="${qrApiUrl}${encodeURIComponent(verificationUrl)}" alt="QR Code Rektor" width="${qrSize}" height="${qrSize}" style="border: 1px solid #ccc; background: white;" crossorigin="anonymous" />`;
+    // Only generate QR codes if the respective signer has signed
+    if (dekanSigned) {
+      dekanQrCodeHtml = `<img src="${qrApiUrl}${encodeURIComponent(verificationUrl)}" alt="QR Code Dekan" width="${qrSize}" height="${qrSize}" style="border: 1px solid #ccc; background: white;" crossorigin="anonymous" />`;
+    } else {
+      // Completely empty - no QR code shown
+      dekanQrCodeHtml = `<div style="width: ${qrSize}px; height: ${qrSize}px;"></div>`;
+    }
     
-    console.log("✅ QR codes generated using external service");
+    if (rektorSigned) {
+      rektorQrCodeHtml = `<img src="${qrApiUrl}${encodeURIComponent(verificationUrl)}" alt="QR Code Rektor" width="${qrSize}" height="${qrSize}" style="border: 1px solid #ccc; background: white;" crossorigin="anonymous" />`;
+    } else {
+      // Completely empty - no QR code shown
+      rektorQrCodeHtml = `<div style="width: ${qrSize}px; height: ${qrSize}px;"></div>`;
+    }
+    
+    console.log("✅ QR codes generated based on signing status");
     console.log("🔗 Verification URL:", verificationUrl);
     console.log("🖼️ Dekan QR HTML:", dekanQrCodeHtml.substring(0, 100) + "...");
     console.log("🖼️ Rektor QR HTML:", rektorQrCodeHtml.substring(0, 100) + "...");
@@ -559,7 +599,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { documentId } = await req.json();
+    const { documentId, currentSigner } = await req.json();
 
     if (!documentId) {
       return new Response(
@@ -574,6 +614,7 @@ Deno.serve(async (req) => {
 
     console.log("=== GENERATING IJAZAH PDF WITH PUPPETEER ===");
     console.log("Document ID:", documentId);
+    console.log("Current Signer:", currentSigner);
 
     // Fetch document data
     const { data: document, error: docError } = await supabase
@@ -586,23 +627,57 @@ Deno.serve(async (req) => {
       throw new Error("Document not found");
     }
 
-    // Fetch ijazah data by document_id
+    // Fetch ijazah data by document_id. Use limit(1) + maybeSingle() to avoid
+    // "Cannot coerce the result to a single JSON object" when multiple rows exist.
     console.log("🔍 Fetching ijazah data for document:", documentId);
     const { data: ijazah, error: ijazahError } = await supabase
       .from("ijazah")
       .select("*")
       .eq("document_id", documentId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (ijazahError) {
+      // Log full error and return a friendly message without changing flow
       console.error("❌ Ijazah fetch error:", ijazahError);
-      console.error("Error code:", ijazahError.code);
-      console.error("Error message:", ijazahError.message);
-      throw new Error(`Ijazah data not found: ${ijazahError.message}`);
+      console.error("Error code:", ijazahError?.code);
+      console.error("Error message:", ijazahError?.message);
+      throw new Error(`Ijazah data not found: ${ijazahError?.message || ijazahError}`);
     }
 
     if (!ijazah) {
-      throw new Error("Ijazah record is empty");
+      // No ijazah row found for this document — this may be a general uploaded document.
+      // Instead of failing, produce a generic HTML based on the `documents` row so
+      // the client can still generate a PDF. This preserves the existing client flow.
+      console.warn("⚠️ No ijazah row found for document:", documentId);
+
+      const genericHtml = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${document.title || "Document"}</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; padding: 32px; color: #111 }
+    h1 { font-size: 24px; margin-bottom: 8px }
+    .meta { color: #666; font-size: 13px; margin-bottom: 16px }
+    .content { white-space: pre-wrap; font-size: 14px }
+  </style>
+</head>
+<body>
+  <h1>${document.title || "Untitled Document"}</h1>
+  <div class="meta">Document ID: ${documentId} • Created: ${document.created_at || "-"}</div>
+  <div class="content">${(document.content as string) || "(No content available)"}</div>
+</body>
+</html>`;
+
+      console.log("🔁 Returning generic HTML for non-ijazah document", documentId);
+      return new Response(genericHtml, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/html; charset=utf-8",
+        },
+      });
     }
 
     console.log("✅ Ijazah data found:", {
@@ -704,7 +779,7 @@ Deno.serve(async (req) => {
     } else {
       console.warn("⚠️ No template available, using built-in fallback");
     }
-    const htmlContent = await generateIjazahHTML(ijazahData, templateData, document.metadata);
+    const htmlContent = await generateIjazahHTML(ijazahData, templateData, document.metadata, currentSigner);
     
     // Debug: log HTML size
     console.log("📄 Generated HTML size:", htmlContent.length, "bytes");

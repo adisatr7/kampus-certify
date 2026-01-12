@@ -39,6 +39,16 @@ export default function SignedDocumentViewer({
   const [rektorInfo, setRektorInfo] = useState<{ name?: string; nip?: string }>(
     {}
   );
+  const [signerInfo, setSignerInfo] = useState<{
+    name?: string;
+    nip?: string;
+    jabatan?: string;
+  }>({});
+  const [signer2Info, setSigner2Info] = useState<{
+    name?: string;
+    nip?: string;
+    jabatan?: string;
+  }>({});
   const [loading, setLoading] = useState(false);
   const [viewAuditLogged, setViewAuditLogged] = useState(false);
 
@@ -64,6 +74,50 @@ export default function SignedDocumentViewer({
 
           if (sertifikat) {
             setSertifikatData(sertifikat as Sertifikat);
+
+            // Fetch signer info (utama untuk kontrol QR di preview)
+            const metadata = (document.metadata as any) || {};
+            const signerId =
+              (sertifikat as any).penandatangan || metadata.signer1_id;
+            const signer2Id = metadata.signer2_id;
+
+            // Signer 1
+            if (signerId) {
+              const { data: signerData } = await supabase
+                .from("users")
+                .select("name, nip, jabatan")
+                .eq("id", signerId)
+                .maybeSingle();
+
+              if (signerData) {
+                setSignerInfo({
+                  name: signerData.name,
+                  nip: signerData.nip,
+                  jabatan: signerData.jabatan,
+                });
+              }
+            } else {
+              setSignerInfo({});
+            }
+
+            // Signer 2 (jika ada)
+            if (signer2Id) {
+              const { data: signer2Data } = await supabase
+                .from("users")
+                .select("name, nip, jabatan")
+                .eq("id", signer2Id)
+                .maybeSingle();
+
+              if (signer2Data) {
+                setSigner2Info({
+                  name: signer2Data.name,
+                  nip: signer2Data.nip,
+                  jabatan: signer2Data.jabatan,
+                });
+              }
+            } else {
+              setSigner2Info({});
+            }
           }
         } else if (isIjazah) {
           // Fetch ijazah data
@@ -146,10 +200,22 @@ export default function SignedDocumentViewer({
   // Log view audit when dialog opens
   useEffect(() => {
     if (isOpen && userProfile?.id && !viewAuditLogged) {
+      const docType = document.title?.toLowerCase().includes("ijazah")
+        ? "ijazah"
+        : document.title?.toLowerCase().includes("sertifikat")
+        ? "sertifikat"
+        : "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_VIEW"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_VIEW"
+          : "DOCUMENT_VIEW";
+
       createAuditEntry(
         userProfile.id,
-        "VIEW_DOCUMENT",
-        `Melihat dokumen "${document.title}" (ID: ${document.id})`
+        auditAction as any,
+        `Melihat dokumen "${document.title}" (ID: ${document.id}, Tipe: ${docType})`
       );
       setViewAuditLogged(true);
     }
@@ -179,9 +245,21 @@ export default function SignedDocumentViewer({
   const handleDownload = async () => {
     // Audit log for download
     if (userProfile?.id) {
+      const docType = document.title?.toLowerCase().includes("ijazah")
+        ? "ijazah"
+        : document.title?.toLowerCase().includes("sertifikat")
+        ? "sertifikat"
+        : "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_DOWNLOAD"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_DOWNLOAD"
+          : "DOCUMENT_DOWNLOAD";
+
       await createAuditEntry(
         userProfile.id,
-        "DOWNLOAD_DOCUMENT",
+        auditAction as any,
         `Mengunduh dokumen "${document.title}" (ID: ${document.id})`
       );
     }
@@ -230,7 +308,11 @@ export default function SignedDocumentViewer({
         </DialogHeader>
 
         <div className="mt-4 print:mt-0">
-          {document.file_url ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">Memuat dokumen...</p>
+            </div>
+          ) : document.file_url ? (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden print:border-0 print:h-auto">
               <iframe
                 src={document.file_url}
@@ -238,65 +320,12 @@ export default function SignedDocumentViewer({
                 title="Signed Document PDF"
               />
             </div>
-          ) : loading ? (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Memuat dokumen...</p>
-            </div>
           ) : (
-            <>
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  PDF sedang di-generate atau tidak tersedia
-                </p>
-              </div>
-              {isSertifikat && sertifikatData ? (
-                <div className="bg-gray-100 p-4 rounded-lg print:bg-white print:p-0">
-                  <SertifikatRenderer
-                    nomorSertifikat={sertifikatData.nomor_sertifikat}
-                    namaPeserta={sertifikatData.nama_peserta}
-                    namaAcara={sertifikatData.nama_acara}
-                    tanggalAcara={sertifikatData.tanggal_acara}
-                    penandatanganName={userData?.name}
-                    penandatanganJabatan={userData?.jabatan}
-                    templateId={sertifikatData.template_id}
-                    qrCodeUrl={`${window.location.origin}/verify?id=${
-                      document.serial ?? document.id
-                    }`}
-                    renderMode="preview"
-                  />
-                </div>
-              ) : isIjazah && ijazahData ? (
-                <div className="bg-gray-100 p-4 rounded-lg print:bg-white print:p-0">
-                  <IjazahRenderer
-                    nim={ijazahData.nim}
-                    nomorIjazah={document.serial || ijazahData.nomor_seri}
-                    namaMahasiswa={ijazahData.nama_mahasiswa}
-                    programStudi={
-                      ijazahData.program_studi || "Teknik Informatika"
-                    }
-                    fakultas={ijazahData.nama_fakultas}
-                    gelar={ijazahData.gelar}
-                    tanggalTerbit={ijazahData.tanggal_terbit}
-                    dekanName={dekanInfo.name}
-                    dekanNip={dekanInfo.nip}
-                    rektorName={rektorInfo.name}
-                    rektorNip={rektorInfo.nip}
-                    templateId={ijazahData.template_id}
-                    qrCodeUrl={`${window.location.origin}/verify/${
-                      document.serial || ijazahData.nomor_seri
-                    }`}
-                    dekanQrCode={(document.metadata as any)?.dekan_qr_code}
-                    rektorQrCode={(document.metadata as any)?.rektor_qr_code}
-                    renderMode="preview"
-                  />
-                </div>
-              ) : (
-                <SignedDocumentTemplate
-                  document={document}
-                  qrCodeUrl={undefined}
-                />
-              )}
-            </>
+            <div className="flex items-center justify-center h-64 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                PDF sedang di-generate atau tidak tersedia
+              </p>
+            </div>
           )}
         </div>
       </DialogContent>

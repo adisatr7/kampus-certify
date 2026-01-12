@@ -50,12 +50,15 @@ async function verifyPBKDF2(pass, stored) {
   return diff === 0;
 }
 
-function createP12FromPem(privateKeyPem, certPem) {
+function createP12FromPem(privateKeyPem, certPem, caCertPem = null) {
   const pki = forge.pki;
   try {
     console.log('🔧 Creating PKCS#12 from PEM...');
     console.log('   Private Key starts with:', privateKeyPem.substring(0, 50));
     console.log('   Certificate starts with:', certPem.substring(0, 50));
+    if (caCertPem) {
+      console.log('   CA Certificate provided for chain');
+    }
     
     const privateKey = pki.privateKeyFromPem(privateKeyPem);
     console.log('✅ Private key parsed');
@@ -79,10 +82,24 @@ function createP12FromPem(privateKeyPem, certPem) {
       console.log('✅ Public key validation passed');
     }
     
-    const newPkcs12Asn1 = forge.pkcs12.toPkcs12Asn1(privateKey, [cert], "");
+    // Build certificate chain: [user cert, CA cert]
+    // This helps PDF readers validate the signature properly
+    const certChain = [cert];
+    if (caCertPem) {
+      try {
+        const caCert = pki.certificateFromPem(caCertPem);
+        certChain.push(caCert);
+        console.log('✅ CA certificate added to chain');
+        console.log('   CA Subject:', caCert.subject.getField('CN')?.value);
+      } catch (caErr) {
+        console.warn('⚠️  Failed to parse CA certificate, continuing without it:', caErr?.message);
+      }
+    }
+    
+    const newPkcs12Asn1 = forge.pkcs12.toPkcs12Asn1(privateKey, certChain, "");
     const der = forge.asn1.toDer(newPkcs12Asn1).getBytes();
     const p12Buffer = Buffer.from(der, "binary");
-    console.log('✅ PKCS#12 created successfully, size:', p12Buffer.length, 'bytes');
+    console.log('✅ PKCS#12 created successfully with', certChain.length, 'certificate(s), size:', p12Buffer.length, 'bytes');
     return p12Buffer;
   } catch (err) {
     console.error('❌ Error creating PKCS#12 from PEM:', err?.message || err);
@@ -195,6 +212,7 @@ export default async function handler(req, res) {
     let keyIdUsed = null;
     let keyPrivatePem = process.env.SIGNING_KEY_PEM;
     let keyCertPem = process.env.SIGNING_CERT_PEM;
+    let caCertPem = null; // CA certificate for chain validation
     let certSubject = null;
     let certIssuer = null;
     
@@ -205,13 +223,27 @@ export default async function handler(req, res) {
       if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && userId) {
         const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
+        // Check if signer is an admin
+        const { data: signerUser, error: signerErr } = await sb
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        const isAdmin = !signerErr && signerUser?.role === 'admin';
+        console.log('  Signer role check: isAdmin =', isAdmin);
+        
         // If kid (certificate ID) is provided, fetch that specific certificate
         // Otherwise, fetch the latest one assigned to this user
         let query = sb
           .from('signing_keys')
           .select('kid, private_key_pem, certificate_pem, certificate_subject, certificate_issuer, assigned_to, enc_private_key, enc_private_key_iv, enc_algo, passphrase_hash')
-          .eq('assigned_to', userId)
           .is('revoked_at', null);
+        
+        // If admin, allow any key; if user, only allow their own keys
+        if (!isAdmin) {
+          query = query.eq('assigned_to', userId);
+        }
         
         if (kid) {
           // User selected a specific certificate
@@ -225,9 +257,29 @@ export default async function handler(req, res) {
         
         const { data: keyRow, error: keyErr } = await query.maybeSingle();
 
+        // CRITICAL: If no signing key found, reject the signing attempt
+        if (!keyRow || keyErr) {
+          console.error('❌ No signing key found for user:', userId);
+          console.error('   isAdmin:', isAdmin);
+          console.error('   kid:', kid);
+          console.error('   Query error:', keyErr?.message);
+          
+          if (!isAdmin) {
+            // Non-admin user: they MUST have a signing key
+            return res.status(403).json({ 
+              error: "Anda tidak memiliki sertifikat digital aktif. Silakan buat sertifikat digital terlebih dahulu sebelum menandatangani dokumen." 
+            });
+          } else {
+            // Admin: specified kid not found
+            return res.status(404).json({ 
+              error: "Sertifikat dengan ID tersebut tidak ditemukan atau tidak aktif." 
+            });
+          }
+        }
+
         if (!keyErr && keyRow) {
-          // Verify the key belongs to the signer
-          if (keyRow.assigned_to !== userId) {
+          // For non-admin users: Verify the key belongs to the signer
+          if (!isAdmin && keyRow.assigned_to !== userId) {
             console.error('❌ Signing key does not belong to this user:', {
               kid,
               keyAssignedTo: keyRow.assigned_to,
@@ -236,16 +288,16 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: "Sertifikat ini bukan milik Anda. Akses ditolak." });
           }
 
-          // Verify passphrase before proceeding - REQUIRED
+          // Verify passphrase before proceeding - REQUIRED (for all users, including admins)
           if (keyRow.passphrase_hash) {
-            console.log('🔐 Verifying passphrase...');
+            console.log('🔐 Verifying passphrase for key:', keyRow.kid);
             try {
               const passphraseValid = await verifyPBKDF2(passphrase, keyRow.passphrase_hash);
               if (!passphraseValid) {
-                console.error('❌ Passphrase verification failed for user:', userId);
+                console.error('❌ Passphrase verification failed for key:', keyRow.kid);
                 return res.status(403).json({ error: "Passphrase salah. Tanda tangan gagal." });
               }
-              console.log('✅ Passphrase verified successfully');
+              console.log('✅ Passphrase verified successfully for key:', keyRow.kid);
             } catch (passErr) {
               console.error('❌ Error verifying passphrase:', passErr?.message || passErr);
               return res.status(500).json({ error: "Gagal memverifikasi passphrase" });
@@ -376,6 +428,31 @@ export default async function handler(req, res) {
           console.log('🔧 Certificate PEM start:', keyCertPem?.substring(0, 50));
           console.log('🔧 Certificate PEM end:', keyCertPem?.substring(Math.max(0, keyCertPem.length - 50)));
           
+          // Fetch CA certificate for certificate chain
+          // This helps PDF readers validate the signature as "Unknown" or better
+          if (keyRow.ca_id) {
+            console.log('🔍 Fetching CA certificate for chain (ca_id:', keyRow.ca_id, ')');
+            try {
+              const { data: caRow, error: caError } = await sb
+                .from('ca_certificates')
+                .select('certificate_pem')
+                .eq('id', keyRow.ca_id)
+                .is('revoked_at', null)
+                .maybeSingle();
+              
+              if (!caError && caRow?.certificate_pem) {
+                caCertPem = caRow.certificate_pem;
+                console.log('✅ CA certificate fetched for chain');
+              } else {
+                console.warn('⚠️  Could not fetch CA certificate:', caError?.message || 'not found');
+              }
+            } catch (caFetchErr) {
+              console.warn('⚠️  Error fetching CA certificate:', caFetchErr?.message || caFetchErr);
+            }
+          } else {
+            console.log('ℹ️  No ca_id found, signing without CA chain');
+          }
+          
           // Validation: warn if certificate subject doesn't contain user name
           if (certSubject && userName && !certSubject.toLowerCase().includes(userName.toLowerCase())) {
             console.warn('⚠️  WARNING: Certificate subject does not contain signer name');
@@ -416,11 +493,12 @@ export default async function handler(req, res) {
     
     let p12Buffer;
     try {
-      p12Buffer = createP12FromPem(keyPrivatePem, keyCertPem);
+      p12Buffer = createP12FromPem(keyPrivatePem, keyCertPem, caCertPem);
     } catch (p12Err) {
       console.error('❌ Failed to create PKCS#12 from certificate and key:', p12Err?.message || p12Err);
       console.error('   Private Key length:', keyPrivatePem?.length);
       console.error('   Certificate length:', keyCertPem?.length);
+      console.error('   CA Certificate available:', !!caCertPem);
       return res.status(500).json({ error: `Failed to create PKCS#12: ${p12Err?.message || String(p12Err)}` });
     }
 

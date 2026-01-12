@@ -30,6 +30,10 @@ interface IjazahRendererProps {
   dekanQrCode?: string;
   rektorQrCode?: string;
 
+  // Signing status - to control QR code visibility
+  dekanSigned?: boolean;
+  rektorSigned?: boolean;
+
   // Render modes for different use cases
   renderMode?: "preview" | "pdf-preview" | "pdf-generation";
 
@@ -56,6 +60,8 @@ export default function IjazahRenderer({
   qrCodeUrl,
   dekanQrCode,
   rektorQrCode,
+  dekanSigned = false, // Default to not signed
+  rektorSigned = false, // Default to not signed
   renderMode = "preview",
   showPageBoundaries = false,
   showPrintMargins = false,
@@ -324,14 +330,18 @@ export default function IjazahRenderer({
                 <div className="ijazah-text-small ijazah-text-secondary mb-2">
                   {fakultas || "Universitas Muhammadiyah Cirebon"}
                 </div>
-                <div className="mb-2 bg-white p-1 border border-gray-300">
-                  <QRCodeSVG
-                    value={dekanQrCode || verificationUrl}
-                    size={70}
-                    level="H"
-                    className="ijazah-qr-code"
-                  />
-                </div>
+                {/* Only show QR code if dekan has signed */}
+                {dekanSigned && (
+                  <div className="mb-2 bg-white p-1 border border-gray-300">
+                    <QRCodeSVG
+                      value={dekanQrCode || verificationUrl}
+                      size={70}
+                      level="H"
+                      className="ijazah-qr-code"
+                    />
+                  </div>
+                )}
+                {!dekanSigned && <div className="mb-2 h-[74px]"></div>}
                 {dekanName ? (
                   <>
                     <div className="ijazah-text-small font-bold ijazah-text-primary ijazah-text-center">
@@ -368,14 +378,18 @@ export default function IjazahRenderer({
                 <div className="ijazah-text-small ijazah-text-secondary mb-2">
                   Universitas Muhammadiyah Cirebon
                 </div>
-                <div className="mb-2 bg-white p-1 border border-gray-300">
-                  <QRCodeSVG
-                    value={rektorQrCode || verificationUrl}
-                    size={70}
-                    level="H"
-                    className="ijazah-qr-code"
-                  />
-                </div>
+                {/* Only show QR code if rektor has signed */}
+                {rektorSigned && (
+                  <div className="mb-2 bg-white p-1 border border-gray-300">
+                    <QRCodeSVG
+                      value={rektorQrCode || verificationUrl}
+                      size={70}
+                      level="H"
+                      className="ijazah-qr-code"
+                    />
+                  </div>
+                )}
+                {!rektorSigned && <div className="mb-2 h-[74px]"></div>}
                 {rektorName ? (
                   <>
                     <div className="ijazah-text-small font-bold ijazah-text-primary ijazah-text-center">

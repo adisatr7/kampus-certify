@@ -98,16 +98,10 @@ export default function MyDocuments() {
   };
 
   const uploadDocument = async () => {
-    if (
-      !title ||
-      !content.trim() ||
-      !recipientName ||
-      !recipientStudentNumber ||
-      !userProfile
-    ) {
+    if (!title || !recipientName || !userProfile) {
       toast({
         title: "Error",
-        description: "Judul, isi, nama penerima, dan NIM harus diisi",
+        description: "Judul dan nama penerima harus diisi",
         variant: "destructive",
       });
       return;
@@ -142,17 +136,21 @@ export default function MyDocuments() {
         publicUrl = url;
       }
 
-      // Create document record with content from textarea
+      // Create document record without content field
       const { data: insertedRows, error: insertError } = await supabase
         .from("documents")
         .insert({
           title,
-          content: content.trim(),
           user_id: userProfile.id,
           recipient_name: recipientName,
-          recipient_student_number: recipientStudentNumber,
+          recipient_student_number: recipientStudentNumber || "",
           file_url: publicUrl,
           status: "pending",
+          document_type: title.toLowerCase().includes("ijazah")
+            ? "ijazah"
+            : title.toLowerCase().includes("sertifikat")
+            ? "sertifikat"
+            : "other",
         })
         .select("id, created_at");
 
@@ -176,10 +174,29 @@ export default function MyDocuments() {
         throw updateErr;
       }
 
+      // Note: server-side signing should only be invoked from the dedicated
+      // signing UI (`/sign`). We intentionally do NOT call the signing server
+      // automatically after upload here to avoid unexpected signing of user
+      // uploads. If you want uploaded files to be signed, trigger signing from
+      // the `/sign` page or call the signing API explicitly.
+
+      // Create appropriate audit entry based on document type
+      const docType = title.toLowerCase().includes("ijazah")
+        ? "ijazah"
+        : title.toLowerCase().includes("sertifikat")
+        ? "sertifikat"
+        : "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_CREATE"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_CREATE"
+          : "DOCUMENT_UPLOAD";
+
       await createAuditEntry(
         userProfile.id,
-        "CREATE_DOCUMENT",
-        `Mengupload dokumen "${title}"`
+        auditAction as any,
+        `Mengupload dokumen "${title}" (Tipe: ${docType})`
       );
 
       toast({
@@ -207,6 +224,13 @@ export default function MyDocuments() {
     }
 
     try {
+      // Get document details for audit logging
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("document_type")
+        .eq("id", documentId)
+        .single();
+
       // Request the deleted row(s) back so we can confirm deletion succeeded.
       const { error } = await supabase
         .from("documents")
@@ -218,10 +242,19 @@ export default function MyDocuments() {
         throw error;
       }
 
+      // Create appropriate audit entry based on document type
+      const docType = doc?.document_type || "other";
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_DELETE"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_DELETE"
+          : "DOCUMENT_DELETE";
+
       await createAuditEntry(
         userProfile.id,
-        "DELETE_DOCUMENT",
-        `Menghapus dokumen "${documentTitle}"`
+        auditAction as any,
+        `Menghapus dokumen "${documentTitle}" (Tipe: ${docType})`
       );
 
       toast({
@@ -241,18 +274,61 @@ export default function MyDocuments() {
 
   const resetForm = () => {
     setTitle("");
-    setContent("");
     setRecipientName("");
-    setRecipientStudentNumber("");
     setFile(null);
   };
 
   const handleViewDocument = (doc: UserDocument) => {
+    // Audit log for viewing
+    if (userProfile?.id) {
+      const docType =
+        doc.document_type ||
+        (doc.title?.toLowerCase().includes("ijazah")
+          ? "ijazah"
+          : doc.title?.toLowerCase().includes("sertifikat")
+          ? "sertifikat"
+          : "other");
+      const auditAction =
+        docType === "ijazah"
+          ? "IJAZAH_VIEW"
+          : docType === "sertifikat"
+          ? "SERTIFIKAT_VIEW"
+          : "DOCUMENT_VIEW";
+
+      createAuditEntry(
+        userProfile.id,
+        auditAction as any,
+        `Melihat dokumen "${doc.title}" (Tipe: ${docType})`
+      );
+    }
+
     if (doc.status === "signed") {
       setSelectedDocument(doc);
       setIsViewerOpen(true);
     } else if (doc.file_url) {
-      window.open(doc.file_url, "_blank");
+      // Force download by fetching blob and creating object URL
+      const downloadFile = async () => {
+        try {
+          const response = await fetch(doc.file_url);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = doc.title || "document.pdf";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error("Error downloading file:", error);
+          toast({
+            title: "Error",
+            description: "Gagal mengunduh dokumen",
+            variant: "destructive",
+          });
+        }
+      };
+      downloadFile();
     }
   };
 
@@ -353,27 +429,6 @@ export default function MyDocuments() {
 
                     <div>
                       <Label
-                        htmlFor="content"
-                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
-                      >
-                        Isi Dokumen *
-                      </Label>
-                      <textarea
-                        id="content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Masukkan isi dokumen yang akan ditandatangani..."
-                        className="mt-1 w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md resize-y bg-background"
-                        rows={10}
-                      />
-                      <p className="text-xs text-slate-500 dark:text-zinc-300 mt-2 bg-slate-50 dark:bg-zinc-800 p-2 rounded">
-                        Isi dokumen ini akan ditampilkan pada dokumen yang telah
-                        ditandatangani
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label
                         htmlFor="recipientName"
                         className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                       >
@@ -384,24 +439,6 @@ export default function MyDocuments() {
                         value={recipientName}
                         onChange={(e) => setRecipientName(e.target.value)}
                         placeholder="Masukkan nama penerima"
-                        className="mt-1 border-slate-300"
-                      />
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="recipientStudentNumber"
-                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
-                      >
-                        NIM *
-                      </Label>
-                      <Input
-                        id="recipientStudentNumber"
-                        value={recipientStudentNumber}
-                        onChange={(e) =>
-                          setRecipientStudentNumber(e.target.value)
-                        }
-                        placeholder="Masukkan NIM"
                         className="mt-1 border-slate-300"
                       />
                     </div>
@@ -721,46 +758,91 @@ export default function MyDocuments() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                {doc.file_url && (
+                                {(doc.file_url || doc.status === "signed") && (
                                   <>
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleViewDocument(doc)}
-                                      title="Lihat dokumen"
-                                      className="text-slate-600 border-slate-200 hover:bg-slate-50 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800/40"
+                                      disabled={doc.status === "pending"}
+                                      title={
+                                        doc.status === "pending"
+                                          ? "Dokumen hanya bisa dilihat setelah ditandatangani"
+                                          : "Lihat dokumen"
+                                      }
+                                      className="text-slate-600 border-slate-200 hover:bg-slate-50 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800/40 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Eye className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        // Audit log for download
-                                        if (userProfile?.id) {
-                                          await createAuditEntry(
-                                            userProfile.id,
-                                            "DOWNLOAD_DOCUMENT",
-                                            `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
-                                          );
-                                        }
-                                        const link =
-                                          document.createElement("a");
-                                        link.href = doc.file_url!;
-                                        link.download = `${doc.title}.${doc
-                                          .file_url!.split(".")
-                                          .pop()}`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                      }}
-                                      title="Download dokumen"
-                                      className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
-                                    >
-                                      <Download className="h-4 w-4" />
-                                    </Button>
+                                    {doc.file_url &&
+                                      doc.status !== "pending" && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={async () => {
+                                            // Audit log for download
+                                            if (
+                                              userProfile?.id &&
+                                              doc.document_type
+                                            ) {
+                                              const auditAction =
+                                                doc.document_type === "ijazah"
+                                                  ? "IJAZAH_DOWNLOAD"
+                                                  : doc.document_type ===
+                                                    "sertifikat"
+                                                  ? "SERTIFIKAT_DOWNLOAD"
+                                                  : "DOCUMENT_DOWNLOAD";
+                                              await createAuditEntry(
+                                                userProfile.id,
+                                                auditAction as any,
+                                                `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                              );
+                                            }
+                                            // Force download via blob
+                                            try {
+                                              const response = await fetch(
+                                                doc.file_url!
+                                              );
+                                              const blob =
+                                                await response.blob();
+                                              const url =
+                                                window.URL.createObjectURL(
+                                                  blob
+                                                );
+                                              const link =
+                                                document.createElement("a");
+                                              link.href = url;
+                                              link.download = `${
+                                                doc.title
+                                              }.${doc
+                                                .file_url!.split(".")
+                                                .pop()}`;
+                                              document.body.appendChild(link);
+                                              link.click();
+                                              document.body.removeChild(link);
+                                              window.URL.revokeObjectURL(url);
+                                            } catch (error) {
+                                              console.error(
+                                                "Error downloading:",
+                                                error
+                                              );
+                                              toast({
+                                                title: "Error",
+                                                description:
+                                                  "Gagal mengunduh dokumen",
+                                                variant: "destructive",
+                                              });
+                                            }
+                                          }}
+                                          title="Download dokumen"
+                                          className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                      )}
                                   </>
                                 )}
+                                {/* Delete button disabled for pending documents */}
                                 {doc.status === "pending" && (
                                   <Button
                                     variant="destructive"
@@ -768,8 +850,9 @@ export default function MyDocuments() {
                                     onClick={() =>
                                       deleteDocument(doc.id, doc.title)
                                     }
-                                    title="Hapus dokumen"
-                                    className="hover:bg-red-600 dark:hover:bg-red-700"
+                                    disabled={true}
+                                    title="Dokumen yang sedang menunggu penandatanganan tidak dapat dihapus"
+                                    className="hover:bg-red-600 dark:hover:bg-red-700 opacity-50 cursor-not-allowed"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -844,43 +927,83 @@ export default function MyDocuments() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                              {doc.file_url && (
+                              {(doc.file_url || doc.status === "signed") && (
                                 <>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleViewDocument(doc)}
-                                    className="flex-1 text-slate-600 border-slate-200 hover:bg-slate-50 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800/40"
+                                    disabled={doc.status === "pending"}
+                                    title={
+                                      doc.status === "pending"
+                                        ? "Dokumen hanya bisa dilihat setelah ditandatangani"
+                                        : undefined
+                                    }
+                                    className="flex-1 text-slate-600 border-slate-200 hover:bg-slate-50 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800/40 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <Eye className="h-4 w-4 mr-2" />
                                     Lihat
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={async () => {
-                                      // Audit log for download
-                                      if (userProfile?.id) {
-                                        await createAuditEntry(
-                                          userProfile.id,
-                                          "DOWNLOAD_DOCUMENT",
-                                          `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
-                                        );
-                                      }
-                                      const link = document.createElement("a");
-                                      link.href = doc.file_url!;
-                                      link.download = `${doc.title}.${doc
-                                        .file_url!.split(".")
-                                        .pop()}`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
-                                    }}
-                                    className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
-                                  >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download
-                                  </Button>
+                                  {doc.file_url && doc.status !== "pending" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        // Audit log for download
+                                        if (
+                                          userProfile?.id &&
+                                          doc.document_type
+                                        ) {
+                                          const auditAction =
+                                            doc.document_type === "ijazah"
+                                              ? "IJAZAH_DOWNLOAD"
+                                              : doc.document_type ===
+                                                "sertifikat"
+                                              ? "SERTIFIKAT_DOWNLOAD"
+                                              : "DOCUMENT_DOWNLOAD";
+                                          await createAuditEntry(
+                                            userProfile.id,
+                                            auditAction as any,
+                                            `Mengunduh dokumen "${doc.title}" (ID: ${doc.id})`
+                                          );
+                                        }
+                                        // Force download via blob
+                                        try {
+                                          const response = await fetch(
+                                            doc.file_url!
+                                          );
+                                          const blob = await response.blob();
+                                          const url =
+                                            window.URL.createObjectURL(blob);
+                                          const link =
+                                            document.createElement("a");
+                                          link.href = url;
+                                          link.download = `${doc.title}.${doc
+                                            .file_url!.split(".")
+                                            .pop()}`;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                          window.URL.revokeObjectURL(url);
+                                        } catch (error) {
+                                          console.error(
+                                            "Error downloading:",
+                                            error
+                                          );
+                                          toast({
+                                            title: "Error",
+                                            description:
+                                              "Gagal mengunduh dokumen",
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      }}
+                                      className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                                    >
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Download
+                                    </Button>
+                                  )}
                                 </>
                               )}
 
@@ -891,7 +1014,9 @@ export default function MyDocuments() {
                                   onClick={() =>
                                     deleteDocument(doc.id, doc.title)
                                   }
-                                  className="flex-1 hover:bg-red-600 dark:hover:bg-red-700"
+                                  disabled={true}
+                                  title="Dokumen yang sedang menunggu penandatanganan tidak dapat dihapus"
+                                  className="flex-1 hover:bg-red-600 dark:hover:bg-red-700 opacity-50 cursor-not-allowed"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Hapus

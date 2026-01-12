@@ -116,15 +116,8 @@ const Index = () => {
           }
         }
 
-        // User found, set role and log login
+        // User found, set role
         setUserRole(userData.role);
-
-        // Update last login in audit trail
-        await supabase.rpc("create_audit_entry", {
-          p_user_id: session.user.id,
-          p_action: "USER_LOGIN",
-          p_description: `User logged in: ${userData.name}`,
-        });
       } catch (err) {
         console.error("Unexpected error:", err);
         setError("Terjadi kesalahan yang tidak terduga");

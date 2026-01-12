@@ -15,6 +15,8 @@ interface IjazahTemplateProps {
   rektorName?: string;
   rektorNip?: string;
   rektorQrCode?: string;
+  dekanSigned?: boolean;
+  rektorSigned?: boolean;
 }
 
 export default function IjazahTemplate({
@@ -32,6 +34,8 @@ export default function IjazahTemplate({
   rektorName,
   rektorNip,
   rektorQrCode,
+  dekanSigned = false,
+  rektorSigned = false,
 }: IjazahTemplateProps) {
   const verificationUrl = `${window.location.origin}/verify/${nomorIjazah}`;
 
@@ -187,14 +191,18 @@ export default function IjazahTemplate({
                   <div className="text-[10px] text-gray-600 mb-2">
                     Universitas Muhammadiyah Cirebon
                   </div>
-                  <div className="mb-2 bg-white p-1 border border-gray-300">
-                    <QRCodeSVG
-                      value={dekanQr}
-                      size={70}
-                      level="H"
-                      includeMargin={false}
-                    />
-                  </div>
+                  {dekanSigned ? (
+                    <div className="mb-2 bg-white p-1 border border-gray-300">
+                      <QRCodeSVG
+                        value={dekanQr}
+                        size={70}
+                        level="H"
+                        includeMargin={false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-2 h-[74px]"></div>
+                  )}
                   <div className="text-[10px] font-bold text-gray-800 text-center">
                     {dekanName || "NAMA LENGKAP + GELAR"}
                   </div>
@@ -219,14 +227,18 @@ export default function IjazahTemplate({
 
                 {/* Rektor - Right */}
                 <div className="flex flex-col items-center w-1/3">
-                  <div className="text-[10px] text-gray-600 mb-1">Rektor</div>
-                  <div className="text-[10px] text-gray-600 mb-2">
-                    Universitas Muhammadiyah Cirebon
-                  </div>
-                  <div className="mb-2 bg-white p-1 border border-gray-300">
-                    <QRCodeSVG
-                      value={rektorQr}
-                      size={70}
+                  {rektorSigned ? (
+                    <div className="mb-2 bg-white p-1 border border-gray-300">
+                      <QRCodeSVG
+                        value={rektorQr}
+                        size={70}
+                        level="H"
+                        includeMargin={false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-2 h-[74px]"></div>
+                  )}ze={70}
                       level="H"
                       includeMargin={false}
                     />
