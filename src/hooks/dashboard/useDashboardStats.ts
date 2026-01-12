@@ -57,15 +57,22 @@ export const useDashboardStats = (userRole: string) => {
           stats.pendingDocuments = documents.filter((doc) => doc.status === "pending").length;
         }
 
-        // Fetch total active signing keys
-        const { data: activeSigningKeys } = await supabase
+        // Fetch total active signing keys (not revoked, not deleted, and not expired)
+        const now = new Date().toISOString();
+        const { data: allSigningKeys } = await supabase
           .from("signing_keys")
-          .select("kid, created_at")
-          .is("revoked_at", null);
+          .select("kid, created_at, expires_at, revoked_at, deleted_at")
+          .is("revoked_at", null)
+          .is("deleted_at", null);
 
-        if (Array.isArray(activeSigningKeys)) {
-          stats.activeSigningKeys = activeSigningKeys.length;
-          stats.recentlyAddedKeys = activeSigningKeys.filter((key) =>
+        if (Array.isArray(allSigningKeys)) {
+          // Filter to only active keys (not expired)
+          const activeKeys = allSigningKeys.filter(
+            (key) => !key.expires_at || new Date(key.expires_at) > new Date(now)
+          );
+          
+          stats.activeSigningKeys = activeKeys.length;
+          stats.recentlyAddedKeys = activeKeys.filter((key) =>
             getRecentData(key.created_at),
           ).length;
         }

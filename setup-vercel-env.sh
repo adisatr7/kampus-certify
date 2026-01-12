@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Script to setup Vercel environment variables for production
+
+echo "🔐 Setting up Vercel environment variables..."
+echo ""
+echo "Please go to https://vercel.com/kcraksas-projects/kampus-certify/settings/environment-variables"
+echo ""
+echo "And add these environment variables:"
+echo ""
+echo "1. SIGNING_KEY_PEM"
+echo "   Add the private key from signing-keys-temp/signing-key.pem"
+echo ""
+echo "2. SIGNING_CERT_PEM"
+echo "   Add the certificate from signing-keys-temp/signing-cert.pem"
+echo ""
+echo "3. SUPABASE_URL"
+echo "   Value: https://zupygwgwsrcwhkwhuwtk.supabase.co"
+echo ""
+echo "4. SUPABASE_SERVICE_ROLE_KEY"
+echo "   Value: (use the one from .env file)"
+echo ""
+echo "Make sure to set them for Production environment."
+echo ""
+echo "Then run: vercel --prod"

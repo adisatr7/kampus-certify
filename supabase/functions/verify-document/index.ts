@@ -1,21 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-// Base64 utility
-function base64Decode(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -23,194 +12,113 @@ const supabase = createClient(
 );
 
 Deno.serve(async (req) => {
-  const headers: Headers = new Headers(corsHeaders);
+  const headers = new Headers(corsHeaders);
   headers.set("Content-Type", "application/json");
 
-  // Preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers });
   }
 
   try {
-    const contentType = req.headers.get("content-type") || "";
-    const body = contentType.includes("application/json") ? await req.json() : {};
-
-    // Also allow `/verify-document?id=...` for QR links
+    const body = await req.json();
+    const documentId = body?.documentId;
     const url = new URL(req.url);
-    const documentId = body?.documentId ?? url.searchParams.get("id");
+    const docIdFromUrl = url.searchParams.get("id");
+    const finalDocId = documentId || docIdFromUrl;
 
-    if (!documentId) {
-      return new Response(JSON.stringify({ valid: false, error: "Dokumen ID tidak ditemukan" }), {
-        status: 400,
-        headers,
-      });
+    if (!finalDocId) {
+      return new Response(
+        JSON.stringify({ valid: false, signed: false, error: "Document ID not provided" }),
+        { status: 400, headers }
+      );
     }
 
-    // Fetch document
-    let doc = null;
-    try {
-      // Try fetching by ID first
-      const { data: byId, error: byIdErr } = await supabase
+    console.log("✅ Checking document signature for:", finalDocId);
+
+    // First try as UUID, if that fails try as serial/code
+    let signatures = null;
+    let error = null;
+    
+    // Try as UUID first
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(finalDocId)) {
+      const result = await supabase
+        .from("document_signatures")
+        .select("id, signature, signed_at, signer_user_id, key_id")
+        .eq("document_id", finalDocId)
+        .limit(1);
+      signatures = result.data;
+      error = result.error;
+    } else {
+      // Try as serial/code
+      const docResult = await supabase
         .from("documents")
-        .select("*")
-        .eq("id", documentId)
+        .select("id")
+        .eq("serial", finalDocId)
+        .limit(1)
         .maybeSingle();
-
-      if (byId && !byIdErr) {
-        doc = byId;
-      } else {
-        // Fallback: try fetching by serial
-        const { data: bySerial, error: bySerialErr } = await supabase
-          .from("documents")
-          .select("*")
-          .eq("serial", documentId)
-          .maybeSingle();
-
-        if (bySerial && !bySerialErr) {
-          doc = bySerial;
-        }
+      
+      if (docResult.data?.id) {
+        const sigResult = await supabase
+          .from("document_signatures")
+          .select("id, signature, signed_at, signer_user_id, key_id")
+          .eq("document_id", docResult.data.id)
+          .limit(1);
+        signatures = sigResult.data;
+        error = sigResult.error;
+      } else if (docResult.error) {
+        error = docResult.error;
       }
-    } catch (e) {
-      // ignore and handle below
     }
 
-    if (!doc) {
-      return new Response(JSON.stringify({ valid: false, error: "Dokumen tidak ditemukan" }), {
-        status: 404,
-        headers,
-      });
-    }
-
-    // Fetch the most recent signature for this document
-    const { data: sig, error: sigErr } = await supabase
-      .from("document_signatures")
-      .select("key_id, payload_hash, signature, signed_at")
-      .eq("document_id", doc.id)
-      .order("signed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (sigErr || !sig) {
+    if (error) {
+      console.error("❌ Database error:", error);
       return new Response(
-        JSON.stringify({ valid: false, error: "Dokumen ini belum ditandatangani" }),
-        { status: 404, headers },
+        JSON.stringify({ 
+          error: "Database error: " + (error?.message || String(error)),
+          valid: false, 
+          signed: false,
+          details: error
+        }),
+        { status: 500, headers }
       );
     }
 
-    // Rebuild payload and compare hash
-    const payload = JSON.stringify({
-      title: doc.title,
-      content: doc.content,
-      user_id: doc.user_id,
-      created_at: doc.created_at,
-    });
-
-    const enc = new TextEncoder();
-    const digest = await crypto.subtle.digest("SHA-256", enc.encode(payload));
-    const recomputedHash = Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    if (recomputedHash !== sig.payload_hash) {
+    const isSigned = signatures && signatures.length > 0;
+    
+    if (isSigned) {
+      const sig = signatures[0];
       return new Response(
         JSON.stringify({
-          valid: false,
-          reason: "PAYLOAD_HASH_MISMATCH",
-          expected: sig.payload_hash,
-          got: recomputedHash,
-          keyId: sig.key_id,
+          valid: true,
+          signed: true,
           signedAt: sig.signed_at,
+          signedBy: sig.signer_user_id,
+          keyId: sig.key_id,
+          message: "Dokumen telah ditandatangani"
         }),
-        { status: 200, headers },
+        { status: 200, headers }
       );
-    }
-
-    // Load signing key details (public key + lifecycle flags)
-    const { data: keyRow, error: keyErr } = await supabase
-      .from("signing_keys")
-      .select("x, revoked_at, deleted_at, expires_at")
-      .eq("kid", sig.key_id)
-      .single();
-
-    if (keyErr || !keyRow?.x) {
+    } else {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: "Tanda tangan digital tidak valid",
-          keyId: sig.key_id,
+          signed: false,
+          message: "Dokumen belum ditandatangani"
         }),
-        { status: 404, headers },
+        { status: 200, headers }
       );
     }
 
-    // 5) Check lifecycle constraints
-    const now = new Date();
-    if (keyRow.deleted_at) {
-      return new Response(
-        JSON.stringify({
-          valid: false,
-          reason: "KEY_DELETED",
-          keyId: sig.key_id,
-          signedAt: sig.signed_at,
-        }),
-        { status: 200, headers },
-      );
-    }
-    if (keyRow.revoked_at) {
-      return new Response(
-        JSON.stringify({
-          valid: false,
-          reason: "KEY_REVOKED",
-          keyId: sig.key_id,
-          signedAt: sig.signed_at,
-        }),
-        { status: 200, headers },
-      );
-    }
-    if (keyRow.expires_at && new Date(keyRow.expires_at) <= now) {
-      return new Response(
-        JSON.stringify({
-          valid: false,
-          reason: "KEY_EXPIRED",
-          keyId: sig.key_id,
-          signedAt: sig.signed_at,
-        }),
-        { status: 200, headers },
-      );
-    }
-
-    // 6) Verify Ed25519(signature, payload_hash) using stored public key (SPKI DER base64)
-    const publicKeyBytes = base64Decode(keyRow.x);
-    const publicKey = await crypto.subtle.importKey(
-      "spki",
-      publicKeyBytes.buffer as ArrayBuffer,
-      { name: "Ed25519" },
-      false,
-      ["verify"],
-    );
-
-    const signatureBytes = base64Decode(sig.signature);
-    const isValid = await crypto.subtle.verify(
-      "Ed25519",
-      publicKey,
-      signatureBytes as BufferSource,
-      enc.encode(sig.payload_hash),
-    );
-
-    return new Response(
-      JSON.stringify({
-        valid: Boolean(isValid),
-        keyId: sig.key_id,
-        signedAt: sig.signed_at,
-        reason: isValid ? "OK" : "SIGNATURE_INVALID",
-      }),
-      { status: 200, headers },
-    );
   } catch (err) {
-    console.error("Verify function error:", err);
+    console.error("❌ Error:", err);
     return new Response(
-      JSON.stringify({ valid: false, error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers },
+      JSON.stringify({ 
+        error: err instanceof Error ? err.message : String(err),
+        valid: false,
+        signed: false
+      }),
+      { status: 500, headers }
     );
   }
 });

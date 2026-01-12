@@ -138,42 +138,67 @@ CREATE INDEX idx_sertifikat_document_id ON public.sertifikat(document_id);
 CREATE INDEX idx_sertifikat_nomor ON public.sertifikat(nomor_sertifikat);
 CREATE INDEX idx_templates_type ON public.document_templates(type);
 
--- Insert default templates
-INSERT INTO public.document_templates (name, type, html_content, css_content, created_by, is_active)
-VALUES 
-  (
-    'Template Ijazah Default',
-    'ijazah',
-    '<div class="ijazah-container">
-      <h1>IJAZAH</h1>
-      <p>Diberikan kepada:</p>
-      <h2>{{nama_mahasiswa}}</h2>
-      <p>NIM: {{nim}}</p>
-      <p>Program Studi: {{program_studi}}</p>
-      <p>Gelar: {{gelar}}</p>
-      <p>Lulus pada: {{tanggal_kelulusan}}</p>
-      <p>Predikat: {{predikat}}</p>
-      <p>Nomor Seri: {{nomor_seri}}</p>
-      <p>Tanggal Terbit: {{tanggal_terbit}}</p>
-    </div>',
-    '.ijazah-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
-    (SELECT id FROM public.users WHERE role = 'admin' LIMIT 1),
-    true
-  ),
-  (
-    'Template Sertifikat Default',
-    'sertifikat',
-    '<div class="sertifikat-container">
-      <h1>SERTIFIKAT</h1>
-      <p>Diberikan kepada:</p>
-      <h2>{{nama_peserta}}</h2>
-      <p>Atas partisipasinya dalam:</p>
-      <h3>{{nama_acara}}</h3>
-      <p>Tanggal: {{tanggal_acara}}</p>
-      <p>Nomor: {{nomor_sertifikat}}</p>
-      <p>Penandatangan: {{penandatangan}}</p>
-    </div>',
-    '.sertifikat-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
-    (SELECT id FROM public.users WHERE role = 'admin' LIMIT 1),
-    true
-  );
+-- Insert default templates (only if admin user exists)
+DO $$
+DECLARE
+  admin_id uuid;
+BEGIN
+  SELECT id INTO admin_id FROM public.users WHERE role = 'admin' LIMIT 1;
+  
+  IF admin_id IS NOT NULL THEN
+    INSERT INTO public.document_templates (name, type, html_content, css_content, created_by, is_active)
+    VALUES 
+      (
+        'Template Ijazah Default',
+        'ijazah',
+        '<div class="ijazah-container">
+          <h1>IJAZAH</h1>
+          <p>Diberikan kepada:</p>
+          <h2>{{nama_mahasiswa}}</h2>
+          <p>NIM: {{nim}}</p>
+          <p>Program Studi: {{program_studi}}</p>
+          <p>Gelar: {{gelar}}</p>
+          <p>Lulus pada: {{tanggal_kelulusan}}</p>
+          <p>Predikat: {{predikat}}</p>
+          <p>Nomor Seri: {{nomor_seri}}</p>
+          <p>Tanggal Terbit: {{tanggal_terbit}}</p>
+        </div>',
+        '.ijazah-container { text-align: center; padding: 2rem; font-family: "Times New Roman", serif; }',
+        admin_id,
+        true
+      ),
+      (
+        'Template Sertifikat Default',
+        'sertifikat',
+        '<div class="sertifikat-container" style="max-width: 800px; margin: 40px auto; padding: 40px; font-family: ''Times New Roman'', serif; text-align: center; border: 3px solid #B8860B;">
+          <h1 style="color: #B8860B; font-size: 48px; letter-spacing: 0.2em;">SERTIFIKAT</h1>
+          <p style="color: #999; font-size: 14px;">PENGHARGAAN</p>
+          <p style="color: #B8860B; margin: 20px 0;">No. {{nomor_sertifikat}}</p>
+          
+          <p style="margin: 30px 0; font-size: 14px;">Dengan rasa hormat dan bangga, kami menganugerahkan penghargaan ini kepada</p>
+          
+          <h2 style="color: #B8860B; font-size: 36px; margin: 30px 0; font-style: italic;">{{nama_peserta}}</h2>
+          
+          <p style="font-size: 13px; line-height: 1.8; margin: 30px 0;">
+            Sebagai bentuk apresiasi atas partisipasi aktif dan kontribusinya dalam kegiatan yang diselenggarakan dengan tema <strong>{{nama_acara}}</strong> pada tanggal <strong>{{tanggal_acara}}</strong>. Semoga ilmu yang didapat membawa keberkahan.
+          </p>
+          
+          <div style="margin-top: 60px; padding-top: 40px; border-top: 1px solid #ccc; display: flex; justify-content: flex-end; gap: 80px;">
+            <div class="signer" style="text-align: center; min-width: 150px;">
+              <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                <div style="border: 2px solid #333; padding: 4px; background: white;">
+                  <img src="{{qr_code}}" alt="QR Code" style="width: 70px; height: 70px; display: block;" />
+                </div>
+              </div>
+              <p style="font-size: 14px; font-weight: bold; text-decoration: underline; margin: 5px 0;">{{signer1_name}}</p>
+              <p style="font-size: 12px; color: #666; margin: 2px 0;">{{signer1_jabatan}}</p>
+              <p style="font-size: 11px; color: #666; margin: 2px 0;">{{signer1_nip}}</p>
+            </div>
+          </div>
+        </div>',
+        '',
+        admin_id,
+        true
+      );
+  END IF;
+END $$;

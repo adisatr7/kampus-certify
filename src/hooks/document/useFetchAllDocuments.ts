@@ -15,13 +15,6 @@ export default function useFetchAllDocuments({
   const [data, setData] = useState<UserDocument[]>([]);
   const [isLoading, setLoading] = useState<boolean>(enabled);
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    fetchData(status);
-  }, [enabled]);
-
   const fetchData = async (statusParam?: DocumentStatus | DocumentStatus[]) => {
     if (!enabled) {
       return;
@@ -69,6 +62,17 @@ export default function useFetchAllDocuments({
       setLoading(false);
     }
   };
+
+  // Convert status to JSON string to avoid object reference issues in dependency array
+  const statusString = JSON.stringify(status);
+
+  useEffect(() => {
+    if (!enabled) {
+      setData([]);
+      return;
+    }
+    fetchData(status);
+  }, [enabled, statusString]); // Include statusString so it re-fetches when status changes
 
   return { data, isLoading, refetch: () => fetchData(status) };
 }

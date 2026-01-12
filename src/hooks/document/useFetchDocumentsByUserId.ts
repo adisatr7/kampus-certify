@@ -14,12 +14,16 @@ export default function useFetchDocumentsByUserId(
   const enabled = options?.enabled !== undefined ? options.enabled : true;
   const [isLoading, setLoading] = useState(enabled);
 
+  // Convert status to JSON string to avoid object reference issues in dependency array
+  const statusString = JSON.stringify(status);
+
   useEffect(() => {
     if (!enabled) {
+      setData([]);
       return;
     }
     fetchData(userId, status);
-  }, [userId, enabled]);
+  }, [userId, enabled, statusString]); // Include statusString so it re-fetches when status changes
 
   const fetchData = async (userId: string, statusParam?: DocumentStatus | DocumentStatus[]) => {
     if (!userId || !enabled) {
@@ -59,24 +63,109 @@ export default function useFetchDocumentsByUserId(
             )
           )
         `)
-        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (statuses && statuses.length > 0) {
-        // Use .in() when multiple statuses provided, .eq() for a single value
-        if (statuses.length === 1) {
-          query = query.eq("status", statuses[0]);
-        } else {
-          query = query.in("status", statuses as DocumentStatus[]);
+      // For ijazah documents in workflow, show to both dekan and rektor
+      // Otherwise, only show documents owned by the user
+      const { data: allDocs, error: queryError } = await query;
+
+      if (queryError) {
+        throw queryError;
+      }
+
+      if (!allDocs) {
+        setData([]);
+        return;
+      }
+
+      // Filter documents based on ownership and workflow
+      const filteredDocs = allDocs.filter((doc: any) => {
+        const metadata = doc.metadata as any;
+
+        // For ijazah documents, check dekan_id and rektor_id from metadata
+        if (doc.document_type === "ijazah") {
+          // Show to dekan if they're the dekan_id
+          if (metadata?.dekan_id === userId) {
+            // If status filter includes "pending", only show if workflow_stage is "dekan_pending"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "dekan_pending";
+            }
+            // Otherwise show all ijazah documents owned by dekan
+            return true;
+          }
+          // Show to rektor if they're the rektor_id and workflow is in progress or completed
+          if (
+            (metadata?.workflow_stage === "rektor_pending" ||
+              metadata?.workflow_stage === "completed") &&
+            metadata?.rektor_id === userId
+          ) {
+            // If status filter includes "pending", only show if workflow_stage is "rektor_pending"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "rektor_pending";
+            }
+            // Otherwise show all ijazah documents for rektor
+            return true;
+          }
         }
+
+        // For sertifikat documents, check signer1_id and signer2_id from metadata
+        if (doc.document_type === "sertifikat") {
+          const isSigner1 = metadata?.signer1_id === userId;
+          const isSigner2 = metadata?.signer2_id === userId;
+
+          // If user is signer1
+          if (isSigner1) {
+            // If status filter includes "pending", only show if workflow_stage is "pending_signer1"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "pending_signer1";
+            }
+            // For signed status, show if signer1 has signed (completed or signer1_signed)
+            if (statuses.includes("signed")) {
+              return metadata?.signer1_signed === true || metadata?.workflow_stage === "completed";
+            }
+            // Otherwise show all sertifikat documents for signer1
+            return true;
+          }
+
+          // If user is signer2
+          if (isSigner2) {
+            // If status filter includes "pending", only show if workflow_stage is "pending_signer2"
+            if (statuses.includes("pending")) {
+              return metadata?.workflow_stage === "pending_signer2";
+            }
+            // For signed status, show if workflow is completed
+            if (statuses.includes("signed")) {
+              return metadata?.workflow_stage === "completed";
+            }
+            // Otherwise show all sertifikat documents for signer2 (after signer1 signed)
+            return (
+              metadata?.workflow_stage === "pending_signer2" ||
+              metadata?.workflow_stage === "completed"
+            );
+          }
+        }
+
+        // For other documents, show if user owns it
+        if (doc.user_id === userId) {
+          return true;
+        }
+
+        return false;
+      });
+
+      // Apply status filter if provided
+      let finalDocs = filteredDocs;
+      if (statuses && statuses.length > 0) {
+        finalDocs = filteredDocs.filter((doc: any) => {
+          if (statuses.length === 1) {
+            return doc.status === statuses[0];
+          } else {
+            return statuses.includes(doc.status);
+          }
+        });
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-      setData((data as unknown as UserDocument[]) || []);
+      setData((finalDocs as unknown as UserDocument[]) || []);
     } catch (error) {
       toast({
         title: "Error",

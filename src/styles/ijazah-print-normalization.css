@@ -1,0 +1,363 @@
+/* 
+ * Ijazah Print-Specific CSS Module
+ * Provides consistent styling for PDF generation and print output
+ * Addresses Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 4.1, 4.3, 4.4
+ */
+
+/* CSS Custom Properties for Consistent Dimensions */
+:root {
+  /* A4 Paper Dimensions at 96 DPI (screen) */
+  --ijazah-width: 794px; /* 210mm at 96 DPI */
+  --ijazah-height: 1123px; /* 297mm at 96 DPI */
+  
+  /* Standard measurements in mm converted to px at 96 DPI */
+  /* Formula: mm * (96 DPI / 25.4 mm/inch) = px */
+  --ijazah-padding: 96px; /* 25.4mm */
+  --ijazah-logo-margin-top: 20px; /* 5.29mm */
+  --ijazah-signature-margin-bottom: 60px; /* 15.88mm */
+  --ijazah-qr-code-size: 70px; /* 18.52mm */
+  
+  /* DPI and scaling calculations */
+  --ijazah-screen-dpi: 96;
+  --ijazah-print-dpi: 300;
+  --ijazah-scale-factor: 3.125; /* 300/96 */
+  
+  /* Typography settings - absolute units for consistency */
+  --ijazah-base-font-size: 12pt; /* Absolute unit for print */
+  --ijazah-line-height: 1.4;
+  --ijazah-font-family: 'Times New Roman', 'Liberation Serif', serif;
+  --ijazah-script-font-family: 'Great Vibes', 'Brush Script MT', cursive;
+  
+  /* Color definitions for print accuracy */
+  --ijazah-text-primary: #1f2937; /* Gray-800 */
+  --ijazah-text-secondary: #6b7280; /* Gray-500 */
+  --ijazah-text-muted: #9ca3af; /* Gray-400 */
+  --ijazah-accent-color: #f59e0b; /* Amber-500 */
+  --ijazah-background-color: #ffffff;
+}
+
+/* Universal Print Normalization - Applied to all ijazah templates */
+.ijazah-print-normalized {
+  /* Exact dimensions for A4 paper */
+  width: var(--ijazah-width) !important;
+  height: var(--ijazah-height) !important;
+  
+  /* Box model normalization */
+  box-sizing: border-box !important;
+  position: relative !important;
+  margin: 0 auto !important;
+  
+  /* Background and color settings */
+  background-color: var(--ijazah-background-color) !important;
+  
+  /* Typography normalization */
+  font-family: var(--ijazah-font-family) !important;
+  font-size: var(--ijazah-base-font-size) !important;
+  line-height: var(--ijazah-line-height) !important;
+  
+  /* Print color preservation */
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+  
+  /* Font rendering optimizations */
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  
+  /* Prevent responsive scaling */
+  min-width: var(--ijazah-width) !important;
+  max-width: var(--ijazah-width) !important;
+  min-height: var(--ijazah-height) !important;
+  max-height: var(--ijazah-height) !important;
+}
+
+/* Standardized padding classes using absolute measurements */
+.ijazah-padding-standard {
+  padding: var(--ijazah-padding) !important; /* 25.4mm */
+}
+
+.ijazah-padding-large {
+  padding: 128px !important; /* 33.87mm */
+}
+
+.ijazah-padding-small {
+  padding: 64px !important; /* 16.93mm */
+}
+
+/* Logo positioning with consistent margins */
+.ijazah-logo-container {
+  margin-top: var(--ijazah-logo-margin-top) !important;
+  margin-bottom: var(--ijazah-logo-margin-top) !important;
+}
+
+/* Signature area positioning */
+.ijazah-signature-area {
+  margin-bottom: var(--ijazah-signature-margin-bottom) !important;
+}
+
+/* QR Code standardized sizing */
+.ijazah-qr-code {
+  width: var(--ijazah-qr-code-size) !important;
+  height: var(--ijazah-qr-code-size) !important;
+}
+
+/* Typography classes with absolute font sizes */
+.ijazah-text-base {
+  font-size: 12pt !important;
+  font-family: var(--ijazah-font-family) !important;
+  line-height: var(--ijazah-line-height) !important;
+}
+
+.ijazah-text-small {
+  font-size: 10pt !important;
+  font-family: var(--ijazah-font-family) !important;
+  line-height: var(--ijazah-line-height) !important;
+}
+
+.ijazah-text-large {
+  font-size: 16pt !important;
+  font-family: var(--ijazah-font-family) !important;
+  line-height: var(--ijazah-line-height) !important;
+}
+
+.ijazah-text-title {
+  font-size: 24pt !important;
+  font-family: var(--ijazah-script-font-family) !important;
+  line-height: 1.2 !important;
+}
+
+.ijazah-text-name {
+  font-size: 36pt !important;
+  font-family: var(--ijazah-script-font-family) !important;
+  line-height: 1.2 !important;
+}
+
+/* Background image handling for print consistency */
+.ijazah-background {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: scroll !important; /* Avoid fixed for print */
+  
+  /* Ensure background prints */
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* Print Media Queries - Activated during PDF generation */
+@media print {
+  /* Force exact color reproduction */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Page setup for A4 portrait */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
+  /* Hide elements that shouldn't appear in print */
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure ijazah container fills the page */
+  .ijazah-print-normalized {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Font embedding and rendering for print */
+  body {
+    font-family: var(--ijazah-font-family) !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+  
+  /* Ensure images and backgrounds print */
+  img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    display: block !important;
+    opacity: 1 !important;
+  }
+  
+  /* Background image preservation */
+  .ijazah-background {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* PDF Generation Mode - Applied when generating PDF via html2canvas */
+.ijazah-pdf-mode {
+  /* Disable viewport-based responsive scaling */
+  transform: none !important;
+  zoom: 1 !important;
+  
+  /* Ensure consistent rendering */
+  position: relative !important;
+  overflow: visible !important;
+  
+  /* Font loading optimization */
+  font-display: block !important;
+}
+
+/* PDF Preview Mode - Shows exact PDF output */
+.ijazah-pdf-preview {
+  /* Apply same normalization as PDF mode */
+  width: var(--ijazah-width) !important;
+  height: var(--ijazah-height) !important;
+  
+  /* Visual indicators for preview */
+  border: 2px dashed #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  
+  /* Prevent interaction during preview */
+  pointer-events: none;
+}
+
+/* Page boundary visualization for PDF preview */
+.ijazah-page-boundaries {
+  position: relative;
+}
+
+.ijazah-page-boundaries::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid #ef4444;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Print margin visualization */
+.ijazah-print-margins {
+  position: relative;
+}
+
+.ijazah-print-margins::after {
+  content: '';
+  position: absolute;
+  top: var(--ijazah-padding);
+  left: var(--ijazah-padding);
+  right: var(--ijazah-padding);
+  bottom: var(--ijazah-padding);
+  border: 1px dashed #f59e0b;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Utility classes for consistent measurements */
+.ijazah-mm-5 { width: 19px; height: 19px; } /* 5mm */
+.ijazah-mm-10 { width: 38px; height: 38px; } /* 10mm */
+.ijazah-mm-15 { width: 57px; height: 57px; } /* 15mm */
+.ijazah-mm-20 { width: 76px; height: 76px; } /* 20mm */
+.ijazah-mm-25 { width: 94px; height: 94px; } /* 25mm */
+
+/* Spacing utilities with mm-based measurements */
+.ijazah-mt-5mm { margin-top: 19px !important; }
+.ijazah-mt-10mm { margin-top: 38px !important; }
+.ijazah-mt-15mm { margin-top: 57px !important; }
+.ijazah-mt-20mm { margin-top: 76px !important; }
+
+.ijazah-mb-5mm { margin-bottom: 19px !important; }
+.ijazah-mb-10mm { margin-bottom: 38px !important; }
+.ijazah-mb-15mm { margin-bottom: 57px !important; }
+.ijazah-mb-20mm { margin-bottom: 76px !important; }
+
+/* Padding utilities with mm-based measurements */
+.ijazah-p-5mm { padding: 19px !important; }
+.ijazah-p-10mm { padding: 38px !important; }
+.ijazah-p-15mm { padding: 57px !important; }
+.ijazah-p-20mm { padding: 76px !important; }
+.ijazah-p-25mm { padding: 94px !important; }
+
+/* Color utilities for consistent theming */
+.ijazah-text-primary { color: var(--ijazah-text-primary) !important; }
+.ijazah-text-secondary { color: var(--ijazah-text-secondary) !important; }
+.ijazah-text-muted { color: var(--ijazah-text-muted) !important; }
+.ijazah-accent { color: var(--ijazah-accent-color) !important; }
+
+/* Layout utilities that avoid relative units */
+.ijazah-flex-center {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ijazah-text-center {
+  text-align: center !important;
+}
+
+.ijazah-relative {
+  position: relative !important;
+}
+
+.ijazah-absolute {
+  position: absolute !important;
+}
+
+/* Custom template normalization - for database-stored templates */
+.ijazah-custom-template {
+  /* Reset all styles to prevent conflicts */
+  all: initial;
+  
+  /* Apply base normalization */
+  width: var(--ijazah-width) !important;
+  height: var(--ijazah-height) !important;
+  font-family: var(--ijazah-font-family) !important;
+  font-size: var(--ijazah-base-font-size) !important;
+  line-height: var(--ijazah-line-height) !important;
+  
+  /* Isolation to prevent style leakage */
+  isolation: isolate !important;
+  contain: layout style !important;
+  
+  /* Box model */
+  box-sizing: border-box !important;
+  position: relative !important;
+  margin: 0 auto !important;
+  background-color: var(--ijazah-background-color) !important;
+}
+
+/* Error handling and fallback styles */
+.ijazah-font-fallback {
+  font-family: 'Times New Roman', serif !important;
+}
+
+.ijazah-background-fallback {
+  background-color: var(--ijazah-background-color) !important;
+}
+
+/* Performance optimizations for PDF generation */
+.ijazah-optimized {
+  /* Disable animations during PDF generation */
+  animation: none !important;
+  transition: none !important;
+  
+  /* Optimize rendering */
+  will-change: auto !important;
+  transform: translateZ(0) !important;
+  
+  /* Prevent layout shifts */
+  contain: layout !important;
+}
+
+/* Accessibility improvements that don't affect print */
+@media screen {
+  .ijazah-print-normalized:focus-within {
+    outline: 2px solid var(--ijazah-accent-color);
+    outline-offset: 2px;
+  }
+}

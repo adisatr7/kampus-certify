@@ -3,7 +3,13 @@ import { Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import {
   Dialog,
   DialogContent,
@@ -24,14 +30,18 @@ import {
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "@/lib/audit";
+import { useAuth } from "@/lib/auth";
 import { DocumentTemplate } from "@/types/DocumentTemplate";
 import { DocumentType } from "@/types/DocumentType";
 
 export default function TemplateManagement() {
   const { toast } = useToast();
+  const { userProfile } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] =
+    useState<DocumentTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     type: "ijazah" as DocumentType,
@@ -70,15 +80,30 @@ export default function TemplateManagement() {
       });
 
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       toast({ title: "Berhasil", description: "Template berhasil dibuat" });
+
+      // Audit log
+      if (userProfile?.id) {
+        createAuditEntry(
+          userProfile.id,
+          "CREATE_TEMPLATE",
+          `Membuat template baru: ${data.name} (${data.type})`
+        );
+      }
+
       setIsDialogOpen(false);
       resetForm();
     },
     onError: () => {
-      toast({ title: "Error", description: "Gagal membuat template", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Gagal membuat template",
+        variant: "destructive",
+      });
     },
   });
 
@@ -96,30 +121,62 @@ export default function TemplateManagement() {
         .eq("id", id);
 
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       toast({ title: "Berhasil", description: "Template berhasil diperbarui" });
+
+      // Audit log
+      if (userProfile?.id) {
+        createAuditEntry(
+          userProfile.id,
+          "UPDATE_TEMPLATE",
+          `Memperbarui template: ${data.name}`
+        );
+      }
+
       setIsDialogOpen(false);
       resetForm();
     },
     onError: () => {
-      toast({ title: "Error", description: "Gagal memperbarui template", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui template",
+        variant: "destructive",
+      });
     },
   });
 
   // Delete template mutation
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("document_templates").delete().eq("id", id);
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("document_templates")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
+      return { name };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       toast({ title: "Berhasil", description: "Template berhasil dihapus" });
+
+      // Audit log
+      if (userProfile?.id) {
+        createAuditEntry(
+          userProfile.id,
+          "DELETE_TEMPLATE",
+          `Menghapus template: ${data.name}`
+        );
+      }
     },
     onError: () => {
-      toast({ title: "Error", description: "Gagal menghapus template", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Gagal menghapus template",
+        variant: "destructive",
+      });
     },
   });
 
@@ -154,17 +211,16 @@ export default function TemplateManagement() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userRole={userProfile?.role}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Kelola Template</h1>
-            <p className="text-muted-foreground">Atur template untuk ijazah dan sertifikat</p>
+            <p className="text-muted-foreground">
+              Atur template untuk ijazah dan sertifikat
+            </p>
           </div>
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={setIsDialogOpen}
-          >
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -180,16 +236,15 @@ export default function TemplateManagement() {
                   Isi formulir di bawah untuk membuat template dokumen
                 </DialogDescription>
               </DialogHeader>
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nama Template *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -218,7 +273,9 @@ export default function TemplateManagement() {
                   <Textarea
                     id="html_content"
                     value={formData.html_content}
-                    onChange={(e) => setFormData({ ...formData, html_content: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, html_content: e.target.value })
+                    }
                     rows={10}
                     className="font-mono text-sm"
                     required
@@ -230,7 +287,9 @@ export default function TemplateManagement() {
                   <Textarea
                     id="css_content"
                     value={formData.css_content}
-                    onChange={(e) => setFormData({ ...formData, css_content: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, css_content: e.target.value })
+                    }
                     rows={6}
                     className="font-mono text-sm"
                   />
@@ -244,7 +303,9 @@ export default function TemplateManagement() {
                   >
                     Batal
                   </Button>
-                  <Button type="submit">{editingTemplate ? "Perbarui" : "Buat"} Template</Button>
+                  <Button type="submit">
+                    {editingTemplate ? "Perbarui" : "Buat"} Template
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -264,7 +325,9 @@ export default function TemplateManagement() {
                       <CardTitle className="text-lg">{template.name}</CardTitle>
                     </div>
                   </div>
-                  <CardDescription className="capitalize">{template.type}</CardDescription>
+                  <CardDescription className="capitalize">
+                    {template.type}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-2">
@@ -280,7 +343,12 @@ export default function TemplateManagement() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => deleteMutation.mutate(template.id)}
+                      onClick={() =>
+                        deleteMutation.mutate({
+                          id: template.id,
+                          name: template.name,
+                        })
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

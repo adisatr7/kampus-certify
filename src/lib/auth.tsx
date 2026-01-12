@@ -1,7 +1,15 @@
 import { Session, User } from "@supabase/supabase-js";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuditEntry } from "./audit";
 import { User as UserProfile } from "../types";
 
 interface AuthContextType {
@@ -36,54 +44,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Verify user exists in database
         (async () => {
-          console.log("Auth: Fetching user profile for:", session.user.id, session.user.email);
+          console.log(
+            "Auth: Fetching user profile for email:",
+            session.user.email
+          );
           try {
-            // First, try to find user by ID (for existing users)
+            // Find user by email only
             let { data: profile, error } = await supabase
               .from("users")
               .select("*")
-              .eq("id", session.user.id)
+              .eq("email", session.user.email)
               .maybeSingle();
 
-            // If not found by ID, try to find by email (for newly whitelisted users)
-            if (!profile && !error && session.user.email) {
-              console.log("Auth: User not found by ID, checking by email:", session.user.email);
+            console.log("Auth: Email lookup result:", {
+              profile,
+              error,
+            });
 
-              const { data: profileByEmail, error: emailError } = await supabase
-                .from("users")
-                .select("*")
-                .eq("email", session.user.email)
-                .maybeSingle();
+            if (error) {
+              console.error("Auth: Error fetching user by email:", error);
+            } else if (profile) {
+              // Found user by email - sync ID if different
+              if (profile.id !== session.user.id) {
+                console.log(
+                  "Auth: Syncing user ID from",
+                  profile.id,
+                  "to",
+                  session.user.id
+                );
 
-              if (emailError) {
-                console.error("Auth: Error fetching user by email:", emailError);
-                error = emailError;
-              } else if (profileByEmail) {
-                // Found user by email - update their ID to match auth.users
-                console.log("Auth: Found user by email, syncing ID");
-
-                const { data: updatedProfile, error: updateError } = await supabase
-                  .from("users")
-                  .update({ id: session.user.id })
-                  .eq("email", session.user.email)
-                  .select("*")
-                  .single();
+                const { data: updatedProfile, error: updateError } = await (
+                  supabase.rpc as any
+                )("sync_user_id_by_email", {
+                  p_email: session.user.email,
+                  p_new_id: session.user.id,
+                });
 
                 if (updateError) {
                   console.error("Auth: Error updating user ID:", updateError);
                   error = updateError;
-                } else {
-                  profile = updatedProfile;
+                } else if (
+                  updatedProfile &&
+                  Array.isArray(updatedProfile) &&
+                  updatedProfile.length > 0
+                ) {
+                  profile = updatedProfile[0];
                   console.log("Auth: Successfully synced user ID");
+                } else {
+                  console.error("Auth: No profile returned from sync");
+                  error = { message: "Failed to sync user ID" } as any;
                 }
               }
+            } else {
+              console.log(
+                "Auth: No user found with email:",
+                session.user.email
+              );
             }
 
             if (error) {
               console.error("Auth: Error fetching user profile:", error);
               toast({
                 title: "Akses Ditolak",
-                description: "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
+                description:
+                  "Terjadi kesalahan saat memeriksa akun Anda. Silakan coba lagi.",
                 variant: "destructive",
               });
               await supabase.auth.signOut();
@@ -102,6 +126,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               console.log("Auth: Successfully fetched profile:", profile);
               setUserProfile(profile);
+
+              // Audit log for login - only once per browser session
+              // Use sessionStorage to track if we've already logged this session
+              const sessionKey = `login_logged_${profile.id}`;
+              const alreadyLogged = sessionStorage.getItem(sessionKey);
+
+              if (!alreadyLogged) {
+                sessionStorage.setItem(sessionKey, "true");
+                await createAuditEntry(
+                  profile.id,
+                  "LOGIN",
+                  `Login berhasil: ${profile.name} (${profile.email})`
+                );
+              }
             }
           } catch (err) {
             console.error("Auth: Profile fetch error:", err);
@@ -156,6 +194,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Audit log for logout before clearing profile (only once)
+      if (userProfile?.id) {
+        const logoutKey = `logout_logged_${userProfile.id}`;
+        const alreadyLogged = sessionStorage.getItem(logoutKey);
+
+        if (!alreadyLogged) {
+          sessionStorage.setItem(logoutKey, "true");
+          await createAuditEntry(
+            userProfile.id,
+            "LOGOUT",
+            `Logout: ${userProfile.name} (${userProfile.email})`
+          );
+        }
+      }
+
+      // Clear all session tracking
+      sessionStorage.clear();
+
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);

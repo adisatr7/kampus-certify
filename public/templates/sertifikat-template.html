@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sertifikat - {{nama_peserta}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Times New Roman', serif;
+      background: #fff;
+    }
+
+    .certificate-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1.414;
+      background-image: url('/certificate-background.webp');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      overflow: hidden;
+    }
+
+    .content {
+      position: absolute;
+      top: 60px;
+      left: 60px;
+      right: 60px;
+      bottom: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 60px;
+      z-index: 10;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #B8860B;
+      font-family: 'Playfair Display', serif;
+      letter-spacing: 0.35em;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #9CA3AF;
+      font-family: 'Playfair Display', serif;
+      letter-spacing: 0.35em;
+      font-weight: 500;
+    }
+
+    .nomor {
+      font-size: 12px;
+      color: #B8860B;
+      font-family: 'Times New Roman', serif;
+    }
+
+    .body {
+      text-align: center;
+      max-width: 600px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .intro-text {
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #4B5563;
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
+    }
+
+    .intro-text-2 {
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: #4B5563;
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
+    }
+
+    .nama-peserta {
+      font-size: 48px;
+      font-weight: 400;
+      margin-bottom: 20px;
+      color: #B8860B;
+      font-family: 'Great Vibes', 'Brush Script MT', cursive;
+    }
+
+    .description {
+      font-size: 13px;
+      line-height: 1.8;
+      max-width: 580px;
+      margin: 0 auto;
+      color: #4B5563;
+      font-family: 'Times New Roman', serif;
+    }
+
+    .description strong {
+      font-weight: bold;
+    }
+
+    /* Footer - Default: 1 penandatangan di kanan */
+    .footer {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: auto;
+      gap: 80px;
+    }
+    
+    /* Jika ada 2 signer (class ditambahkan via JS) */
+    .footer.two-signers {
+      justify-content: space-between;
+    }
+
+    .signer {
+      text-align: center;
+    }
+
+    .qr-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .qr-box {
+      border: 2px solid #1f2937;
+      padding: 4px;
+      background: white;
+    }
+
+    .qr-box img {
+      width: 70px;
+      height: 70px;
+      display: block;
+    }
+
+    .signer-name {
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: underline;
+      color: #000000;
+      font-family: 'Times New Roman', serif;
+      margin-bottom: 2px;
+    }
+
+    .signer-role {
+      font-size: 12px;
+      color: #6B7280;
+      font-family: 'Times New Roman', serif;
+      margin-bottom: 2px;
+    }
+
+    .signer-nip {
+      font-size: 11px;
+      color: #6B7280;
+      font-family: 'Times New Roman', serif;
+      margin-bottom: 2px;
+    }
+
+    .signer-institution {
+      font-size: 11px;
+      color: #B8860B;
+      font-family: 'Times New Roman', serif;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+      .certificate-container {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate-container">
+    <!-- Content -->
+    <div class="content">
+      <!-- Header -->
+      <div class="header">
+        <h1 class="title">SERTIFIKAT</h1>
+        <p class="subtitle">PENGHARGAAN</p>
+        <p class="nomor">No. {{nomor_sertifikat}}</p>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+        <p class="intro-text">Dengan rasa hormat dan bangga, kami</p>
+        <p class="intro-text-2">menganugerahkan penghargaan ini kepada</p>
+        <h2 class="nama-peserta">{{nama_peserta}}</h2>
+        <p class="description">
+          Sebagai bentuk apresiasi atas partisipasi aktif dan kontribusinya dalam kegiatan Sosial dan Budaya yang
+          diselenggarakan oleh Universitas Muhammadiyah Cirebon dengan tema <strong>{{nama_acara}}</strong> pada tanggal <strong>{{tanggal_acara}}</strong> di Cirebon. Semoga ilmu yang didapat membawa keberkahan dan menjadi amal jariyah.
+        </p>
+      </div>
+
+      <!-- Footer - Signature(s) -->
+      <div class="footer">
+        <!-- Penandatangan 1 -->
+        <div class="signer">
+          <div class="qr-container">
+            <div class="qr-box">
+              <img src="{{qr_code}}" alt="QR Code" />
+            </div>
+          </div>
+          <p class="signer-name">{{signer1_name}}</p>
+          <p class="signer-role">{{signer1_jabatan}}</p>
+          <p class="signer-nip">{{signer1_nip}}</p>
+          <p class="signer-institution">Universitas Muhammadiyah Cirebon</p>
+        </div>
+        <!-- Penandatangan 2 (opsional - akan dihapus via JS jika hanya 1 penandatangan) -->
+        <div class="signer">
+          <div class="qr-container">
+            <div class="qr-box">
+              <img src="{{qr_code}}" alt="QR Code" />
+            </div>
+          </div>
+          <p class="signer-name">{{signer2_name}}</p>
+          <p class="signer-role">{{signer2_jabatan}}</p>
+          <p class="signer-nip">{{signer2_nip}}</p>
+          <p class="signer-institution">Universitas Muhammadiyah Cirebon</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

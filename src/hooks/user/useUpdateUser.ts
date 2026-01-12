@@ -17,21 +17,37 @@ export function useUpdateUser() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: UpdateUserData) => {
-      const { data: result, error } = await supabase
-        .from("users")
-        .update({
-          email: data.email,
-          name: data.name,
-          role: data.role,
-          nip: data.nip || null,
-          jabatan: data.jabatan || null,
-        })
-        .eq("id", id)
-        .select()
-        .single();
+      try {
+        // Call Edge Function to update user (bypasses RLS)
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({
+              id,
+              email: data.email,
+              name: data.name,
+              role: data.role,
+              nip: data.nip || null,
+              jabatan: data.jabatan || null,
+            }),
+          }
+        );
 
-      if (error) throw error;
-      return result;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Gagal memperbarui pengguna");
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

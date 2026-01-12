@@ -59,7 +59,7 @@ const Index = () => {
   // Fetch user role when session is available
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (!session?.user?.id) {
+      if (!session?.user?.email) {
         setUserRole(null);
         return;
       }
@@ -67,11 +67,11 @@ const Index = () => {
       try {
         setError(null);
 
-        // Check if user exists in the users table
+        // Check if user exists in the users table by email
         const { data: userData, error: userError } = await supabase
           .from("users")
-          .select("role, name, email")
-          .eq("id", session.user.id)
+          .select("id, role, name, email")
+          .eq("email", session.user.email)
           .maybeSingle();
 
         if (userError) {
@@ -86,22 +86,38 @@ const Index = () => {
           // User not registered in system
           console.log("User not found in database - access denied");
           setError(
-            "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda.",
+            "Email Anda tidak terdaftar dalam sistem CA UMC. Silakan hubungi administrator untuk mendaftarkan akun Anda."
           );
           // Sign out user
           await supabase.auth.signOut();
           return;
         }
 
-        // User found, set role and log login
-        setUserRole(userData.role);
+        // Sync user ID if different
+        if (userData.id !== session.user.id) {
+          console.log(
+            "Syncing user ID from",
+            userData.id,
+            "to",
+            session.user.id
+          );
+          const { error: syncError } = await (supabase.rpc as any)(
+            "sync_user_id_by_email",
+            {
+              p_email: session.user.email,
+              p_new_id: session.user.id,
+            }
+          );
+          if (syncError) {
+            console.error("Error syncing user ID:", syncError);
+            setError("Terjadi kesalahan saat sinkronisasi akun");
+            await supabase.auth.signOut();
+            return;
+          }
+        }
 
-        // Update last login in audit trail
-        await supabase.rpc("create_audit_entry", {
-          p_user_id: session.user.id,
-          p_action: "USER_LOGIN",
-          p_description: `User logged in: ${userData.name}`,
-        });
+        // User found, set role
+        setUserRole(userData.role);
       } catch (err) {
         console.error("Unexpected error:", err);
         setError("Terjadi kesalahan yang tidak terduga");
@@ -128,10 +144,7 @@ const Index = () => {
   if (error && !session) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Alert
-          variant="destructive"
-          className="max-w-md"
-        >
+        <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {error}. Silakan refresh halaman atau hubungi administrator.
@@ -156,10 +169,7 @@ const Index = () => {
     if (error) {
       return (
         <div className="flex items-center justify-center min-h-screen p-4">
-          <Alert
-            variant="destructive"
-            className="max-w-md"
-          >
+          <Alert variant="destructive" className="max-w-md">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}. Silakan refresh halaman atau hubungi administrator.
